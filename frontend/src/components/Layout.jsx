@@ -14,7 +14,7 @@ export default function Layout({ children }) {
   const location = useLocation()
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
 
-  const handleLogout = () => {
+  const cerrarSesion = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('usuario')
     navigate('/login')
@@ -53,9 +53,12 @@ export default function Layout({ children }) {
           <div className="px-3 py-2 mb-1">
             <p className="text-sm font-medium text-gray-700 truncate">{usuario.nombre}</p>
             <p className="text-xs text-gray-400 capitalize">{usuario.rol}</p>
+            {usuario.sucursal_nombre && (
+              <p className="text-xs text-purple-500 font-medium mt-0.5">{usuario.sucursal_nombre}</p>
+            )}
           </div>
           <button
-            onClick={handleLogout}
+            onClick={cerrarSesion}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-500 hover:bg-red-50 transition"
           >
             <span>🚪</span> Cerrar sesión

@@ -11,8 +11,9 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError('')
+    e.stopPropagation()
     setLoading(true)
+    setError('')
 
     try {
       const data = await authService.login(email, password)
@@ -20,8 +21,7 @@ export default function Login() {
       localStorage.setItem('usuario', JSON.stringify(data.usuario))
       navigate('/dashboard')
     } catch (err) {
-      setError(err.response?.data?.detail || 'Error al iniciar sesión')
-    } finally {
+      setError(err.response?.data?.detail || 'Correo o contraseña incorrectos')
       setLoading(false)
     }
   }
@@ -35,7 +35,7 @@ export default function Login() {
           <p className="text-gray-500 text-sm mt-1">Clases de Regularización</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Correo electrónico
@@ -46,7 +46,6 @@ export default function Login() {
               onChange={(e) => setEmail(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
               placeholder="tu@correo.com"
-              required
             />
           </div>
 
@@ -60,22 +59,24 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
               placeholder="••••••••"
-              required
             />
           </div>
 
           {error && (
-            <p className="text-red-500 text-sm text-center">{error}</p>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-600 text-sm text-center">
+              {error}
+            </div>
           )}
 
           <button
-            type="submit"
-            disabled={loading}
+            type="button"
+            onClick={handleSubmit}
+            disabled={loading || !email || !password}
             className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white font-semibold py-2 rounded-lg transition"
           >
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
-        </form>
+        </div>
 
       </div>
     </div>

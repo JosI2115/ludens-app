@@ -20,7 +20,8 @@ class UsuarioCreate(BaseModel):
 
 @router.post("/login")
 def login(request: LoginRequest, db: Session = Depends(get_db)):
-    usuario = db.query(Usuario).filter(Usuario.email == request.email).first()
+    from sqlalchemy.orm import joinedload
+    usuario = db.query(Usuario).options(joinedload(Usuario.sucursal)).filter(Usuario.email == request.email).first()
     
     if not usuario or not verificar_password(request.password, usuario.password_hash):
         raise HTTPException(
@@ -49,7 +50,8 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
             "nombre": usuario.nombre,
             "email": usuario.email,
             "rol": usuario.rol,
-            "sucursal_id": str(usuario.sucursal_id) if usuario.sucursal_id else None
+            "sucursal_id": str(usuario.sucursal_id) if usuario.sucursal_id else None,
+            "sucursal_nombre": usuario.sucursal.nombre if usuario.sucursal_id and usuario.sucursal else None
         }
     }
 

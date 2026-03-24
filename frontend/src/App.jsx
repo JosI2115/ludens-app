@@ -3,6 +3,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Alumnos from './pages/Alumnos'
 import Pagos from './pages/Pagos'
+import Asistencias from './pages/Asistencias'
 import Layout from './components/Layout'
 
 function PrivateRoute({ children }) {
@@ -22,6 +23,7 @@ function App() {
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/alumnos" element={<PrivateRoute><Alumnos /></PrivateRoute>} />
         <Route path="/pagos" element={<PrivateRoute><Pagos /></PrivateRoute>} />
+        <Route path="/asistencias" element={<PrivateRoute><Asistencias /></PrivateRoute>} />
       </Routes>
     </BrowserRouter>
   )

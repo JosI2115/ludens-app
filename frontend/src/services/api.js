@@ -46,5 +46,11 @@ export const pagosService = {
   registrar: (data) => api.post('/pagos/registrar', data),
 }
 
+export const asistenciasService = {
+  getDia: (fecha) => api.get('/asistencias/dia', { params: { fecha } }),
+  registrar: (data) => api.post('/asistencias/registrar', data),
+  resumen: (alumno_id, params) => api.get(`/asistencias/resumen/${alumno_id}`, { params }),
+}
+
 
 export default api

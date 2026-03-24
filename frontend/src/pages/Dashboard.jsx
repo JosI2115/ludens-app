@@ -36,7 +36,7 @@ export default function Dashboard() {
           Bienvenida, {usuario.nombre}
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <div className="bg-white rounded-xl shadow p-6 border-l-4 border-purple-500">
             <p className="text-gray-500 text-sm">Alumnos activos</p>
             <p className="text-3xl font-bold text-gray-800 mt-1">0</p>
@@ -49,6 +49,42 @@ export default function Dashboard() {
             <p className="text-gray-500 text-sm">En riesgo de baja</p>
             <p className="text-3xl font-bold text-gray-800 mt-1">0</p>
           </div>
+        </div>
+
+        <h3 className="text-lg font-bold text-gray-700 mb-4">Módulos</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <button
+            onClick={() => navigate('/alumnos')}
+            className="bg-white rounded-xl shadow p-6 text-center hover:shadow-md transition hover:border-purple-300 border border-transparent"
+          >
+            <div className="text-3xl mb-2">👨‍🎓</div>
+            <p className="font-medium text-gray-800">Alumnos</p>
+            <p className="text-xs text-gray-400 mt-1">Gestionar alumnos</p>
+          </button>
+          <button
+            disabled
+            className="bg-white rounded-xl shadow p-6 text-center opacity-50 cursor-not-allowed"
+          >
+            <div className="text-3xl mb-2">💰</div>
+            <p className="font-medium text-gray-800">Pagos</p>
+            <p className="text-xs text-gray-400 mt-1">Próximamente</p>
+          </button>
+          <button
+            disabled
+            className="bg-white rounded-xl shadow p-6 text-center opacity-50 cursor-not-allowed"
+          >
+            <div className="text-3xl mb-2">📋</div>
+            <p className="font-medium text-gray-800">Asistencias</p>
+            <p className="text-xs text-gray-400 mt-1">Próximamente</p>
+          </button>
+          <button
+            disabled
+            className="bg-white rounded-xl shadow p-6 text-center opacity-50 cursor-not-allowed"
+          >
+            <div className="text-3xl mb-2">📊</div>
+            <p className="font-medium text-gray-800">Reportes</p>
+            <p className="text-xs text-gray-400 mt-1">Próximamente</p>
+          </button>
         </div>
       </div>
     </div>

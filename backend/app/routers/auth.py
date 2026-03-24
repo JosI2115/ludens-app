@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from app.database import get_db
 from app.models.usuario import Usuario
 from app.auth.auth import verificar_password, crear_token, hashear_password
+from app.auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -76,3 +77,66 @@ def crear_usuario(data: UsuarioCreate, db: Session = Depends(get_db)):
 @router.get("/me")
 def me(db: Session = Depends(get_db)):
     return {"mensaje": "ruta funcionando"}
+
+@router.get("/dashboard/stats")
+def dashboard_stats(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.alumno import Alumno
+    from app.models.pago import Pago
+    from datetime import date
+    
+    hoy = date.today()
+    mes = hoy.month
+    anio = hoy.year
+
+    query = db.query(Alumno).filter(Alumno.activo == True)
+    
+    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+
+    todos = query.all()
+    
+    activos = [a for a in todos if a.situacion in ['activo', 'pendiente', 'en_riesgo', 'bloqueado']]
+    prospectos = [a for a in todos if a.situacion == 'prospecto']
+    
+    pagados = 0
+    pendientes = 0
+    en_riesgo = 0
+    bloqueados = 0
+
+    for alumno in activos:
+        pago = db.query(Pago).filter(
+            Pago.alumno_id == alumno.id,
+            Pago.mes == mes,
+            Pago.anio == anio
+        ).first()
+
+        if pago:
+            pagados += 1
+        elif alumno.dia_pago:
+            try:
+                fecha_pago = date(anio, mes, alumno.dia_pago)
+                dias = (hoy - fecha_pago).days
+                if dias > 10:
+                    bloqueados += 1
+                elif dias > 5:
+                    en_riesgo += 1
+                else:
+                    pendientes += 1
+            except:
+                pendientes += 1
+        else:
+            pendientes += 1
+
+    return {
+        "total_activos": len(activos),
+        "total_prospectos": len(prospectos),
+        "pagados": pagados,
+        "pendientes": pendientes,
+        "en_riesgo": en_riesgo,
+        "bloqueados": bloqueados,
+        "mes": mes,
+        "anio": anio,
+    }

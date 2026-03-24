@@ -53,4 +53,8 @@ export const asistenciasService = {
 }
 
 
+export const dashboardService = {
+  stats: () => api.get('/auth/dashboard/stats'),
+}
+
 export default api

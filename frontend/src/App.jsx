@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Alumnos from './pages/Alumnos'
+import Pagos from './pages/Pagos'
 import Layout from './components/Layout'
 
 function PrivateRoute({ children }) {
@@ -20,6 +21,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/alumnos" element={<PrivateRoute><Alumnos /></PrivateRoute>} />
+        <Route path="/pagos" element={<PrivateRoute><Pagos /></PrivateRoute>} />
       </Routes>
     </BrowserRouter>
   )

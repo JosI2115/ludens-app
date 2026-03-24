@@ -40,4 +40,11 @@ export const alumnosService = {
   darBaja: (id, motivo) => api.delete(`/alumnos/${id}`, { params: { motivo } }),
 }
 
+export const pagosService = {
+  getAll: (params) => api.get('/pagos/', { params }),
+  resumen: (params) => api.get('/pagos/resumen', { params }),
+  registrar: (data) => api.post('/pagos/registrar', data),
+}
+
+
 export default api

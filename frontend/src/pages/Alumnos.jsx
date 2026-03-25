@@ -167,17 +167,20 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
     telefono_tutor: alumno?.telefono_tutor || '',
     telefono_emergencia: alumno?.telefono_emergencia || '',
     sucursal_id: alumno?.sucursal_id || '',
+    maestra_id: alumno?.maestra_id || '',
     situacion: alumno?.situacion || 'prospecto',
     plan_pago: alumno?.plan_pago || '',
     materias: alumno?.materias || '',
     horas_semana: alumno?.horas_semana || '',
     dia_pago: alumno?.dia_pago || '',
     tiene_descuento_hermano: alumno?.tiene_descuento_hermano || false,
+    numero_hermano: alumno?.numero_hermano || 1,
     horario: alumno?.horario || '',
     fecha_diagnostico: alumno?.fecha_diagnostico || '',
     fecha_ingreso: alumno?.fecha_ingreso || '',
   })
   const [sucursales, setSucursales] = useState([])
+  const [maestras, setMaestras] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
@@ -186,6 +189,10 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
     cargarSucursales()
     if (!alumno && usuario.sucursal_id) {
       setForm(f => ({ ...f, sucursal_id: usuario.sucursal_id }))
+      cargarMaestras(usuario.sucursal_id)
+    }
+    if (alumno?.sucursal_id) {
+      cargarMaestras(alumno.sucursal_id)
     }
   }, [])
 
@@ -196,6 +203,17 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
       setSucursales(response.data)
     } catch (err) {
       console.error('Error cargando sucursales')
+    }
+  }
+
+  const cargarMaestras = async (sucursal_id) => {
+    if (!sucursal_id) return
+    try {
+      const { maestrasService } = await import('../services/api')
+      const response = await maestrasService.getPorSucursal(sucursal_id)
+      setMaestras(response.data)
+    } catch (err) {
+      console.error('Error cargando maestras')
     }
   }
 
@@ -326,12 +344,26 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Sucursal *</label>
-              <select name="sucursal_id" value={form.sucursal_id} onChange={handleChange} required
+              <select name="sucursal_id" value={form.sucursal_id} onChange={(e) => {
+                const val = e.target.value
+                setForm(f => ({ ...f, sucursal_id: val, maestra_id: '' }))
+                cargarMaestras(val)
+              }} required
                 disabled={usuario.rol !== 'directora' && usuario.rol !== 'contadora'}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 disabled:bg-gray-100">
                 <option value="">Seleccionar sucursal</option>
                 {sucursales.map(s => (
                   <option key={s.id} value={s.id}>{s.nombre}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Maestra asignada</label>
+              <select name="maestra_id" value={form.maestra_id} onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                <option value="">Sin asignar</option>
+                {maestras.map(m => (
+                  <option key={m.id} value={m.id}>{m.nombre} ({m.rol})</option>
                 ))}
               </select>
             </div>
@@ -395,11 +427,33 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
           </div>
 
-          <div className="flex items-center gap-2">
-            <input name="tiene_descuento_hermano" type="checkbox"
-              checked={form.tiene_descuento_hermano} onChange={handleChange}
-              className="w-4 h-4 text-purple-600" />
-            <label className="text-sm text-gray-700">Tiene descuento por hermano</label>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <input name="tiene_descuento_hermano" type="checkbox"
+                checked={form.tiene_descuento_hermano} onChange={handleChange}
+                className="w-4 h-4 text-purple-600" />
+              <label className="text-sm text-gray-700">Tiene descuento por hermano</label>
+            </div>
+
+            {form.tiene_descuento_hermano && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Número de hermano</label>
+                <select name="numero_hermano" value={form.numero_hermano} onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                  <option value={1}>Hermano 1 (precio completo)</option>
+                  <option value={2}>Hermano 2 (30% descuento)</option>
+                  <option value={3}>Hermano 3 (15% descuento)</option>
+                  <option value={4}>Hermano 4 (5% descuento)</option>
+                </select>
+                {form.plan_pago && form.numero_hermano > 1 && (
+                  <div className="mt-2 bg-green-50 border border-green-200 rounded-lg p-2 text-xs text-green-700">
+                    {form.numero_hermano == 2 && `Paga: $${form.plan_pago == '900' ? '630' : form.plan_pago == '1200' ? '840' : '1050'}/mes (30% desc)`}
+                    {form.numero_hermano == 3 && `Paga: $${form.plan_pago == '900' ? '765' : form.plan_pago == '1200' ? '1020' : '1275'}/mes (15% desc)`}
+                    {form.numero_hermano == 4 && `Paga: $${form.plan_pago == '900' ? '855' : form.plan_pago == '1200' ? '1140' : '1425'}/mes (5% desc)`}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}

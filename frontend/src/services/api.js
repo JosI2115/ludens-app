@@ -66,4 +66,8 @@ export const sucursalesService = {
   getAll: () => api.get('/sucursales/'),
 }
 
+export const maestrasService = {
+  getPorSucursal: (sucursal_id) => api.get(`/usuarios/sucursal/${sucursal_id}/maestras`),
+}
+
 export default api

@@ -32,6 +32,7 @@ class Alumno(Base):
     motivo_baja = Column(Text)
     ultima_asistencia = Column(Date)
     horario = Column(Text)
+    numero_hermano = Column(Integer, default=1)
     activo = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

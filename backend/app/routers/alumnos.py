@@ -33,6 +33,7 @@ class AlumnoCreate(BaseModel):
     fecha_diagnostico: Optional[date] = None
     fecha_ingreso: Optional[date] = None
     horario: Optional[str] = None
+    numero_hermano: Optional[int] = 1
 
     class Config:
         anystr_strip_whitespace = True
@@ -57,6 +58,7 @@ class AlumnoUpdate(BaseModel):
     fecha_ingreso: Optional[date] = None
     horario: Optional[str] = None
     motivo_baja: Optional[str] = None
+    numero_hermano: Optional[int] = None
 
 @router.get("/")
 def get_alumnos(
@@ -96,19 +98,33 @@ def crear_alumno(
     current_user: Usuario = Depends(get_current_user)
 ):
     datos = data.dict()
-    
+
+    # Calcular monto real con descuento por hermano
+    DESCUENTOS = {
+        '900':  {1: 900,  2: 630,  3: 765,  4: 855},
+        '1200': {1: 1200, 2: 840,  3: 1020, 4: 1140},
+        '1500': {1: 1500, 2: 1050, 3: 1275, 4: 1425},
+    }
+
+    plan = datos.get('plan_pago')
+    hermano = datos.get('numero_hermano', 1) or 1
+
+    if plan and str(plan) in DESCUENTOS:
+        monto_real = DESCUENTOS[str(plan)][hermano]
+        datos['plan_pago'] = str(monto_real)
+
     # Limpiar campos UUID vacíos
     if not datos.get('sucursal_id') or datos['sucursal_id'] == '':
         if current_user.sucursal_id:
             datos['sucursal_id'] = str(current_user.sucursal_id)
         else:
             datos['sucursal_id'] = None
-    
+
     if not datos.get('maestra_id') or datos['maestra_id'] == '':
         datos['maestra_id'] = None
 
     # Limpiar campos vacíos
-    for campo in ['grado', 'diagnostico', 'telefono_emergencia', 'horario', 'plan_pago', 'materias']:
+    for campo in ['grado', 'diagnostico', 'telefono_emergencia', 'horario', 'materias']:
         if datos.get(campo) == '':
             datos[campo] = None
 

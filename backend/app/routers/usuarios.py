@@ -48,3 +48,15 @@ def actualizar_usuario(
     db.commit()
     db.refresh(usuario)
     return usuario
+
+@router.get("/sucursal/{sucursal_id}/maestras")
+def get_maestras_sucursal(
+    sucursal_id: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    return db.query(Usuario).filter(
+        Usuario.sucursal_id == sucursal_id,
+        Usuario.rol.in_(["maestra", "encargada"]),
+        Usuario.activo == True
+    ).order_by(Usuario.nombre).all()

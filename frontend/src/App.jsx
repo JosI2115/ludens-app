@@ -5,6 +5,7 @@ import Alumnos from './pages/Alumnos'
 import Pagos from './pages/Pagos'
 import Asistencias from './pages/Asistencias'
 import Usuarios from './pages/Usuarios'
+import PerfilAlumno from './pages/PerfilAlumno'
 import Layout from './components/Layout'
 
 function PrivateRoute({ children }) {
@@ -23,6 +24,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/alumnos" element={<PrivateRoute><Alumnos /></PrivateRoute>} />
+        <Route path="/alumnos/:id" element={<PrivateRoute><PerfilAlumno /></PrivateRoute>} />
         <Route path="/pagos" element={<PrivateRoute><Pagos /></PrivateRoute>} />
         <Route path="/asistencias" element={<PrivateRoute><Asistencias /></PrivateRoute>} />
         <Route path="/usuarios" element={<PrivateRoute><Usuarios /></PrivateRoute>} />

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { alumnosService } from '../services/api'
 
 const SITUACION_COLORES = {
@@ -22,6 +23,7 @@ const SITUACION_LABELS = {
 }
 
 export default function Alumnos() {
+  const navigate = useNavigate()
   const [alumnos, setAlumnos] = useState([])
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
@@ -113,8 +115,8 @@ export default function Alumnos() {
             <tbody className="divide-y divide-gray-100">
               {alumnosFiltrados.map((alumno) => (
                 <tr key={alumno.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-gray-800">{alumno.nombre} {alumno.apellido}</p>
+                  <td className="px-4 py-3 cursor-pointer" onClick={() => navigate(`/alumnos/${alumno.id}`)}>
+                    <p className="font-medium text-purple-600 hover:text-purple-800">{alumno.nombre} {alumno.apellido}</p>
                     <p className="text-gray-400 text-xs">{alumno.grado} · {alumno.edad} años</p>
                   </td>
                   <td className="px-4 py-3">

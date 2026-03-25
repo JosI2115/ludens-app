@@ -180,3 +180,83 @@ def dar_baja_alumno(
     alumno.activo = False
     db.commit()
     return {"mensaje": "Alumno dado de baja correctamente"}
+
+@router.get("/{alumno_id}/perfil")
+def get_perfil_alumno(
+    alumno_id: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.pago import Pago
+    from app.models.asistencia import Asistencia
+    from app.models.historial import HistorialCambio
+    from datetime import date
+
+    alumno = db.query(Alumno).filter(Alumno.id == alumno_id, Alumno.activo == True).first()
+    if not alumno:
+        raise HTTPException(status_code=404, detail="Alumno no encontrado")
+
+    pagos = db.query(Pago).filter(
+        Pago.alumno_id == alumno.id
+    ).order_by(Pago.anio.desc(), Pago.mes.desc()).all()
+
+    asistencias = db.query(Asistencia).filter(
+        Asistencia.alumno_id == alumno.id
+    ).order_by(Asistencia.fecha.desc()).limit(30).all()
+
+    historial = db.query(HistorialCambio).filter(
+        HistorialCambio.alumno_id == alumno.id
+    ).order_by(HistorialCambio.created_at.desc()).limit(20).all()
+
+    presentes = sum(1 for a in asistencias if a.asistio)
+    ausentes = sum(1 for a in asistencias if not a.asistio)
+
+    return {
+        "alumno": {
+            "id": str(alumno.id),
+            "nombre": alumno.nombre,
+            "apellido": alumno.apellido,
+            "edad": alumno.edad,
+            "grado": alumno.grado,
+            "diagnostico": alumno.diagnostico,
+            "nombre_tutor": alumno.nombre_tutor,
+            "telefono_tutor": alumno.telefono_tutor,
+            "telefono_emergencia": alumno.telefono_emergencia,
+            "situacion": alumno.situacion,
+            "plan_pago": alumno.plan_pago,
+            "materias": alumno.materias,
+            "dia_pago": alumno.dia_pago,
+            "horario": alumno.horario,
+            "fecha_ingreso": str(alumno.fecha_ingreso) if alumno.fecha_ingreso else None,
+            "fecha_diagnostico": str(alumno.fecha_diagnostico) if alumno.fecha_diagnostico else None,
+            "tiene_descuento_hermano": alumno.tiene_descuento_hermano,
+            "numero_hermano": alumno.numero_hermano,
+            "sucursal_id": str(alumno.sucursal_id) if alumno.sucursal_id else None,
+        },
+        "pagos": [{
+            "id": str(p.id),
+            "mes": p.mes,
+            "anio": p.anio,
+            "monto": float(p.monto),
+            "fecha_pago": str(p.fecha_pago) if p.fecha_pago else None,
+            "con_penalizacion": p.con_penalizacion,
+            "monto_penalizacion": float(p.monto_penalizacion),
+            "comentarios": p.comentarios,
+        } for p in pagos],
+        "asistencias_resumen": {
+            "total": len(asistencias),
+            "presentes": presentes,
+            "ausentes": ausentes,
+            "porcentaje": round((presentes / len(asistencias) * 100) if asistencias else 0, 1)
+        },
+        "asistencias": [{
+            "fecha": str(a.fecha),
+            "asistio": a.asistio,
+        } for a in asistencias],
+        "historial": [{
+            "campo": h.campo_modificado,
+            "anterior": h.valor_anterior,
+            "nuevo": h.valor_nuevo,
+            "fecha": str(h.created_at),
+        } for h in historial],
+    }

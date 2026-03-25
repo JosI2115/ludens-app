@@ -35,6 +35,7 @@ export const authService = {
 export const alumnosService = {
   getAll: (params) => api.get('/alumnos/', { params }),
   getOne: (id) => api.get(`/alumnos/${id}`),
+  getPerfil: (id) => api.get(`/alumnos/${id}/perfil`),
   crear: (data) => api.post('/alumnos/', data),
   actualizar: (id, data) => api.put(`/alumnos/${id}`, data),
   darBaja: (id, motivo) => api.delete(`/alumnos/${id}`, { params: { motivo } }),

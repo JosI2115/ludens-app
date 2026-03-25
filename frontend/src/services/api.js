@@ -57,4 +57,13 @@ export const dashboardService = {
   stats: () => api.get('/auth/dashboard/stats'),
 }
 
+export const usuariosService = {
+  getAll: () => api.get('/usuarios/'),
+  actualizar: (id, data) => api.put(`/usuarios/${id}`, data),
+}
+
+export const sucursalesService = {
+  getAll: () => api.get('/sucursales/'),
+}
+
 export default api

@@ -34,6 +34,8 @@ class Alumno(Base):
     horario = Column(Text)
     numero_hermano = Column(Integer, default=1)
     activo = Column(Boolean, default=True)
+    programa_lectura = Column(String(20), nullable=True)
+    programa_matematicas = Column(String(20), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     sucursal = relationship("Sucursal", back_populates="alumnos")

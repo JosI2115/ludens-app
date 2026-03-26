@@ -4,3 +4,5 @@ from app.models.sucursal import Sucursal
 from app.models.pago import Pago
 from app.models.asistencia import Asistencia
 from app.models.historial import HistorialCambio
+from app.models.catalogo import ProgramaCatalogo
+from app.models.bitacora import Bitacora

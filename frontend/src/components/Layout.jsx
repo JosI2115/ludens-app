@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 const menuItems = [
   { path: '/dashboard', icon: '🏠', label: 'Inicio' },
   { path: '/alumnos', icon: '👨‍🎓', label: 'Alumnos' },
+  { path: '/bitacoras', icon: '📒', label: 'Bitácoras' },
   { path: '/pagos', icon: '💰', label: 'Pagos', roles: ['directora', 'encargada', 'recepcionista', 'contadora'] },
   { path: '/asistencias', icon: '📋', label: 'Asistencias', roles: ['directora', 'encargada', 'maestra', 'recepcionista'] },
   { path: '/reportes', icon: '📊', label: 'Reportes', roles: ['directora', 'contadora'] },

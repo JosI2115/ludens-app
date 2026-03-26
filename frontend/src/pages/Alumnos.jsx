@@ -180,6 +180,8 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
     horario: alumno?.horario || '',
     fecha_diagnostico: alumno?.fecha_diagnostico || '',
     fecha_ingreso: alumno?.fecha_ingreso || '',
+    programa_lectura: alumno?.programa_lectura || '',
+    programa_matematicas: alumno?.programa_matematicas || '',
   })
   const [sucursales, setSucursales] = useState([])
   const [maestras, setMaestras] = useState([])
@@ -427,6 +429,97 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
             <input name="horario" value={form.horario} onChange={handleChange}
               placeholder="Ej: Lunes y Miércoles 11:00 - 12:00"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Programa de Lectura</label>
+              <select name="programa_lectura" value={form.programa_lectura || ''} onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                <option value="">Sin programa</option>
+                <optgroup label="Preescolar">
+                  <option value="LPREEA">LPREEA</option>
+                  <option value="LPREEB">LPREEB</option>
+                  <option value="LPREEC">LPREEC</option>
+                  <option value="LPREED">LPREED</option>
+                  <option value="LPREER">LPREER</option>
+                </optgroup>
+                <optgroup label="Primaria 1">
+                  <option value="L1A">L1A</option><option value="L1B">L1B</option><option value="L1C">L1C</option>
+                  <option value="L1D">L1D</option><option value="L1E">L1E</option><option value="L1R">L1R</option>
+                </optgroup>
+                <optgroup label="Primaria 2">
+                  <option value="L2A">L2A</option><option value="L2B">L2B</option><option value="L2C">L2C</option>
+                  <option value="L2D">L2D</option><option value="L2E">L2E</option><option value="L2R">L2R</option>
+                </optgroup>
+                <optgroup label="Primaria 3">
+                  <option value="L3A">L3A</option><option value="L3B">L3B</option><option value="L3C">L3C</option>
+                  <option value="L3D">L3D</option><option value="L3E">L3E</option><option value="L3R">L3R</option>
+                </optgroup>
+                <optgroup label="Primaria 4">
+                  <option value="L4A">L4A</option><option value="L4B">L4B</option><option value="L4C">L4C</option>
+                  <option value="L4D">L4D</option><option value="L4E">L4E</option><option value="L4R">L4R</option>
+                </optgroup>
+                <optgroup label="Primaria 5">
+                  <option value="L5A">L5A</option><option value="L5B">L5B</option><option value="L5C">L5C</option>
+                  <option value="L5D">L5D</option><option value="L5E">L5E</option><option value="L5R">L5R</option>
+                </optgroup>
+                <optgroup label="Primaria 6">
+                  <option value="L6A">L6A</option><option value="L6B">L6B</option><option value="L6C">L6C</option>
+                  <option value="L6D">L6D</option><option value="L6E">L6E</option><option value="L6R">L6R</option>
+                </optgroup>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Programa de Matemáticas</label>
+              <select name="programa_matematicas" value={form.programa_matematicas || ''} onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                <option value="">Sin programa</option>
+                <optgroup label="Preescolar">
+                  <option value="MATPREEA">MATPREEA</option>
+                  <option value="MATPREEB">MATPREEB</option>
+                  <option value="MATPREEC">MATPREEC</option>
+                  <option value="MATPREED">MATPREED</option>
+                  <option value="MATPREER">MATPREER</option>
+                </optgroup>
+                <optgroup label="Primaria 1">
+                  <option value="MAT1A">MAT1A</option><option value="MAT1B">MAT1B</option><option value="MAT1C">MAT1C</option>
+                  <option value="MAT1D">MAT1D</option><option value="MAT1E">MAT1E</option><option value="MAT1R">MAT1R</option>
+                </optgroup>
+                <optgroup label="Primaria 2">
+                  <option value="MAT2A">MAT2A</option><option value="MAT2B">MAT2B</option><option value="MAT2C">MAT2C</option>
+                  <option value="MAT2D">MAT2D</option><option value="MAT2E">MAT2E</option><option value="MAT2R">MAT2R</option>
+                </optgroup>
+                <optgroup label="Primaria 3">
+                  <option value="MAT3A">MAT3A</option><option value="MAT3B">MAT3B</option><option value="MAT3C">MAT3C</option>
+                  <option value="MAT3D">MAT3D</option><option value="MAT3E">MAT3E</option><option value="MAT3R">MAT3R</option>
+                </optgroup>
+                <optgroup label="Primaria 4">
+                  <option value="MAT4A">MAT4A</option><option value="MAT4B">MAT4B</option><option value="MAT4C">MAT4C</option>
+                  <option value="MAT4D">MAT4D</option><option value="MAT4E">MAT4E</option><option value="MAT4R">MAT4R</option>
+                </optgroup>
+                <optgroup label="Primaria 5">
+                  <option value="MAT5A">MAT5A</option><option value="MAT5B">MAT5B</option><option value="MAT5C">MAT5C</option>
+                  <option value="MAT5D">MAT5D</option><option value="MAT5E">MAT5E</option><option value="MAT5R">MAT5R</option>
+                </optgroup>
+                <optgroup label="Primaria 6">
+                  <option value="MAT6A">MAT6A</option><option value="MAT6B">MAT6B</option><option value="MAT6C">MAT6C</option>
+                  <option value="MAT6D">MAT6D</option><option value="MAT6E">MAT6E</option><option value="MAT6R">MAT6R</option>
+                </optgroup>
+                <optgroup label="Secundaria 1">
+                  <option value="MATSEC1A">MATSEC1A</option><option value="MATSEC1B">MATSEC1B</option><option value="MATSEC1C">MATSEC1C</option>
+                  <option value="MATSEC1D">MATSEC1D</option><option value="MATSEC1E">MATSEC1E</option><option value="MATSEC1R">MATSEC1R</option>
+                </optgroup>
+                <optgroup label="Secundaria 2">
+                  <option value="MATSEC2A">MATSEC2A</option><option value="MATSEC2B">MATSEC2B</option><option value="MATSEC2C">MATSEC2C</option>
+                  <option value="MATSEC2D">MATSEC2D</option><option value="MATSEC2E">MATSEC2E</option><option value="MATSEC2R">MATSEC2R</option>
+                </optgroup>
+                <optgroup label="Secundaria 3">
+                  <option value="MATSEC3A">MATSEC3A</option><option value="MATSEC3B">MATSEC3B</option><option value="MATSEC3C">MATSEC3C</option>
+                  <option value="MATSEC3D">MATSEC3D</option><option value="MATSEC3E">MATSEC3E</option><option value="MATSEC3R">MATSEC3R</option>
+                </optgroup>
+              </select>
+            </div>
           </div>
 
           <div className="space-y-3">

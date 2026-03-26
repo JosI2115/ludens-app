@@ -71,4 +71,12 @@ export const maestrasService = {
   getPorSucursal: (sucursal_id) => api.get(`/usuarios/sucursal/${sucursal_id}/maestras`),
 }
 
+export const bitacorasService = {
+  getAlumno: (alumno_id) => api.get(`/bitacoras/alumno/${alumno_id}`),
+  actualizarRegistro: (alumno_id, nomenclatura, data) =>
+    api.put(`/bitacoras/registro/${alumno_id}/${encodeURIComponent(nomenclatura)}`, data),
+  getProgramas: () => api.get('/bitacoras/programas'),
+  getVistaMaestra: (params) => api.get('/bitacoras/vista-maestra', { params }),
+}
+
 export default api

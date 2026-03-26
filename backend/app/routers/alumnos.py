@@ -59,6 +59,8 @@ class AlumnoUpdate(BaseModel):
     horario: Optional[str] = None
     motivo_baja: Optional[str] = None
     numero_hermano: Optional[int] = None
+    programa_lectura: Optional[str] = None
+    programa_matematicas: Optional[str] = None
 
 @router.get("/")
 def get_alumnos(

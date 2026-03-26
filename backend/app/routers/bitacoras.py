@@ -36,7 +36,15 @@ def get_bitacora_alumno(
 
         actividades_catalogo = db.query(ProgramaCatalogo).filter(
             ProgramaCatalogo.programa == prog_nombre
-        ).order_by(ProgramaCatalogo.semana, ProgramaCatalogo.nomenclatura).all()
+        ).order_by(ProgramaCatalogo.semana).all()
+
+        actividades_catalogo = sorted(
+            actividades_catalogo,
+            key=lambda x: (
+                x.semana or 0,
+                int(x.nomenclatura.split('.')[-1]) if x.nomenclatura.split('.')[-1].isdigit() else 0
+            )
+        )
 
         actividades = []
         for act_cat in actividades_catalogo:

@@ -38,9 +38,18 @@ def startup():
     from app.models.historial import HistorialCambio
     from app.models.sucursal import Sucursal
     from app.models.usuario import Usuario
+    from app.models.catalogo import ProgramaCatalogo
+    from app.models.bitacora import Bitacora
     from app.auth.auth import hashear_password
+    from sqlalchemy import text
 
     Base.metadata.create_all(bind=engine)
+
+    # Agregar columnas nuevas si no existen (para DBs existentes)
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programa_lectura VARCHAR(20)"))
+        conn.execute(text("ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programa_matematicas VARCHAR(20)"))
+        conn.commit()
 
     db = SessionLocal()
 

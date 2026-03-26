@@ -8,6 +8,7 @@ import Usuarios from './pages/Usuarios'
 import PerfilAlumno from './pages/PerfilAlumno'
 import Layout from './components/Layout'
 import Bitacoras from './pages/Bitacoras'
+import Expedientes from './pages/Expedientes'
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('token')
@@ -30,6 +31,7 @@ function App() {
         <Route path="/asistencias" element={<PrivateRoute><Asistencias /></PrivateRoute>} />
         <Route path="/usuarios" element={<PrivateRoute><Usuarios /></PrivateRoute>} />
         <Route path="/bitacoras" element={<PrivateRoute><Bitacoras /></PrivateRoute>} />
+        <Route path="/expedientes" element={<PrivateRoute><Expedientes /></PrivateRoute>} />
       </Routes>
     </BrowserRouter>
   )

@@ -44,6 +44,21 @@ def startup():
     from sqlalchemy import text
 
     Base.metadata.create_all(bind=engine)
+    
+    # Agregar columnas nuevas si no existen
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programa_lectura VARCHAR(20)"))
+            conn.execute(text("ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programa_matematicas VARCHAR(20)"))
+            conn.execute(text("ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS numero_hermano INTEGER DEFAULT 1"))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+    
+    # Crear tablas nuevas de bitácoras
+    from app.models.catalogo import ProgramaCatalogo
+    from app.models.bitacora import Bitacora
 
     # Agregar columnas nuevas si no existen (para DBs existentes)
     with engine.connect() as conn:

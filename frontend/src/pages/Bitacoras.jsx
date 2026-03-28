@@ -37,6 +37,8 @@ export default function Bitacoras() {
   const [fechaGlobal, setFechaGlobal] = useState('')
   const [filtraMaestra, setFiltraMaestra] = useState('')
   const [maestras, setMaestras] = useState([])
+  const [mostrarImpresion, setMostrarImpresion] = useState(false)
+  const [pendientesImpresion, setPendientesImpresion] = useState({})
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
 
   useEffect(() => {
@@ -103,6 +105,16 @@ export default function Bitacoras() {
     }
   }
 
+  const cargarPendientesImpresion = async () => {
+    try {
+      const res = await bitacorasService.getPendientesImpresion()
+      setPendientesImpresion(res.data)
+      setMostrarImpresion(true)
+    } catch (err) {
+      console.error('Error')
+    }
+  }
+
   const aplicarFechaGlobal = async () => {
     if (!fechaGlobal || !alumnoSeleccionado || !bitacora) return
     const promesas = []
@@ -128,7 +140,15 @@ export default function Bitacoras() {
     <div className="flex h-screen overflow-hidden">
       <div className="w-72 border-r border-gray-200 bg-white flex flex-col flex-shrink-0">
         <div className="p-4 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-gray-800 mb-3">Bitácoras</h2>
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-lg font-bold text-gray-800">Bitácoras</h2>
+            <button
+              onClick={cargarPendientesImpresion}
+              className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded-lg transition"
+            >
+              🖨️ Imprimir
+            </button>
+          </div>
           <input
             type="text"
             placeholder="Buscar alumno..."
@@ -385,6 +405,49 @@ export default function Bitacoras() {
           </div>
         ) : null}
       </div>
+      {mostrarImpresion && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-screen overflow-y-auto">
+          <div className="p-6 border-b flex justify-between items-center">
+            <h3 className="text-lg font-bold text-gray-800">🖨️ Pendientes de impresión</h3>
+            <button onClick={() => setMostrarImpresion(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+          </div>
+          <div className="p-6">
+            {Object.keys(pendientesImpresion).length === 0 ? (
+              <p className="text-center text-gray-400 py-8">No hay actividades pendientes de impresión</p>
+            ) : (
+              Object.entries(pendientesImpresion).map(([maestra, items]) => (
+                <div key={maestra} className="mb-6">
+                  <h4 className="font-bold text-gray-700 mb-3 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-purple-400 inline-block"></span>
+                    {maestra}
+                    <span className="text-xs text-gray-400 font-normal">({items.length} actividades)</span>
+                  </h4>
+                  <div className="space-y-2">
+                    {items.map((item, i) => (
+                      <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-2.5">
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">{item.alumno}</p>
+                          <p className="text-xs text-gray-500 font-mono">{item.nomenclatura}</p>
+                        </div>
+                        {item.drive_url ? (
+                          <a href={item.drive_url} target="_blank" rel="noopener noreferrer"
+                            className="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1 rounded-full transition flex-shrink-0">
+                            📁 Abrir Drive
+                          </a>
+                        ) : (
+                          <span className="text-xs text-gray-400">Sin URL</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+      )}
     </div>
   )
 }

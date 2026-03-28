@@ -78,6 +78,7 @@ export const bitacorasService = {
     api.put(`/bitacoras/registro/${alumno_id}/${encodeURIComponent(nomenclatura)}`, data),
   getProgramas: () => api.get('/bitacoras/programas'),
   getVistaMaestra: (params) => api.get('/bitacoras/vista-maestra', { params }),
+  getPendientesImpresion: () => api.get('/bitacoras/imprimir'),
 }
 
 export default api

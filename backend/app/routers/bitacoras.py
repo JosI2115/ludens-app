@@ -238,3 +238,38 @@ def cargar_catalogo_produccion(
         db.commit()
 
     return {"mensaje": f"✓ {len(registros)} actividades cargadas exitosamente"}
+
+@router.get("/imprimir")
+def get_pendientes_impresion(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.alumno import Alumno
+
+    query = db.query(Bitacora).filter(
+        Bitacora.estado == "Imprimir"
+    ).all()
+
+    resultado = {}
+    for reg in query:
+        alumno = db.query(Alumno).filter(Alumno.id == reg.alumno_id).first()
+        if not alumno:
+            continue
+
+        if current_user.rol in ["maestra", "encargada"] and alumno.sucursal_id != current_user.sucursal_id:
+            continue
+
+        maestra_nombre = reg.registrado_por_nombre or "Sin asignar"
+        if maestra_nombre not in resultado:
+            resultado[maestra_nombre] = []
+
+        resultado[maestra_nombre].append({
+            "alumno": f"{alumno.nombre} {alumno.apellido}",
+            "alumno_id": str(alumno.id),
+            "nomenclatura": reg.nomenclatura,
+            "programa": reg.programa,
+            "drive_url": reg.drive_url,
+            "actividad": reg.actividad,
+        })
+
+    return resultado

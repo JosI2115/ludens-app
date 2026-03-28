@@ -218,3 +218,35 @@ def dashboard_pendientes(
         })
 
     return pendientes
+
+@router.post("/admin/migrate")
+def migrate_db(
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if current_user.rol != "directora":
+        raise HTTPException(status_code=403, detail="Solo la directora")
+
+    from sqlalchemy import text
+    migraciones = [
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS domicilio TEXT",
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS escuela_procedencia VARCHAR(200)",
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS condicion_medica TEXT",
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS permiso_fotos BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS objetivos TEXT",
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programa_lectura VARCHAR(20)",
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programa_matematicas VARCHAR(20)",
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS numero_hermano INTEGER DEFAULT 1",
+    ]
+
+    resultados = []
+    with db.bind.connect() as conn:
+        for sql in migraciones:
+            try:
+                conn.execute(text(sql))
+                conn.commit()
+                resultados.append(f"OK: {sql[:60]}")
+            except Exception as e:
+                resultados.append(f"ERROR: {str(e)[:60]}")
+
+    return {"resultados": resultados}

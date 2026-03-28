@@ -28,11 +28,38 @@ def get_bitacora_alumno(
     if not alumno:
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
 
+    import json
     programas = []
-    for prog_field in ['programa_lectura', 'programa_matematicas']:
-        prog_nombre = getattr(alumno, prog_field)
-        if not prog_nombre:
-            continue
+
+    # Construir lista de programas: historial + actual
+    progs_lectura = []
+    progs_mat = []
+
+    if alumno.programas_lectura_historial:
+        try:
+            progs_lectura = json.loads(alumno.programas_lectura_historial)
+        except:
+            pass
+    if alumno.programa_lectura:
+        if alumno.programa_lectura not in progs_lectura:
+            progs_lectura.append(alumno.programa_lectura)
+
+    if alumno.programas_matematicas_historial:
+        try:
+            progs_mat = json.loads(alumno.programas_matematicas_historial)
+        except:
+            pass
+    if alumno.programa_matematicas:
+        if alumno.programa_matematicas not in progs_mat:
+            progs_mat.append(alumno.programa_matematicas)
+
+    todos_programas = (
+        [{"nombre": p, "tipo": "lectura"} for p in progs_lectura] +
+        [{"nombre": p, "tipo": "matematicas"} for p in progs_mat]
+    )
+
+    for prog_info in todos_programas:
+        prog_nombre = prog_info["nombre"]
 
         actividades_catalogo = db.query(ProgramaCatalogo).filter(
             ProgramaCatalogo.programa == prog_nombre
@@ -42,6 +69,7 @@ def get_bitacora_alumno(
             actividades_catalogo,
             key=lambda x: (
                 x.semana or 0,
+                x.nomenclatura.split('.')[-2] if len(x.nomenclatura.split('.')) > 2 else '',
                 int(x.nomenclatura.split('.')[-1]) if x.nomenclatura.split('.')[-1].isdigit() else 0
             )
         )
@@ -52,7 +80,6 @@ def get_bitacora_alumno(
                 Bitacora.alumno_id == alumno_id,
                 Bitacora.nomenclatura == act_cat.nomenclatura
             ).first()
-
             actividades.append({
                 "id": str(registro.id) if registro else None,
                 "nomenclatura": act_cat.nomenclatura,
@@ -66,12 +93,13 @@ def get_bitacora_alumno(
                 "registrado_por_nombre": registro.registrado_por_nombre if registro else None,
             })
 
-        programas.append({
-            "programa": prog_nombre,
-            "tipo": "lectura" if "MAT" not in prog_nombre else "matematicas",
-            "drive_url": actividades_catalogo[0].drive_url if actividades_catalogo else None,
-            "actividades": actividades
-        })
+        if actividades_catalogo:
+            programas.append({
+                "programa": prog_nombre,
+                "tipo": prog_info["tipo"],
+                "drive_url": actividades_catalogo[0].drive_url if actividades_catalogo else None,
+                "actividades": actividades
+            })
 
     return {
         "alumno_id": alumno_id,

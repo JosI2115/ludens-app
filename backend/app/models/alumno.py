@@ -41,6 +41,8 @@ class Alumno(Base):
     activo = Column(Boolean, default=True)
     programa_lectura = Column(String(20), nullable=True)
     programa_matematicas = Column(String(20), nullable=True)
+    programas_lectura_historial = Column(Text)  # JSON array de programas anteriores
+    programas_matematicas_historial = Column(Text)  # JSON array de programas anteriores
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     sucursal = relationship("Sucursal", back_populates="alumnos")

@@ -167,6 +167,33 @@ def actualizar_alumno(
                   'horario', 'domicilio', 'escuela_procedencia', 'condicion_medica', 'objetivos']:
         if campo in cambios and cambios[campo] == '':
             cambios[campo] = None
+
+    import json
+
+    # Si cambia programa_lectura, guardar el anterior en historial
+    if 'programa_lectura' in cambios and cambios['programa_lectura'] and cambios['programa_lectura'] != alumno.programa_lectura:
+        historial = []
+        if alumno.programas_lectura_historial:
+            try:
+                historial = json.loads(alumno.programas_lectura_historial)
+            except:
+                pass
+        if alumno.programa_lectura and alumno.programa_lectura not in historial:
+            historial.append(alumno.programa_lectura)
+        cambios['programas_lectura_historial'] = json.dumps(historial)
+
+    # Si cambia programa_matematicas, guardar el anterior en historial
+    if 'programa_matematicas' in cambios and cambios['programa_matematicas'] and cambios['programa_matematicas'] != alumno.programa_matematicas:
+        historial = []
+        if alumno.programas_matematicas_historial:
+            try:
+                historial = json.loads(alumno.programas_matematicas_historial)
+            except:
+                pass
+        if alumno.programa_matematicas and alumno.programa_matematicas not in historial:
+            historial.append(alumno.programa_matematicas)
+        cambios['programas_matematicas_historial'] = json.dumps(historial)
+
     for campo, valor_nuevo in cambios.items():
         valor_anterior = getattr(alumno, campo)
         if valor_anterior != valor_nuevo:

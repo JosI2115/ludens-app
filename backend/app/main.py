@@ -64,6 +64,8 @@ def startup():
     with engine.connect() as conn:
         conn.execute(text("ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programa_lectura VARCHAR(20)"))
         conn.execute(text("ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programa_matematicas VARCHAR(20)"))
+        conn.execute(text("ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programas_lectura_historial TEXT"))
+        conn.execute(text("ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programas_matematicas_historial TEXT"))
         conn.commit()
 
     db = SessionLocal()

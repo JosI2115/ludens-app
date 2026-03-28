@@ -550,6 +550,11 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
                   <option value="L6D">L6D</option><option value="L6E">L6E</option><option value="L6R">L6R</option>
                 </optgroup>
               </select>
+              {alumno?.programa_lectura && form.programa_lectura !== alumno.programa_lectura && form.programa_lectura && (
+                <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded mt-1">
+                  ⚠️ Cambiando de {alumno.programa_lectura} → {form.programa_lectura}. El anterior quedará en historial.
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Programa de Matemáticas</label>
@@ -600,6 +605,11 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
                   <option value="MATSEC3D">MATSEC3D</option><option value="MATSEC3E">MATSEC3E</option><option value="MATSEC3R">MATSEC3R</option>
                 </optgroup>
               </select>
+              {alumno?.programa_matematicas && form.programa_matematicas !== alumno.programa_matematicas && form.programa_matematicas && (
+                <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded mt-1">
+                  ⚠️ Cambiando de {alumno.programa_matematicas} → {form.programa_matematicas}. El anterior quedará en historial.
+                </p>
+              )}
             </div>
           </div>
 

@@ -6,6 +6,7 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
   const [stats, setStats] = useState(null)
+  const [pendientes, setPendientes] = useState([])
   const [loading, setLoading] = useState(true)
 
   const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
@@ -19,6 +20,8 @@ export default function Dashboard() {
     try {
       const res = await dashboardService.stats()
       setStats(res.data)
+      const pendientesRes = await dashboardService.pendientes()
+      setPendientes(pendientesRes.data)
     } catch (err) {
       console.error('Error cargando stats')
     } finally {
@@ -73,6 +76,29 @@ export default function Dashboard() {
               <p className="text-xs text-red-400 mt-1">+10 días sin pagar</p>
             </div>
           </div>
+
+          {pendientes.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-base font-bold text-gray-700 mb-4">Pendientes</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {pendientes.map((grupo, i) => (
+                  <div key={i} className="bg-white rounded-xl shadow p-5">
+                    <h4 className="font-bold text-gray-700 mb-3 text-sm">{grupo.categoria}</h4>
+                    <div className="space-y-2">
+                      {grupo.items.map((item, j) => (
+                        <div key={j} className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg ${
+                          item.urgente ? 'bg-red-50 text-red-700' : 'bg-gray-50 text-gray-700'
+                        }`}>
+                          {item.urgente && <span className="text-red-500 flex-shrink-0">⚠️</span>}
+                          <span className="flex-1">{item.mensaje}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <h3 className="text-base font-bold text-gray-700 mb-4">Accesos rápidos</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

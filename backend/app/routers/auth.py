@@ -140,3 +140,81 @@ def dashboard_stats(
         "mes": mes,
         "anio": anio,
     }
+
+@router.get("/dashboard/pendientes")
+def dashboard_pendientes(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.alumno import Alumno
+    from app.models.pago import Pago
+    from app.models.bitacora import Bitacora
+    from datetime import date
+
+    hoy = date.today()
+    mes = hoy.month
+    anio = hoy.year
+    pendientes = []
+
+    query = db.query(Alumno).filter(
+        Alumno.activo == True,
+        Alumno.situacion.in_(['activo', 'pendiente', 'en_riesgo', 'bloqueado'])
+    )
+    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+
+    alumnos = query.all()
+
+    # Alumnos sin pagar este mes
+    sin_pagar = []
+    for alumno in alumnos:
+        pago = db.query(Pago).filter(
+            Pago.alumno_id == alumno.id,
+            Pago.mes == mes,
+            Pago.anio == anio
+        ).first()
+        if not pago and alumno.dia_pago:
+            try:
+                fecha_pago = date(anio, mes, alumno.dia_pago)
+                if alumno.fecha_ingreso and alumno.fecha_ingreso > fecha_pago:
+                    continue
+                dias = (hoy - fecha_pago).days
+                if dias > 5:
+                    sin_pagar.append({
+                        "tipo": "pago",
+                        "mensaje": f"{alumno.nombre} {alumno.apellido} — {dias} días sin pagar",
+                        "urgente": dias > 10,
+                        "alumno_id": str(alumno.id)
+                    })
+            except:
+                pass
+
+    if sin_pagar:
+        pendientes.append({
+            "categoria": "💰 Pagos pendientes",
+            "items": sin_pagar[:5]
+        })
+
+    # Actividades por imprimir
+    bitacoras_imprimir = db.query(Bitacora).filter(
+        Bitacora.estado == "Imprimir"
+    ).all()
+
+    items_imprimir = []
+    for b in bitacoras_imprimir:
+        alumno = db.query(Alumno).filter(Alumno.id == b.alumno_id).first()
+        if alumno:
+            items_imprimir.append({
+                "tipo": "imprimir",
+                "mensaje": f"{alumno.nombre} {alumno.apellido} — {b.nomenclatura}",
+                "urgente": False,
+                "alumno_id": str(alumno.id)
+            })
+
+    if items_imprimir:
+        pendientes.append({
+            "categoria": "🖨️ Por imprimir",
+            "items": items_imprimir[:5]
+        })
+
+    return pendientes

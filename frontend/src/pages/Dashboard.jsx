@@ -33,6 +33,12 @@ export default function Dashboard() {
     }
   }
 
+  const cumpleanosHoy = cumpleanos.filter(a => {
+    const hoy = new Date()
+    const fecha = new Date(a.fecha_nacimiento + 'T12:00:00')
+    return fecha.getDate() === hoy.getDate() && fecha.getMonth() === hoy.getMonth()
+  })
+
   return (
     <div className="p-6">
       <div className="mb-8">
@@ -43,6 +49,31 @@ export default function Dashboard() {
           {usuario.rol} {usuario.sucursal_nombre ? `· ${usuario.sucursal_nombre}` : '· Todas las sucursales'}
         </p>
       </div>
+
+      {cumpleanosHoy.length > 0 && (
+        <div className="mb-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl p-4 text-white shadow-lg">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">🎂</span>
+            <div>
+              <p className="font-bold text-lg">
+                {cumpleanosHoy.length === 1
+                  ? `¡Hoy cumple años ${cumpleanosHoy[0].nombre}!`
+                  : `¡Hoy cumplen años ${cumpleanosHoy.length} alumnos!`}
+              </p>
+              {cumpleanosHoy.length > 1 && (
+                <p className="text-purple-100 text-sm mt-0.5">
+                  {cumpleanosHoy.map(a => a.nombre).join(', ')}
+                </p>
+              )}
+              {cumpleanosHoy.length === 1 && (
+                <p className="text-purple-100 text-sm mt-0.5">
+                  Cumple {cumpleanosHoy[0].edad_cumple} años hoy 🎉
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-12 text-gray-400">Cargando...</div>

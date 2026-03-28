@@ -57,6 +57,109 @@ export default function Expedientes() {
     }
   }
 
+  const generarPDF = () => {
+    const a = perfil.alumno
+    const pagosHTML = perfil.pagos.map(p => `
+      <tr>
+        <td>${['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][p.mes-1]} ${p.anio}</td>
+        <td>$${p.monto.toLocaleString()}</td>
+        <td>${p.fecha_pago || '—'}</td>
+        <td>${p.con_penalizacion ? '+$50' : 'No'}</td>
+      </tr>
+    `).join('')
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Expediente - ${a.nombre} ${a.apellido}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 30px; color: #333; font-size: 13px; }
+          .header { text-align: center; margin-bottom: 24px; border-bottom: 2px solid #7C3AED; padding-bottom: 16px; }
+          .header h1 { color: #7C3AED; font-size: 22px; margin: 0 0 4px; }
+          .header p { color: #666; margin: 0; }
+          .section { margin-bottom: 20px; }
+          .section h2 { font-size: 14px; color: #7C3AED; border-bottom: 1px solid #E5E7EB; padding-bottom: 6px; margin-bottom: 12px; }
+          .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+          .field { margin-bottom: 6px; }
+          .field label { font-weight: bold; color: #555; font-size: 11px; text-transform: uppercase; }
+          .field p { margin: 2px 0 0; }
+          .highlight { background: #F5F3FF; padding: 8px 12px; border-radius: 6px; margin-top: 8px; }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; }
+          th { background: #7C3AED; color: white; padding: 8px; text-align: left; }
+          td { padding: 6px 8px; border-bottom: 1px solid #E5E7EB; }
+          tr:nth-child(even) { background: #F9FAFB; }
+          .footer { margin-top: 30px; text-align: center; color: #999; font-size: 11px; border-top: 1px solid #E5E7EB; padding-top: 12px; }
+          @media print { body { padding: 15px; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>LUDENS — Expediente del Alumno</h1>
+          <p>${a.nombre} ${a.apellido} · ${a.grado} · ${a.edad} años</p>
+        </div>
+
+        <div class="section">
+          <h2>Datos Personales</h2>
+          <div class="grid">
+            <div class="field"><label>Nombre completo</label><p>${a.nombre} ${a.apellido}</p></div>
+            <div class="field"><label>Fecha de nacimiento</label><p>${a.fecha_nacimiento || '—'}</p></div>
+            <div class="field"><label>Grado</label><p>${a.grado || '—'}</p></div>
+            <div class="field"><label>Diagnóstico</label><p>${a.diagnostico || '—'}</p></div>
+            <div class="field"><label>Escuela de procedencia</label><p>${a.escuela_procedencia || '—'}</p></div>
+            <div class="field"><label>Domicilio</label><p>${a.domicilio || '—'}</p></div>
+            ${a.condicion_medica ? `<div class="field" style="grid-column:span 2"><label>⚠️ Condición médica</label><p style="color:#DC2626">${a.condicion_medica}</p></div>` : ''}
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Tutor</h2>
+          <div class="grid">
+            <div class="field"><label>Nombre del tutor</label><p>${a.nombre_tutor}</p></div>
+            <div class="field"><label>Teléfono</label><p>${a.telefono_tutor}</p></div>
+            <div class="field"><label>Tel. emergencia</label><p>${a.telefono_emergencia || '—'}</p></div>
+            <div class="field"><label>Permiso fotos</label><p>${a.permiso_fotos ? '✓ Autorizado' : '✗ No autorizado'}</p></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Plan Académico</h2>
+          <div class="grid">
+            <div class="field"><label>Plan de pago</label><p>$${a.plan_pago}/mes</p></div>
+            <div class="field"><label>Materias</label><p>${a.materias || '—'}</p></div>
+            <div class="field"><label>Horario</label><p>${a.horario || '—'}</p></div>
+            <div class="field"><label>Día de pago</label><p>Día ${a.dia_pago || '—'}</p></div>
+            <div class="field"><label>Programa Lectura</label><p>${a.programa_lectura || '—'}</p></div>
+            <div class="field"><label>Programa Matemáticas</label><p>${a.programa_matematicas || '—'}</p></div>
+            <div class="field"><label>Fecha ingreso</label><p>${a.fecha_ingreso || '—'}</p></div>
+            <div class="field"><label>Situación</label><p>${a.situacion}</p></div>
+          </div>
+          ${a.objetivos ? `<div class="highlight"><label style="font-weight:bold;font-size:11px;text-transform:uppercase;color:#555">Objetivos de trabajo</label><p style="margin:4px 0 0">${a.objetivos}</p></div>` : ''}
+        </div>
+
+        <div class="section">
+          <h2>Historial de Pagos</h2>
+          <table>
+            <thead><tr><th>Mes</th><th>Monto</th><th>Fecha pago</th><th>Penalización</th></tr></thead>
+            <tbody>${pagosHTML || '<tr><td colspan="4" style="text-align:center;color:#999">Sin pagos registrados</td></tr>'}</tbody>
+          </table>
+        </div>
+
+        <div class="footer">
+          <p>LUDENS Clases de Regularización · Generado el ${new Date().toLocaleDateString('es-MX', {year:'numeric',month:'long',day:'numeric'})}</p>
+        </div>
+      </body>
+      </html>
+    `
+
+    const ventana = window.open('', '_blank')
+    ventana.document.write(html)
+    ventana.document.close()
+    ventana.print()
+    ventana.onafterprint = () => ventana.close()
+  }
+
   const lista = tab === 'activos' ? alumnos : bajas
   const filtrados = lista.filter(a =>
     `${a.nombre} ${a.apellido}`.toLowerCase().includes(busqueda.toLowerCase())
@@ -138,10 +241,10 @@ export default function Expedientes() {
                   {perfil.alumno.situacion}
                 </span>
                 <button
-                  onClick={() => window.print()}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm transition"
+                  onClick={generarPDF}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition"
                 >
-                  🖨️ Imprimir
+                  📄 Generar expediente
                 </button>
                 <button
                   onClick={() => navigate(`/alumnos/${alumnoSeleccionado.id}`)}

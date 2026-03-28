@@ -14,32 +14,36 @@ router = APIRouter(prefix="/pagos", tags=["pagos"])
 def calcular_estado_pago(alumno, hoy=None):
     if hoy is None:
         hoy = date.today()
-    
+
     if not alumno.dia_pago:
         return "sin_fecha", 0
-    
+
     mes_actual = hoy.month
     anio_actual = hoy.year
-    
+
     try:
-        fecha_pago = date(anio_actual, mes_actual, alumno.dia_pago)
+        fecha_pago_este_mes = date(anio_actual, mes_actual, alumno.dia_pago)
     except ValueError:
-        fecha_pago = date(anio_actual, mes_actual, 28)
-    
-    dias_diff = (hoy - fecha_pago).days
-    
-    pago_este_mes = Pago if False else None
-    
-    if dias_diff < 0:
-        return "amarillo", dias_diff
-    elif dias_diff == 0:
-        return "rojo", 0
-    elif dias_diff <= 5:
-        return "rojo", dias_diff
-    elif dias_diff <= 10:
-        return "naranja", dias_diff
+        fecha_pago_este_mes = date(anio_actual, mes_actual, 28)
+
+    # Si el alumno ingresó después del día de pago de este mes,
+    # su primer pago es el mes siguiente — no está en mora
+    if alumno.fecha_ingreso and alumno.fecha_ingreso > fecha_pago_este_mes:
+        return "amarillo", 0
+
+    # Si la fecha de pago aún no llega este mes
+    if fecha_pago_este_mes >= hoy:
+        return "amarillo", 0
+
+    # La fecha de pago ya pasó — calcular días de retraso
+    dias_retraso = (hoy - fecha_pago_este_mes).days
+
+    if dias_retraso <= 5:
+        return "rojo", dias_retraso
+    elif dias_retraso <= 10:
+        return "naranja", dias_retraso
     else:
-        return "cafe", dias_diff
+        return "cafe", dias_retraso
 
 class PagoCreate(BaseModel):
     alumno_id: str

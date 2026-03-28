@@ -400,7 +400,9 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
                 <option value="">Seleccionar</option>
                 <option value="Lectura">Lectura</option>
                 <option value="Matematicas">Matemáticas</option>
-                <option value="Lectura y Matematicas">Lectura y Matemáticas</option>
+                {form.plan_pago !== '900' && (
+                  <option value="Lectura y Matematicas">Lectura y Matemáticas</option>
+                )}
               </select>
             </div>
             <div>

@@ -95,19 +95,45 @@ export default function PerfilAlumno() {
       </div>
 
       {tab === 'info' && (
-        <div className="bg-white rounded-xl shadow p-6">
-          <h3 className="font-bold text-gray-800 mb-4">Datos del alumno</h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div><p className="text-gray-500">Tutor</p><p className="font-medium">{alumno.nombre_tutor}</p></div>
-            <div><p className="text-gray-500">Teléfono tutor</p><p className="font-medium">{alumno.telefono_tutor}</p></div>
-            <div><p className="text-gray-500">Tel. emergencia</p><p className="font-medium">{alumno.telefono_emergencia || '—'}</p></div>
-            <div><p className="text-gray-500">Diagnóstico</p><p className="font-medium">{alumno.diagnostico || '—'}</p></div>
-            <div><p className="text-gray-500">Horario</p><p className="font-medium">{alumno.horario || '—'}</p></div>
-            <div><p className="text-gray-500">Fecha diagnóstico</p><p className="font-medium">{alumno.fecha_diagnostico || '—'}</p></div>
-            <div><p className="text-gray-500">Fecha ingreso</p><p className="font-medium">{alumno.fecha_ingreso || '—'}</p></div>
-            <div><p className="text-gray-500">Descuento hermano</p><p className="font-medium">{alumno.tiene_descuento_hermano ? 'Sí' : 'No'}</p></div>
+          <div className="bg-white rounded-xl shadow p-6">
+            <h3 className="font-bold text-gray-800 mb-4">Datos personales</h3>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div><p className="text-gray-500">Tutor</p><p className="font-medium">{alumno.nombre_tutor}</p></div>
+              <div><p className="text-gray-500">Teléfono tutor</p><p className="font-medium">{alumno.telefono_tutor}</p></div>
+              <div><p className="text-gray-500">Tel. emergencia</p><p className="font-medium">{alumno.telefono_emergencia || '—'}</p></div>
+              <div><p className="text-gray-500">Fecha nacimiento</p><p className="font-medium">{alumno.fecha_nacimiento || '—'}</p></div>
+              <div><p className="text-gray-500">Diagnóstico</p><p className="font-medium">{alumno.diagnostico || '—'}</p></div>
+              <div><p className="text-gray-500">Horario</p><p className="font-medium">{alumno.horario || '—'}</p></div>
+              <div><p className="text-gray-500">Fecha diagnóstico</p><p className="font-medium">{alumno.fecha_diagnostico || '—'}</p></div>
+              <div><p className="text-gray-500">Fecha ingreso</p><p className="font-medium">{alumno.fecha_ingreso || '—'}</p></div>
+              <div><p className="text-gray-500">Descuento hermano</p><p className="font-medium">{alumno.tiene_descuento_hermano ? `Sí (Hermano ${alumno.numero_hermano})` : 'No'}</p></div>
+              <div><p className="text-gray-500">Permiso fotos</p><p className="font-medium">{alumno.permiso_fotos ? '✓ Autorizado' : '✗ No autorizado'}</p></div>
+            </div>
+            {alumno.domicilio && (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <p className="text-gray-500 text-sm mb-1">Domicilio</p>
+                <p className="font-medium text-sm">{alumno.domicilio}</p>
+              </div>
+            )}
+            {alumno.escuela_procedencia && (
+              <div className="mt-3">
+                <p className="text-gray-500 text-sm mb-1">Escuela de procedencia</p>
+                <p className="font-medium text-sm">{alumno.escuela_procedencia}</p>
+              </div>
+            )}
+            {alumno.condicion_medica && (
+              <div className="mt-3">
+                <p className="text-gray-500 text-sm mb-1">Condición médica / Alergias</p>
+                <p className="font-medium text-sm bg-red-50 text-red-700 px-3 py-2 rounded-lg">{alumno.condicion_medica}</p>
+              </div>
+            )}
+            {alumno.objetivos && (
+              <div className="mt-3">
+                <p className="text-gray-500 text-sm mb-1">Objetivos de trabajo</p>
+                <p className="font-medium text-sm bg-purple-50 text-purple-700 px-3 py-2 rounded-lg">{alumno.objetivos}</p>
+              </div>
+            )}
           </div>
-        </div>
       )}
 
       {tab === 'pagos' && (

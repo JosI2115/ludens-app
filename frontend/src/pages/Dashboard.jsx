@@ -7,6 +7,8 @@ export default function Dashboard() {
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
   const [stats, setStats] = useState(null)
   const [pendientes, setPendientes] = useState([])
+  const [cumpleanos, setCumpleanos] = useState([])
+  const [mesCumple, setMesCumple] = useState(new Date().getMonth() + 1)
   const [loading, setLoading] = useState(true)
 
   const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
@@ -22,6 +24,8 @@ export default function Dashboard() {
       setStats(res.data)
       const pendientesRes = await dashboardService.pendientes()
       setPendientes(pendientesRes.data)
+      const cumpleRes = await dashboardService.cumpleanos(new Date().getMonth() + 1)
+      setCumpleanos(cumpleRes.data.alumnos)
     } catch (err) {
       console.error('Error cargando stats')
     } finally {
@@ -99,6 +103,43 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-base font-bold text-gray-700">🎂 Cumpleaños</h3>
+              <select
+                value={mesCumple}
+                onChange={async e => {
+                  const mes = parseInt(e.target.value)
+                  setMesCumple(mes)
+                  const res = await dashboardService.cumpleanos(mes)
+                  setCumpleanos(res.data.alumnos)
+                }}
+                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+              >
+                {['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'].map((m, i) => (
+                  <option key={i+1} value={i+1}>{m}</option>
+                ))}
+              </select>
+            </div>
+            <div className="bg-white rounded-xl shadow p-5">
+              {cumpleanos.length === 0 ? (
+                <p className="text-center text-gray-400 text-sm py-4">Sin cumpleaños este mes</p>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {cumpleanos.map((a, i) => (
+                    <div key={i} className="flex items-center gap-3 bg-purple-50 rounded-lg px-4 py-3">
+                      <div className="text-2xl font-bold text-purple-600 w-8 text-center">{a.dia}</div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{a.nombre}</p>
+                        <p className="text-xs text-gray-500">Cumple {a.edad_cumple} años</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
 
           <h3 className="text-base font-bold text-gray-700 mb-4">Accesos rápidos</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

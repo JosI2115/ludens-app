@@ -219,6 +219,47 @@ def dashboard_pendientes(
 
     return pendientes
 
+@router.get("/dashboard/cumpleanos")
+def dashboard_cumpleanos(
+    mes: int = None,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.alumno import Alumno
+    from datetime import date
+
+    if not mes:
+        mes = date.today().month
+
+    query = db.query(Alumno).filter(
+        Alumno.activo == True,
+        Alumno.fecha_nacimiento != None
+    )
+
+    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+
+    alumnos = query.all()
+
+    cumpleanos = []
+    for a in alumnos:
+        if a.fecha_nacimiento and a.fecha_nacimiento.month == mes:
+            hoy = date.today()
+            edad_actual = hoy.year - a.fecha_nacimiento.year
+            cumple_este_anio = date(hoy.year, a.fecha_nacimiento.month, a.fecha_nacimiento.day)
+            if cumple_este_anio < hoy:
+                edad_actual += 0
+            cumpleanos.append({
+                "nombre": f"{a.nombre} {a.apellido}",
+                "alumno_id": str(a.id),
+                "fecha_nacimiento": str(a.fecha_nacimiento),
+                "dia": a.fecha_nacimiento.day,
+                "edad_cumple": edad_actual
+            })
+
+    cumpleanos.sort(key=lambda x: x["dia"])
+    return {"mes": mes, "alumnos": cumpleanos}
+
 @router.post("/admin/migrate")
 def migrate_db(
     current_user: Usuario = Depends(get_current_user),

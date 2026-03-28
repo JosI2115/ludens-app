@@ -58,6 +58,7 @@ export const asistenciasService = {
 export const dashboardService = {
   stats: () => api.get('/auth/dashboard/stats'),
   pendientes: () => api.get('/auth/dashboard/pendientes'),
+  cumpleanos: (mes) => api.get('/auth/dashboard/cumpleanos', { params: { mes } }),
 }
 
 export const usuariosService = {

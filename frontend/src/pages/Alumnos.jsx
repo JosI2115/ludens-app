@@ -27,6 +27,8 @@ export default function Alumnos() {
   const [alumnos, setAlumnos] = useState([])
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
+  const [filtroPor, setFiltroPor] = useState('nombre')
+  const [filtroGrado, setFiltroGrado] = useState('')
   const [filtroSituacion, setFiltroSituacion] = useState('')
   const [modalAbierto, setModalAbierto] = useState(false)
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null)
@@ -52,10 +54,19 @@ export default function Alumnos() {
     }
   }
 
-  const alumnosFiltrados = alumnos.filter(a =>
-    `${a.nombre} ${a.apellido}`.toLowerCase().includes(busqueda.toLowerCase()) ||
-    a.nombre_tutor?.toLowerCase().includes(busqueda.toLowerCase())
-  )
+  const alumnosFiltrados = alumnos.filter(a => {
+    const termino = busqueda.toLowerCase()
+    const coincideBusqueda = filtroPor === 'nombre'
+      ? `${a.nombre} ${a.apellido}`.toLowerCase().includes(termino)
+      : filtroPor === 'tutor'
+      ? (a.nombre_tutor || '').toLowerCase().includes(termino)
+      : filtroPor === 'grado'
+      ? (a.grado || '').toLowerCase().includes(termino)
+      : true
+    const coincideGrado = filtroGrado ? a.grado === filtroGrado : true
+    const coincideSituacion = filtroSituacion ? a.situacion === filtroSituacion : true
+    return coincideBusqueda && coincideGrado && coincideSituacion
+  })
 
   return (
     <div className="p-6">
@@ -69,28 +80,57 @@ export default function Alumnos() {
         </button>
       </div>
 
-      <div className="flex gap-3 mb-4">
-        <input
-          type="text"
-          placeholder="Buscar por nombre o tutor..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-        />
-        <select
-          value={filtroSituacion}
-          onChange={(e) => setFiltroSituacion(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-        >
-          <option value="">Todos</option>
-          <option value="prospecto">Prospecto</option>
-          <option value="activo">Activo</option>
-          <option value="pendiente">Pendiente</option>
-          <option value="en_riesgo">En riesgo</option>
-          <option value="bloqueado">Bloqueado</option>
-          <option value="baja">Baja</option>
-        </select>
-      </div>
+        <div className="flex gap-2 mb-4 flex-wrap">
+          <div className="flex flex-1 min-w-48">
+            <select
+              value={filtroPor}
+              onChange={e => setFiltroPor(e.target.value)}
+              className="border border-gray-300 rounded-l-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-400 border-r-0"
+            >
+              <option value="nombre">Nombre</option>
+              <option value="tutor">Tutor</option>
+              <option value="grado">Grado</option>
+            </select>
+            <input
+              type="text"
+              placeholder={`Buscar por ${filtroPor}...`}
+              value={busqueda}
+              onChange={e => setBusqueda(e.target.value)}
+              className="flex-1 border border-gray-300 rounded-r-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+            />
+          </div>
+          <select
+            value={filtroGrado}
+            onChange={e => setFiltroGrado(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+          >
+            <option value="">Todos los grados</option>
+            <option value="Preescolar 3">Preescolar 3</option>
+            <option value="Primaria 1">Primaria 1</option>
+            <option value="Primaria 2">Primaria 2</option>
+            <option value="Primaria 3">Primaria 3</option>
+            <option value="Primaria 4">Primaria 4</option>
+            <option value="Primaria 5">Primaria 5</option>
+            <option value="Primaria 6">Primaria 6</option>
+            <option value="Secundaria 1">Secundaria 1</option>
+            <option value="Secundaria 2">Secundaria 2</option>
+            <option value="Secundaria 3">Secundaria 3</option>
+          </select>
+          <select
+            value={filtroSituacion}
+            onChange={e => setFiltroSituacion(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+          >
+            <option value="">Todas las situaciones</option>
+            <option value="prospecto">Prospecto</option>
+            <option value="inscripcion">Inscripción</option>
+            <option value="activo">Activo</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="en_riesgo">En riesgo</option>
+            <option value="bloqueado">Bloqueado</option>
+            <option value="baja">Baja</option>
+          </select>
+        </div>
 
       {loading ? (
         <div className="text-center py-12 text-gray-500">Cargando alumnos...</div>

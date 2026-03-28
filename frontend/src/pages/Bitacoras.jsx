@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { bitacorasService, usuariosService } from '../services/api'
+import { bitacorasService, maestrasService, usuariosService } from '../services/api'
 
 const COLORES_MAESTRA = {
   default: { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', dot: 'bg-purple-400' },
@@ -12,7 +12,8 @@ const ESTADO_OPCIONES = [
   { value: 'No Logrado', label: '❌ No Logrado' },
   { value: 'Tarea', label: '📤 Tarea' },
   { value: 'En Proceso', label: '🔄 En Proceso' },
-  { value: 'Ya impresa', label: '🖨️ Ya impresa' },
+  { value: 'Imprimir', label: '🖨️ Imprimir' },
+  { value: 'Ya impresa', label: '✔️ Ya impresa' },
 ]
 
 const ESTADO_COLORES = {
@@ -20,6 +21,7 @@ const ESTADO_COLORES = {
   'No Logrado': 'bg-red-100 text-red-700',
   'Tarea': 'bg-yellow-100 text-yellow-700',
   'En Proceso': 'bg-blue-100 text-blue-700',
+  'Imprimir': 'bg-purple-100 text-purple-700',
   'Ya impresa': 'bg-gray-100 text-gray-600',
 }
 
@@ -32,11 +34,24 @@ export default function Bitacoras() {
   const [loadingBitacora, setLoadingBitacora] = useState(false)
   const [busqueda, setBusqueda] = useState('')
   const [guardando, setGuardando] = useState({})
+  const [fechaGlobal, setFechaGlobal] = useState('')
+  const [filtraMaestra, setFiltraMaestra] = useState('')
+  const [maestras, setMaestras] = useState([])
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
 
   useEffect(() => {
     cargarAlumnos()
+    cargarMaestras()
   }, [])
+
+  const cargarMaestras = async () => {
+    try {
+      const res = await usuariosService.getAll()
+      setMaestras(res.data.filter(u => u.rol === 'maestra' || u.rol === 'encargada'))
+    } catch (err) {
+      console.error('Error cargando maestras')
+    }
+  }
 
   const cargarAlumnos = async () => {
     try {
@@ -88,8 +103,22 @@ export default function Bitacoras() {
     }
   }
 
+  const aplicarFechaGlobal = async () => {
+    if (!fechaGlobal || !alumnoSeleccionado || !bitacora) return
+    const promesas = []
+    bitacora.programas.forEach(prog => {
+      prog.actividades.forEach(act => {
+        if (!act.fecha) {
+          promesas.push(actualizarRegistro(act.nomenclatura, 'fecha', fechaGlobal))
+        }
+      })
+    })
+    await Promise.all(promesas)
+  }
+
   const alumnosFiltrados = alumnos.filter(a =>
-    a.nombre.toLowerCase().includes(busqueda.toLowerCase())
+    a.nombre.toLowerCase().includes(busqueda.toLowerCase()) &&
+    (filtraMaestra === '' || a.maestra_id === filtraMaestra)
   )
 
   const sinPrograma = alumnosFiltrados.filter(a => !a.programa_lectura && !a.programa_matematicas)
@@ -107,6 +136,16 @@ export default function Bitacoras() {
             onChange={e => setBusqueda(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
           />
+          <select
+            value={filtraMaestra}
+            onChange={e => setFiltraMaestra(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 mt-2"
+          >
+            <option value="">Todas las maestras</option>
+            {maestras.map(m => (
+              <option key={m.id} value={m.id}>{m.nombre}</option>
+            ))}
+          </select>
         </div>
         <div className="flex-1 overflow-y-auto p-2">
           {loading ? (
@@ -170,7 +209,32 @@ export default function Bitacoras() {
                 <p className="text-gray-500 text-sm mt-1">
                   {bitacora.programas.map(p => p.programa).join(' · ')}
                 </p>
+                {bitacora.objetivo && (
+                  <div className="mt-2 bg-purple-50 border border-purple-100 rounded-lg px-4 py-2">
+                    <p className="text-xs text-purple-500 font-medium uppercase tracking-wide">Objetivo</p>
+                    <p className="text-sm text-purple-800 mt-0.5">{bitacora.objetivo}</p>
+                  </div>
+                )}
               </div>
+            </div>
+
+            <div className="flex gap-3 items-center mb-6 bg-white rounded-xl shadow p-4">
+              <span className="text-sm text-gray-600 font-medium flex-shrink-0">Fecha para todas:</span>
+              <input
+                type="text"
+                value={fechaGlobal}
+                onChange={e => setFechaGlobal(e.target.value)}
+                placeholder="Ej: 24 al 29 de Marzo"
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+              />
+              <button
+                onClick={aplicarFechaGlobal}
+                disabled={!fechaGlobal}
+                className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex-shrink-0"
+              >
+                Aplicar a sin fecha
+              </button>
+              <span className="text-xs text-gray-400 flex-shrink-0">Enter = Logrado</span>
             </div>
 
             {bitacora.programas.length === 0 ? (
@@ -226,8 +290,15 @@ export default function Bitacoras() {
                               <select
                                 value={act.estado || ''}
                                 onChange={e => actualizarRegistro(act.nomenclatura, 'estado', e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault()
+                                    actualizarRegistro(act.nomenclatura, 'estado', 'Logrado')
+                                  }
+                                }}
                                 disabled={guardando[act.nomenclatura]}
-                                className={`w-full text-xs border border-gray-200 rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-purple-400 ${
+                                tabIndex={0}
+                                className={`w-full text-xs border border-gray-200 rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer ${
                                   act.estado ? ESTADO_COLORES[act.estado] || '' : 'text-gray-400'
                                 }`}
                               >

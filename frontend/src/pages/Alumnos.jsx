@@ -182,6 +182,11 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
     fecha_ingreso: alumno?.fecha_ingreso || '',
     programa_lectura: alumno?.programa_lectura || '',
     programa_matematicas: alumno?.programa_matematicas || '',
+    domicilio: alumno?.domicilio || '',
+    escuela_procedencia: alumno?.escuela_procedencia || '',
+    condicion_medica: alumno?.condicion_medica || '',
+    permiso_fotos: alumno?.permiso_fotos || false,
+    objetivos: alumno?.objetivos || '',
   })
   const [sucursales, setSucursales] = useState([])
   const [maestras, setMaestras] = useState([])
@@ -253,6 +258,7 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
       if (!data.diagnostico) delete data.diagnostico
       if (!data.telefono_emergencia) delete data.telefono_emergencia
 
+      console.log('Datos a enviar:', JSON.stringify(data))
       if (alumno) {
         await alumnosService.actualizar(alumno.id, data)
       } else {
@@ -289,9 +295,25 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Edad</label>
-              <input name="edad" type="number" value={form.edad} onChange={handleChange}
+              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de nacimiento</label>
+              <input name="fecha_nacimiento" type="date" value={form.fecha_nacimiento} onChange={(e) => {
+                const fecha = e.target.value
+                let edad = ''
+                if (fecha) {
+                  const hoy = new Date()
+                  const nac = new Date(fecha)
+                  edad = hoy.getFullYear() - nac.getFullYear()
+                  const m = hoy.getMonth() - nac.getMonth()
+                  if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--
+                }
+                setForm(f => ({ ...f, fecha_nacimiento: fecha, edad: edad.toString() }))
+              }}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Edad (calculada)</label>
+              <input name="edad" type="number" value={form.edad} readOnly
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500 cursor-not-allowed" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Grado</label>
@@ -522,6 +544,41 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
                 </optgroup>
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Domicilio</label>
+            <input name="domicilio" value={form.domicilio} onChange={handleChange}
+              placeholder="Calle, número, colonia"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Escuela de procedencia</label>
+            <input name="escuela_procedencia" value={form.escuela_procedencia} onChange={handleChange}
+              placeholder="Nombre de la escuela a la que asiste"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Condición médica o alergias</label>
+            <textarea name="condicion_medica" value={form.condicion_medica} onChange={handleChange}
+              rows={2} placeholder="¿Tiene alguna condición médica, alergia o situación de salud que debamos conocer?"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Objetivos de trabajo</label>
+            <textarea name="objetivos" value={form.objetivos} onChange={handleChange}
+              rows={2} placeholder="¿Cuáles son los objetivos principales de trabajo con este alumno?"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input name="permiso_fotos" type="checkbox"
+              checked={form.permiso_fotos} onChange={handleChange}
+              className="w-4 h-4 text-purple-600" />
+            <label className="text-sm text-gray-700">Autoriza uso de fotos en redes sociales</label>
           </div>
 
           <div className="space-y-3">

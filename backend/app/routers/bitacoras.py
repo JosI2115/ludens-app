@@ -76,6 +76,7 @@ def get_bitacora_alumno(
     return {
         "alumno_id": alumno_id,
         "nombre": f"{alumno.nombre} {alumno.apellido}",
+        "objetivo": alumno.objetivos,
         "programas": programas
     }
 

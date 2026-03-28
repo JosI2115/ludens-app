@@ -34,6 +34,13 @@ class AlumnoCreate(BaseModel):
     fecha_ingreso: Optional[date] = None
     horario: Optional[str] = None
     numero_hermano: Optional[int] = 1
+    programa_lectura: Optional[str] = None
+    programa_matematicas: Optional[str] = None
+    domicilio: Optional[str] = None
+    escuela_procedencia: Optional[str] = None
+    condicion_medica: Optional[str] = None
+    permiso_fotos: Optional[bool] = False
+    objetivos: Optional[str] = None
 
     class Config:
         anystr_strip_whitespace = True
@@ -61,6 +68,11 @@ class AlumnoUpdate(BaseModel):
     numero_hermano: Optional[int] = None
     programa_lectura: Optional[str] = None
     programa_matematicas: Optional[str] = None
+    domicilio: Optional[str] = None
+    escuela_procedencia: Optional[str] = None
+    condicion_medica: Optional[str] = None
+    permiso_fotos: Optional[bool] = None
+    objetivos: Optional[str] = None
 
 @router.get("/")
 def get_alumnos(
@@ -109,11 +121,11 @@ def crear_alumno(
     }
 
     plan = datos.get('plan_pago')
-    hermano = datos.get('numero_hermano', 1) or 1
-
+    hermano = int(datos.get('numero_hermano') or 1)
     if plan and str(plan) in DESCUENTOS:
-        monto_real = DESCUENTOS[str(plan)][hermano]
-        datos['plan_pago'] = str(monto_real)
+        monto = DESCUENTOS[str(plan)].get(hermano)
+        if monto:
+            datos['plan_pago'] = str(monto)
 
     # Limpiar campos UUID vacíos
     if not datos.get('sucursal_id') or datos['sucursal_id'] == '':
@@ -126,10 +138,13 @@ def crear_alumno(
         datos['maestra_id'] = None
 
     # Limpiar campos vacíos
-    for campo in ['grado', 'diagnostico', 'telefono_emergencia', 'horario', 'materias']:
+    for campo in ['grado', 'diagnostico', 'telefono_emergencia', 'horario', 'materias',
+                  'programa_lectura', 'programa_matematicas', 'domicilio',
+                  'escuela_procedencia', 'condicion_medica', 'objetivos']:
         if datos.get(campo) == '':
             datos[campo] = None
 
+    print(f"DEBUG programa_lectura={datos.get('programa_lectura')} programa_matematicas={datos.get('programa_matematicas')}")
     alumno = Alumno(**datos)
     db.add(alumno)
     db.commit()
@@ -148,6 +163,10 @@ def actualizar_alumno(
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
     
     cambios = data.dict(exclude_unset=True)
+    for campo in ['programa_lectura', 'programa_matematicas', 'grado', 'diagnostico',
+                  'horario', 'domicilio', 'escuela_procedencia', 'condicion_medica', 'objetivos']:
+        if campo in cambios and cambios[campo] == '':
+            cambios[campo] = None
     for campo, valor_nuevo in cambios.items():
         valor_anterior = getattr(alumno, campo)
         if valor_anterior != valor_nuevo:
@@ -234,6 +253,13 @@ def get_perfil_alumno(
             "tiene_descuento_hermano": alumno.tiene_descuento_hermano,
             "numero_hermano": alumno.numero_hermano,
             "sucursal_id": str(alumno.sucursal_id) if alumno.sucursal_id else None,
+            "programa_lectura": alumno.programa_lectura,
+            "programa_matematicas": alumno.programa_matematicas,
+            "objetivos": alumno.objetivos,
+            "domicilio": alumno.domicilio,
+            "escuela_procedencia": alumno.escuela_procedencia,
+            "condicion_medica": alumno.condicion_medica,
+            "permiso_fotos": alumno.permiso_fotos,
         },
         "pagos": [{
             "id": str(p.id),

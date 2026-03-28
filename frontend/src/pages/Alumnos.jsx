@@ -188,6 +188,9 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
     permiso_fotos: alumno?.permiso_fotos || false,
     objetivos: alumno?.objetivos || '',
   })
+  const [diasSeleccionados, setDiasSeleccionados] = useState(alumno?.horario_dias || [])
+  const [horaInicio, setHoraInicio] = useState(alumno?.hora_inicio || '')
+  const [horaFin, setHoraFin] = useState(alumno?.hora_fin || '')
   const [sucursales, setSucursales] = useState([])
   const [maestras, setMaestras] = useState([])
   const [loading, setLoading] = useState(false)
@@ -232,6 +235,12 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
     }
   }, [])
 
+  const toggleDia = (dia) => {
+    setDiasSeleccionados(prev =>
+      prev.includes(dia) ? prev.filter(d => d !== dia) : [...prev, dia]
+    )
+  }
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
     setForm(f => ({ ...f, [name]: type === 'checkbox' ? checked : value }))
@@ -258,6 +267,9 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
       if (!data.diagnostico) delete data.diagnostico
       if (!data.telefono_emergencia) delete data.telefono_emergencia
 
+      if (diasSeleccionados.length > 0 && horaInicio && horaFin) {
+        data.horario = `${diasSeleccionados.join(' y ')} ${horaInicio} - ${horaFin}`
+      }
       console.log('Datos a enviar:', JSON.stringify(data))
       if (alumno) {
         await alumnosService.actualizar(alumno.id, data)
@@ -449,10 +461,55 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Horario</label>
-            <input name="horario" value={form.horario} onChange={handleChange}
-              placeholder="Ej: Lunes y Miércoles 11:00 - 12:00"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+            <label className="block text-sm font-medium text-gray-700 mb-2">Horario</label>
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs text-gray-500 mb-2">Días de clase</p>
+                <div className="flex gap-2 flex-wrap">
+                  {['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'].map(dia => (
+                    <button
+                      key={dia}
+                      type="button"
+                      onClick={() => toggleDia(dia)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                        diasSeleccionados.includes(dia)
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {dia}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Hora inicio</p>
+                  <select value={horaInicio} onChange={e => setHoraInicio(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                    <option value="">Seleccionar</option>
+                    {['8:00','9:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'].map(h => (
+                      <option key={h} value={h}>{h} hrs</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Hora fin</p>
+                  <select value={horaFin} onChange={e => setHoraFin(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                    <option value="">Seleccionar</option>
+                    {['9:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00'].map(h => (
+                      <option key={h} value={h}>{h} hrs</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {diasSeleccionados.length > 0 && horaInicio && horaFin && (
+                <p className="text-xs text-purple-600 bg-purple-50 px-3 py-2 rounded-lg">
+                  📅 {diasSeleccionados.join(' y ')} de {horaInicio} a {horaFin} hrs
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

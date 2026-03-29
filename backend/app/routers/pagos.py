@@ -286,3 +286,21 @@ def get_tablero_pagos(
         "con_recargo": sorted(con_recargo, key=lambda x: x["dias"]),
         "bloqueados": sorted(bloqueados, key=lambda x: x["dias"], reverse=True)
     }
+
+@router.delete("/{pago_id}")
+def eliminar_pago(
+    pago_id: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.pago import Pago
+    if current_user.rol not in ["directora", "encargada", "recepcionista", "contadora"]:
+        raise HTTPException(status_code=403, detail="Sin permisos")
+
+    pago = db.query(Pago).filter(Pago.id == pago_id).first()
+    if not pago:
+        raise HTTPException(status_code=404, detail="Pago no encontrado")
+
+    db.delete(pago)
+    db.commit()
+    return {"mensaje": "Pago eliminado correctamente"}

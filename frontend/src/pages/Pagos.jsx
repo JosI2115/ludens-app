@@ -238,6 +238,7 @@ export default function Pagos() {
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">Día de pago</th>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">Estado</th>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">Acción</th>
+                <th className="text-left px-4 py-3 text-gray-600 font-medium">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -273,6 +274,24 @@ export default function Pagos() {
                         </button>
                       )}
                     </td>
+                    <td className="px-4 py-3">
+                      {p.pago_id && (
+                        <button
+                          onClick={async () => {
+                            if (!window.confirm('¿Seguro que quieres revertir este pago?')) return
+                            try {
+                              await pagosService.eliminar(p.pago_id)
+                              cargarDatos()
+                            } catch (err) {
+                              alert('Error al revertir el pago')
+                            }
+                          }}
+                          className="text-red-500 hover:text-red-700 text-xs font-medium"
+                        >
+                          Revertir
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 )
               })}
@@ -300,6 +319,7 @@ export default function Pagos() {
 
 function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess }) {
   const [comentarios, setComentarios] = useState('')
+  const [fechaPago, setFechaPago] = useState('')
   const [fechaRecepcion, setFechaRecepcion] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -317,7 +337,7 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess }) {
         monto: monto,
         mes,
         anio,
-        fecha_pago: new Date().toISOString().split('T')[0],
+        fecha_pago: fechaPago || new Date().toISOString().split('T')[0],
         con_penalizacion: conPenalizacion,
         monto_penalizacion: conPenalizacion ? 50 : 0,
         comentarios,
@@ -366,6 +386,17 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess }) {
               Este alumno tiene {alumno.dias_retraso} días de retraso. Se aplica recargo de $50.
             </div>
           )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de pago</label>
+            <input
+              type="date"
+              value={fechaPago}
+              onChange={e => setFechaPago(e.target.value)}
+              required
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+            />
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

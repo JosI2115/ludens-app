@@ -47,6 +47,7 @@ export const pagosService = {
   resumen: (params) => api.get('/pagos/resumen', { params }),
   registrar: (data) => api.post('/pagos/registrar', data),
   tablero: () => api.get('/pagos/tablero'),
+  eliminar: (id) => api.delete(`/pagos/${id}`),
 }
 
 export const asistenciasService = {

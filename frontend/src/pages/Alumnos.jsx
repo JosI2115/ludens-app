@@ -232,9 +232,7 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
     permiso_fotos: alumno?.permiso_fotos || false,
     objetivos: alumno?.objetivos || '',
   })
-  const [diasSeleccionados, setDiasSeleccionados] = useState(alumno?.horario_dias || [])
-  const [horaInicio, setHoraInicio] = useState(alumno?.hora_inicio || '')
-  const [horaFin, setHoraFin] = useState(alumno?.hora_fin || '')
+  const [franjas, setFranjas] = useState([{ dias: [], inicio: '', fin: '' }])
   const [sucursales, setSucursales] = useState([])
   const [maestras, setMaestras] = useState([])
   const [loading, setLoading] = useState(false)
@@ -277,12 +275,39 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
     if (!alumno && usuario.sucursal_id) {
       setForm(f => ({ ...f, sucursal_id: usuario.sucursal_id }))
     }
+    if (alumno?.horario) {
+      setFranjas([{ dias: [], inicio: '', fin: '', texto: alumno.horario }])
+    }
   }, [])
 
-  const toggleDia = (dia) => {
-    setDiasSeleccionados(prev =>
-      prev.includes(dia) ? prev.filter(d => d !== dia) : [...prev, dia]
-    )
+  const calcularHorasTotales = () => {
+    return franjas.reduce((total, franja) => {
+      if (!franja.inicio || !franja.fin || franja.dias.length === 0) return total
+      const inicio = parseInt(franja.inicio.split(':')[0])
+      const fin = parseInt(franja.fin.split(':')[0])
+      const horasPorDia = fin - inicio
+      return total + (horasPorDia * franja.dias.length)
+    }, 0)
+  }
+
+  const agregarFranja = () => {
+    setFranjas(prev => [...prev, { dias: [], inicio: '', fin: '' }])
+  }
+
+  const eliminarFranja = (index) => {
+    setFranjas(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const actualizarFranja = (index, campo, valor) => {
+    setFranjas(prev => prev.map((f, i) => i === index ? { ...f, [campo]: valor } : f))
+  }
+
+  const toggleDiaFranja = (index, dia) => {
+    setFranjas(prev => prev.map((f, i) => {
+      if (i !== index) return f
+      const dias = f.dias.includes(dia) ? f.dias.filter(d => d !== dia) : [...f.dias, dia]
+      return { ...f, dias }
+    }))
   }
 
   const handleChange = (e) => {
@@ -330,9 +355,25 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
       if (!data.diagnostico) delete data.diagnostico
       if (!data.telefono_emergencia) delete data.telefono_emergencia
 
-      if (diasSeleccionados.length > 0 && horaInicio && horaFin) {
-        data.horario = `${diasSeleccionados.join(' y ')} ${horaInicio} - ${horaFin}`
+      if (franjas.some(f => f.dias.length > 0 && f.inicio && f.fin)) {
+        const horasTotales = franjas.reduce((total, franja) => {
+          if (!franja.inicio || !franja.fin || franja.dias.length === 0) return total
+          const inicio = parseInt(franja.inicio.split(':')[0])
+          const fin = parseInt(franja.fin.split(':')[0])
+          return total + ((fin - inicio) * franja.dias.length)
+        }, 0)
+        const limite = form.plan_pago === '1500' ? 4 : 2
+        if (horasTotales > limite) {
+          setError(`El horario excede las ${limite} horas semanales del plan seleccionado`)
+          return
+        }
       }
+
+      const horarioTexto = franjas
+        .filter(f => f.dias.length > 0 && f.inicio && f.fin)
+        .map(f => `${f.dias.join(', ')} ${f.inicio}-${f.fin}`)
+        .join(' | ')
+      if (horarioTexto) data.horario = horarioTexto
       console.log('Datos a enviar:', JSON.stringify(data))
       if (alumno) {
         await alumnosService.actualizar(alumno.id, data)
@@ -543,52 +584,73 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Horario</label>
             <div className="space-y-3">
-              <div>
-                <p className="text-xs text-gray-500 mb-2">Días de clase</p>
-                <div className="flex gap-2 flex-wrap">
-                  {['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'].map(dia => (
-                    <button
-                      key={dia}
-                      type="button"
-                      onClick={() => toggleDia(dia)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                        diasSeleccionados.includes(dia)
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      {dia}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Hora inicio</p>
-                  <select value={horaInicio} onChange={e => setHoraInicio(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
-                    <option value="">Seleccionar</option>
-                    {['8:00','9:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'].map(h => (
-                      <option key={h} value={h}>{h} hrs</option>
+              {franjas.map((franja, index) => (
+                <div key={index} className="border border-gray-200 rounded-lg p-3 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs text-gray-500 font-medium">Franja {index + 1}</p>
+                    {franjas.length > 1 && (
+                      <button type="button" onClick={() => eliminarFranja(index)}
+                        className="text-red-400 hover:text-red-600 text-xs">✕ Eliminar</button>
+                    )}
+                  </div>
+                  {franja.texto && !franja.inicio && (
+                    <p className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">Actual: {franja.texto}</p>
+                  )}
+                  <div className="flex gap-1 flex-wrap">
+                    {['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'].map(dia => (
+                      <button key={dia} type="button"
+                        onClick={() => toggleDiaFranja(index, dia)}
+                        className={`px-2 py-1 rounded text-xs font-medium transition ${
+                          franja.dias.includes(dia)
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}>
+                        {dia.substring(0, 3)}
+                      </button>
                     ))}
-                  </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <select value={franja.inicio} onChange={e => actualizarFranja(index, 'inicio', e.target.value)}
+                      className="border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-purple-400">
+                      <option value="">Hora inicio</option>
+                      {['9:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'].map(h => (
+                        <option key={h} value={h}>{h} hrs</option>
+                      ))}
+                    </select>
+                    <select value={franja.fin} onChange={e => actualizarFranja(index, 'fin', e.target.value)}
+                      className="border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-purple-400">
+                      <option value="">Hora fin</option>
+                      {['10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00'].map(h => (
+                        <option key={h} value={h}>{h} hrs</option>
+                      ))}
+                    </select>
+                  </div>
+                  {franja.dias.length > 0 && franja.inicio && franja.fin && (
+                    <p className="text-xs text-purple-600">📅 {franja.dias.join(', ')} de {franja.inicio} a {franja.fin} hrs</p>
+                  )}
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Hora fin</p>
-                  <select value={horaFin} onChange={e => setHoraFin(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
-                    <option value="">Seleccionar</option>
-                    {['9:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00'].map(h => (
-                      <option key={h} value={h}>{h} hrs</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              {diasSeleccionados.length > 0 && horaInicio && horaFin && (
-                <p className="text-xs text-purple-600 bg-purple-50 px-3 py-2 rounded-lg">
-                  📅 {diasSeleccionados.join(' y ')} de {horaInicio} a {horaFin} hrs
-                </p>
-              )}
+              ))}
+              <button type="button" onClick={agregarFranja}
+                className="w-full border border-dashed border-purple-300 text-purple-600 hover:bg-purple-50 py-2 rounded-lg text-xs font-medium transition">
+                + Agregar otra franja horaria
+              </button>
+              {(() => {
+                const horasPermitidas = form.plan_pago === '1500' ? 4 : 2
+                const horasUsadas = calcularHorasTotales()
+                return (
+                  <div className={`text-xs px-3 py-2 rounded-lg ${
+                    horasUsadas > horasPermitidas
+                      ? 'bg-red-50 text-red-600'
+                      : horasUsadas === horasPermitidas
+                      ? 'bg-green-50 text-green-600'
+                      : 'bg-gray-50 text-gray-500'
+                  }`}>
+                    ⏱️ Horas seleccionadas: {horasUsadas} / {horasPermitidas} hrs semanales
+                    {horasUsadas > horasPermitidas && ' — Excede el plan seleccionado'}
+                    {horasUsadas === horasPermitidas && ' — ✓ Completo'}
+                  </div>
+                )
+              })()}
             </div>
           </div>
 

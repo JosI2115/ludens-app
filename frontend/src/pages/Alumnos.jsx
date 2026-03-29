@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { alumnosService } from '../services/api'
+import { alumnosService, sucursalesService } from '../services/api'
 
 const SITUACION_COLORES = {
   prospecto: 'bg-gray-100 text-gray-700',
@@ -32,6 +32,8 @@ export default function Alumnos() {
   const [filtroPor, setFiltroPor] = useState('nombre')
   const [filtroGrado, setFiltroGrado] = useState('')
   const [filtroSituacion, setFiltroSituacion] = useState('')
+  const [sucursales, setSucursales] = useState([])
+  const [filtroSucursal, setFiltroSucursal] = useState('')
   const [modalAbierto, setModalAbierto] = useState(false)
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null)
   const [error, setError] = useState('')
@@ -40,7 +42,17 @@ export default function Alumnos() {
 
   useEffect(() => {
     cargarAlumnos()
+    cargarSucursales()
   }, [filtroSituacion])
+
+  const cargarSucursales = async () => {
+    try {
+      const res = await sucursalesService.getAll()
+      setSucursales(res.data)
+    } catch (err) {
+      console.error('Error cargando sucursales')
+    }
+  }
 
   const cargarAlumnos = async () => {
     try {
@@ -67,7 +79,8 @@ export default function Alumnos() {
       : true
     const coincideGrado = filtroGrado ? a.grado === filtroGrado : true
     const coincideSituacion = filtroSituacion ? a.situacion === filtroSituacion : true
-    return coincideBusqueda && coincideGrado && coincideSituacion
+    const coincideSucursal = filtroSucursal ? a.sucursal_id === filtroSucursal : true
+    return coincideBusqueda && coincideGrado && coincideSituacion && coincideSucursal
   })
 
   return (
@@ -131,6 +144,16 @@ export default function Alumnos() {
             <option value="en_riesgo">En riesgo</option>
             <option value="bloqueado">Bloqueado</option>
             <option value="baja">Baja</option>
+          </select>
+          <select
+            value={filtroSucursal}
+            onChange={e => setFiltroSucursal(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+          >
+            <option value="">Todas las sucursales</option>
+            {sucursales.map(s => (
+              <option key={s.id} value={s.id}>{s.nombre}</option>
+            ))}
           </select>
         </div>
 

@@ -40,6 +40,10 @@ export default function Bitacoras() {
   const [mostrarImpresion, setMostrarImpresion] = useState(false)
   const [pendientesImpresion, setPendientesImpresion] = useState({})
   const [programasColapsados, setProgramasColapsados] = useState({})
+  const [seleccionadas, setSeleccionadas] = useState({})
+  const [modoSeleccion, setModoSeleccion] = useState(false)
+  const [estadoMasivo, setEstadoMasivo] = useState('')
+  const [fechaMasiva, setFechaMasiva] = useState('')
   const [mostrarUrls, setMostrarUrls] = useState(false)
   const [programasLista, setProgramasLista] = useState([])
   const [urlsEditadas, setUrlsEditadas] = useState({})
@@ -131,6 +135,48 @@ export default function Bitacoras() {
       })
     })
     await Promise.all(promesas)
+  }
+
+  const toggleSeleccion = (nomenclatura) => {
+    setSeleccionadas(prev => ({
+      ...prev,
+      [nomenclatura]: !prev[nomenclatura]
+    }))
+  }
+
+  const seleccionarTodas = (actividades) => {
+    const nuevas = {}
+    actividades.forEach(a => { nuevas[a.nomenclatura] = true })
+    setSeleccionadas(prev => ({ ...prev, ...nuevas }))
+  }
+
+  const limpiarSeleccion = () => {
+    setSeleccionadas({})
+    setEstadoMasivo('')
+    setFechaMasiva('')
+  }
+
+  const aplicarMasivo = async () => {
+    const seleccionadasList = Object.keys(seleccionadas).filter(k => seleccionadas[k])
+    if (seleccionadasList.length === 0) return
+    if (!estadoMasivo && !fechaMasiva) return
+
+    const promesas = seleccionadasList.map(nomenclatura => {
+      const data = {}
+      if (estadoMasivo) data.estado = estadoMasivo
+      if (fechaMasiva) data.fecha = fechaMasiva
+      return actualizarRegistro(nomenclatura, Object.keys(data)[0], Object.values(data)[0])
+    })
+
+    await Promise.all(promesas)
+
+    if (estadoMasivo && fechaMasiva) {
+      const promesas2 = seleccionadasList.map(n => actualizarRegistro(n, 'fecha', fechaMasiva))
+      await Promise.all(promesas2)
+    }
+
+    limpiarSeleccion()
+    setModoSeleccion(false)
   }
 
   const togglePrograma = (programa) => {
@@ -320,23 +366,39 @@ export default function Bitacoras() {
             </div>
 
             <div className="flex gap-3 items-center mb-6 bg-white rounded-xl shadow p-4">
-              <span className="text-sm text-gray-600 font-medium flex-shrink-0">Fecha para todas:</span>
-              <input
-                type="text"
-                value={fechaGlobal}
-                onChange={e => setFechaGlobal(e.target.value)}
-                placeholder="Ej: 24 al 29 de Marzo"
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-              />
-              <button
-                onClick={aplicarFechaGlobal}
-                disabled={!fechaGlobal}
-                className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex-shrink-0"
-              >
-                Aplicar a sin fecha
-              </button>
               <span className="text-xs text-gray-400 flex-shrink-0">Enter = Logrado</span>
+              <button
+                onClick={() => { setModoSeleccion(!modoSeleccion); limpiarSeleccion() }}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition flex-shrink-0 ${
+                  modoSeleccion ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {modoSeleccion ? '✕ Cancelar' : '☑️ Seleccionar'}
+              </button>
             </div>
+
+            {modoSeleccion && (
+              <div className="flex gap-3 items-center mb-4 bg-purple-50 border border-purple-200 rounded-xl p-4 flex-wrap">
+                <span className="text-sm text-purple-700 font-medium flex-shrink-0">
+                  {Object.values(seleccionadas).filter(Boolean).length} seleccionadas
+                </span>
+                <select value={estadoMasivo} onChange={e => setEstadoMasivo(e.target.value)}
+                  className="border border-purple-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                  <option value="">— Estado —</option>
+                  {ESTADO_OPCIONES.filter(o => o.value).map(op => (
+                    <option key={op.value} value={op.value}>{op.label}</option>
+                  ))}
+                </select>
+                <input type="text" value={fechaMasiva} onChange={e => setFechaMasiva(e.target.value)}
+                  placeholder="Fecha (ej: 24 al 29 de Marzo)"
+                  className="border border-purple-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 flex-1 min-w-32" />
+                <button onClick={aplicarMasivo}
+                  disabled={Object.values(seleccionadas).filter(Boolean).length === 0 || (!estadoMasivo && !fechaMasiva)}
+                  className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white px-4 py-1.5 rounded-lg text-sm font-medium flex-shrink-0">
+                  Aplicar a seleccionadas
+                </button>
+              </div>
+            )}
 
             {bitacora.programas.length === 0 ? (
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
@@ -381,6 +443,7 @@ export default function Bitacoras() {
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50 border-b">
                         <tr>
+                          {modoSeleccion && <th className="px-2 py-3 w-8"></th>}
                           <th className="text-left px-4 py-3 text-gray-500 font-medium w-8">Sem</th>
                           <th className="text-left px-4 py-3 text-gray-500 font-medium">Nomenclatura</th>
                           <th className="text-left px-4 py-3 text-gray-500 font-medium w-36">Estado</th>
@@ -393,6 +456,15 @@ export default function Bitacoras() {
                       <tbody className="divide-y divide-gray-100">
                         {prog.actividades.map((act, ai) => (
                           <tr key={ai} className={`hover:bg-gray-50 ${act.estado ? '' : ''}`}>
+                            {modoSeleccion && (
+                              <td className="px-2 py-1.5">
+                                <input type="checkbox"
+                                  checked={!!seleccionadas[act.nomenclatura]}
+                                  onChange={() => toggleSeleccion(act.nomenclatura)}
+                                  className="w-4 h-4 text-purple-600 rounded"
+                                />
+                              </td>
+                            )}
                             <td className="px-4 py-2 text-gray-400 text-xs">{act.semana === 9 ? 'Ex' : act.semana}</td>
                             <td className="px-4 py-2">
                               <span className="font-mono text-xs text-gray-600">{act.nomenclatura}</span>

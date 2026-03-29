@@ -81,8 +81,6 @@ export default function Asistencias() {
             <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">Alumno</th>
-                <th className="text-left px-4 py-3 text-gray-600 font-medium">Horario</th>
-                <th className="text-left px-4 py-3 text-gray-600 font-medium">Grado</th>
                 <th className="text-center px-4 py-3 text-gray-600 font-medium">Asistencia</th>
               </tr>
             </thead>
@@ -93,8 +91,6 @@ export default function Asistencias() {
                   alumno.asistio === false ? 'bg-red-50' : ''
                 }`}>
                   <td className="px-4 py-3 font-medium text-gray-800">{alumno.nombre}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{alumno.horario || '—'}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{alumno.grado || '—'}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-center gap-2">
                       <button

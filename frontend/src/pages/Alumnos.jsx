@@ -58,8 +58,8 @@ export default function Alumnos() {
     const termino = busqueda.toLowerCase()
     const coincideBusqueda = filtroPor === 'nombre'
       ? `${a.nombre} ${a.apellido}`.toLowerCase().includes(termino)
-      : filtroPor === 'tutor'
-      ? (a.nombre_tutor || '').toLowerCase().includes(termino)
+      : filtroPor === 'maestra'
+      ? (a.maestra_nombre || '').toLowerCase().includes(termino)
       : filtroPor === 'grado'
       ? (a.grado || '').toLowerCase().includes(termino)
       : true
@@ -88,7 +88,7 @@ export default function Alumnos() {
               className="border border-gray-300 rounded-l-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-400 border-r-0"
             >
               <option value="nombre">Nombre</option>
-              <option value="tutor">Tutor</option>
+              <option value="maestra">Maestra</option>
               <option value="grado">Grado</option>
             </select>
             <input
@@ -147,6 +147,7 @@ export default function Alumnos() {
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">Alumno</th>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">Tutor</th>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">Materias</th>
+                <th className="text-left px-4 py-3 text-gray-600 font-medium">Maestra</th>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">Plan</th>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">Situación</th>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">Acciones</th>
@@ -164,6 +165,7 @@ export default function Alumnos() {
                     <p className="text-gray-400 text-xs">{alumno.telefono_tutor}</p>
                   </td>
                   <td className="px-4 py-3 text-gray-600">{alumno.materias || '—'}</td>
+                  <td className="px-4 py-3 text-gray-500 text-sm">{alumno.maestra_nombre || '—'}</td>
                   <td className="px-4 py-3 text-gray-600">
                     {alumno.plan_pago ? `$${alumno.plan_pago}` : '—'}
                   </td>
@@ -720,7 +722,6 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Número de hermano</label>
                 <select name="numero_hermano" value={form.numero_hermano} onChange={handleChange}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
-                  <option value={1}>Hermano 1 (precio completo)</option>
                   <option value={2}>Hermano 2 (30% descuento)</option>
                   <option value={3}>Hermano 3 (15% descuento)</option>
                   <option value={4}>Hermano 4 (5% descuento)</option>

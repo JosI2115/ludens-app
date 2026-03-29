@@ -91,8 +91,12 @@ def get_alumnos(
     if situacion:
         query = query.filter(Alumno.situacion == situacion)
     
-    alumnos = query.order_by(Alumno.nombre).all()
-    return alumnos
+    from sqlalchemy.orm import joinedload
+    alumnos = query.options(joinedload(Alumno.maestra)).order_by(Alumno.nombre).all()
+    return [{
+        **{c.name: getattr(a, c.name) for c in a.__table__.columns},
+        "maestra_nombre": a.maestra.nombre if a.maestra else None
+    } for a in alumnos]
 
 @router.get("/{alumno_id}")
 def get_alumno(

@@ -3,10 +3,10 @@ import { useNavigate, useLocation } from 'react-router-dom'
 const menuItems = [
   { path: '/dashboard', icon: '🏠', label: 'Inicio' },
   { path: '/alumnos', icon: '👨‍🎓', label: 'Alumnos' },
-  { path: '/bitacoras', icon: '📒', label: 'Bitácoras' },
+  { path: '/bitacoras', icon: '📒', label: 'Bitácoras', roles: ['directora', 'encargada', 'maestra'] },
   { path: '/pagos', icon: '💰', label: 'Pagos', roles: ['directora', 'encargada', 'recepcionista', 'contadora'] },
   { path: '/asistencias', icon: '📋', label: 'Asistencias', roles: ['directora', 'encargada', 'maestra', 'recepcionista'] },
-  { path: '/expedientes', icon: '📁', label: 'Expedientes', roles: ['directora', 'contadora', 'encargada', 'recepcionista'] },
+  { path: '/expedientes', icon: '📁', label: 'Expedientes', roles: ['directora', 'encargada', 'maestra', 'recepcionista'] },
   { path: '/usuarios', icon: '👥', label: 'Usuarios', roles: ['directora'] },
 ]
 

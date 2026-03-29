@@ -119,6 +119,7 @@ export default function Expedientes() {
             <div class="field"><label>Nombre del tutor</label><p>${a.nombre_tutor}</p></div>
             <div class="field"><label>Teléfono</label><p>${a.telefono_tutor}</p></div>
             <div class="field"><label>Tel. emergencia</label><p>${a.telefono_emergencia || '—'}</p></div>
+            <div class="field"><label>Maestra asignada</label><p>${a.maestra_nombre || '—'}</p></div>
             <div class="field"><label>Permiso fotos</label><p>${a.permiso_fotos ? '✓ Autorizado' : '✗ No autorizado'}</p></div>
           </div>
         </div>
@@ -255,37 +256,43 @@ export default function Expedientes() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div className="bg-white rounded-xl shadow p-5">
-                <h3 className="font-bold text-gray-700 mb-4 text-sm uppercase tracking-wide">Datos del alumno</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between"><span className="text-gray-500">Tutor</span><span className="font-medium">{perfil.alumno.nombre_tutor}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Teléfono</span><span className="font-medium">{perfil.alumno.telefono_tutor}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Tel. emergencia</span><span className="font-medium">{perfil.alumno.telefono_emergencia || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Diagnóstico</span><span className="font-medium text-right max-w-40">{perfil.alumno.diagnostico || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Horario</span><span className="font-medium text-right max-w-40">{perfil.alumno.horario || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Fecha ingreso</span><span className="font-medium">{perfil.alumno.fecha_ingreso || '—'}</span></div>
-                  {perfil.alumno.situacion === 'baja' && (
-                    <>
-                      <div className="flex justify-between"><span className="text-gray-500">Fecha baja</span><span className="font-medium text-red-600">{perfil.alumno.fecha_baja || '—'}</span></div>
-                      <div className="flex justify-between"><span className="text-gray-500">Motivo baja</span><span className="font-medium text-red-600 text-right max-w-40">{perfil.alumno.motivo_baja || '—'}</span></div>
-                    </>
-                  )}
+              <div className="bg-white rounded-xl shadow p-5 mb-6">
+                <h3 className="font-bold text-gray-700 mb-4 text-sm uppercase tracking-wide">Expediente</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div><p className="text-gray-500">Nombre</p><p className="font-medium">{perfil.alumno.nombre} {perfil.alumno.apellido}</p></div>
+                  <div><p className="text-gray-500">Edad</p><p className="font-medium">{perfil.alumno.edad} años</p></div>
+                  <div><p className="text-gray-500">Grado escolar</p><p className="font-medium">{perfil.alumno.grado || '—'}</p></div>
+                  <div><p className="text-gray-500">Materias</p><p className="font-medium">{perfil.alumno.materias || '—'}</p></div>
+                  <div><p className="text-gray-500">Horario</p><p className="font-medium">{perfil.alumno.horario || '—'}</p></div>
+                  <div><p className="text-gray-500">Maestra asignada</p><p className="font-medium">{perfil.alumno.maestra_nombre || '—'}</p></div>
+                  <div><p className="text-gray-500">Nombre del tutor</p><p className="font-medium">{perfil.alumno.nombre_tutor}</p></div>
+                  <div><p className="text-gray-500">Tel. emergencia</p><p className="font-medium">{perfil.alumno.telefono_emergencia || '—'}</p></div>
+                  <div><p className="text-gray-500">Permiso fotos</p><p className="font-medium">{perfil.alumno.permiso_fotos ? '✓ Autorizado' : '✗ No autorizado'}</p></div>
+                  <div><p className="text-gray-500">Situación</p><p className="font-medium capitalize">{perfil.alumno.situacion}</p></div>
+                </div>
+                {perfil.alumno.diagnostico && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <p className="text-gray-500 text-sm mb-1">Dificultades de aprendizaje / Diagnóstico</p>
+                    <p className="font-medium text-sm">{perfil.alumno.diagnostico}</p>
+                  </div>
+                )}
+                {perfil.alumno.objetivos && (
+                  <div className="mt-3">
+                    <p className="text-gray-500 text-sm mb-1">Objetivos</p>
+                    <p className="font-medium text-sm bg-purple-50 text-purple-700 px-3 py-2 rounded-lg">{perfil.alumno.objetivos}</p>
+                  </div>
+                )}
+                <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-gray-500 text-sm mb-1">Programa de Lectura</p>
+                    <p className="font-mono font-bold text-blue-600 bg-blue-50 px-3 py-2 rounded-lg text-sm">{perfil.alumno.programa_lectura || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-sm mb-1">Programa de Matemáticas</p>
+                    <p className="font-mono font-bold text-red-600 bg-red-50 px-3 py-2 rounded-lg text-sm">{perfil.alumno.programa_matematicas || '—'}</p>
+                  </div>
                 </div>
               </div>
-
-              <div className="bg-white rounded-xl shadow p-5">
-                <h3 className="font-bold text-gray-700 mb-4 text-sm uppercase tracking-wide">Plan académico</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between"><span className="text-gray-500">Plan de pago</span><span className="font-medium text-purple-700">${perfil.alumno.plan_pago}/mes</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Materias</span><span className="font-medium">{perfil.alumno.materias || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Día de pago</span><span className="font-medium">Día {perfil.alumno.dia_pago || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Prog. Lectura</span><span className="font-mono text-sm font-medium text-blue-600">{perfil.alumno.programa_lectura || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Prog. Matemáticas</span><span className="font-mono text-sm font-medium text-green-600">{perfil.alumno.programa_matematicas || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Descuento hermano</span><span className="font-medium">{perfil.alumno.tiene_descuento_hermano ? `Sí (Hermano ${perfil.alumno.numero_hermano})` : 'No'}</span></div>
-                </div>
-              </div>
-            </div>
 
             <div className="bg-white rounded-xl shadow p-5 mb-6">
               <h3 className="font-bold text-gray-700 mb-4 text-sm uppercase tracking-wide">Resumen de asistencias</h3>

@@ -244,7 +244,10 @@ def get_perfil_alumno(
     from app.models.historial import HistorialCambio
     from datetime import date
 
-    alumno = db.query(Alumno).filter(Alumno.id == alumno_id, Alumno.activo == True).first()
+    from sqlalchemy.orm import joinedload
+    alumno = db.query(Alumno).options(
+        joinedload(Alumno.maestra)
+    ).filter(Alumno.id == alumno_id, Alumno.activo == True).first()
     if not alumno:
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
 
@@ -288,6 +291,7 @@ def get_perfil_alumno(
             "condicion_medica": alumno.condicion_medica,
             "escuela_procedencia": alumno.escuela_procedencia,
             "permiso_fotos": alumno.permiso_fotos,
+            "maestra_nombre": alumno.maestra.nombre if alumno.maestra else None,
             "programa_lectura": alumno.programa_lectura,
             "programa_matematicas": alumno.programa_matematicas,
             "objetivos": alumno.objetivos,

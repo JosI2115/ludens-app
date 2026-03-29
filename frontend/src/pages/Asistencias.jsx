@@ -10,6 +10,7 @@ export default function Asistencias() {
   const [loading, setLoading] = useState(true)
   const [guardando, setGuardando] = useState({})
   const [verTodos, setVerTodos] = useState(false)
+  const [busqueda, setBusqueda] = useState('')
   const [mostrarHistorial, setMostrarHistorial] = useState(false)
   const [historial, setHistorial] = useState(null)
   const [loadingHistorial, setLoadingHistorial] = useState(false)
@@ -68,6 +69,10 @@ export default function Asistencias() {
     }
   }
 
+  const alumnosFiltrados = alumnos.filter(a =>
+    a.nombre.toLowerCase().includes(busqueda.toLowerCase())
+  )
+
   const presentes = alumnos.filter(a => a.asistio === true).length
   const ausentes = alumnos.filter(a => a.asistio === false).length
   const sinRegistro = alumnos.filter(a => a.asistio === null).length
@@ -91,6 +96,13 @@ export default function Asistencias() {
             </button>
             <span className="text-sm text-gray-600">Ver todos</span>
           </div>
+          <input
+            type="text"
+            placeholder="Buscar alumno..."
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+          />
           <input
             type="date"
             value={fecha}
@@ -132,7 +144,7 @@ export default function Asistencias() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {alumnos.map((alumno) => (
+              {alumnosFiltrados.map((alumno) => (
                 <tr key={alumno.id} className={`hover:bg-gray-50 ${
                   alumno.asistio === true ? 'bg-green-50' :
                   alumno.asistio === false ? 'bg-red-50' : ''

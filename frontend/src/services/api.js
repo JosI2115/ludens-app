@@ -83,6 +83,8 @@ export const bitacorasService = {
   getProgramas: () => api.get('/bitacoras/programas'),
   getVistaMaestra: (params) => api.get('/bitacoras/vista-maestra', { params }),
   getPendientesImpresion: () => api.get('/bitacoras/imprimir'),
+  getProgramasLista: () => api.get('/bitacoras/programas/lista'),
+  actualizarUrlPrograma: (programa, url) => api.put(`/bitacoras/programas/${encodeURIComponent(programa)}/url`, { drive_url: url }),
 }
 
 export default api

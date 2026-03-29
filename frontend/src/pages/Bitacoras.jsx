@@ -40,6 +40,10 @@ export default function Bitacoras() {
   const [mostrarImpresion, setMostrarImpresion] = useState(false)
   const [pendientesImpresion, setPendientesImpresion] = useState({})
   const [programasColapsados, setProgramasColapsados] = useState({})
+  const [mostrarUrls, setMostrarUrls] = useState(false)
+  const [programasLista, setProgramasLista] = useState([])
+  const [urlsEditadas, setUrlsEditadas] = useState({})
+  const [guardandoUrls, setGuardandoUrls] = useState(false)
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
 
   useEffect(() => {
@@ -136,6 +140,65 @@ export default function Bitacoras() {
     }))
   }
 
+  const cargarProgramasLista = async () => {
+    try {
+      const res = await bitacorasService.getProgramasLista()
+      setProgramasLista(res.data)
+      const urls = {}
+      res.data.forEach(p => { urls[p.programa] = p.drive_url || '' })
+      setUrlsEditadas(urls)
+      setMostrarUrls(true)
+    } catch (err) {
+      console.error('Error')
+    }
+  }
+
+  const guardarUrls = async () => {
+    setGuardandoUrls(true)
+    try {
+      const promesas = Object.entries(urlsEditadas).map(([prog, url]) =>
+        bitacorasService.actualizarUrlPrograma(prog, url)
+      )
+      await Promise.all(promesas)
+      setMostrarUrls(false)
+      alert('URLs guardadas correctamente')
+    } catch (err) {
+      alert('Error guardando URLs')
+    } finally {
+      setGuardandoUrls(false)
+    }
+  }
+
+  const agruparRangos = (items) => {
+    if (!items || items.length === 0) return []
+
+    const grupos = {}
+    items.forEach(item => {
+      const partes = item.nomenclatura.split('.')
+      const numero = parseInt(partes[partes.length - 1])
+      const base = partes.slice(0, -1).join('.')
+      if (!grupos[base]) grupos[base] = { base, numeros: [], items: [] }
+      grupos[base].numeros.push(numero)
+      grupos[base].items.push(item)
+    })
+
+    return Object.values(grupos).map(grupo => {
+      const nums = grupo.numeros.sort((a, b) => a - b)
+      const min = nums[0]
+      const max = nums[nums.length - 1]
+      const esRango = max - min === nums.length - 1
+      return {
+        rango: esRango && nums.length > 1
+          ? `${grupo.base}.${min} a ${grupo.base}.${max}`
+          : nums.map(n => `${grupo.base}.${n}`).join(', '),
+        drive_url: grupo.items[0].drive_url,
+        alumno: grupo.items[0].alumno,
+        alumno_id: grupo.items[0].alumno_id,
+        count: nums.length
+      }
+    })
+  }
+
   const alumnosFiltrados = alumnos.filter(a =>
     a.nombre.toLowerCase().includes(busqueda.toLowerCase()) &&
     (filtraMaestra === '' || a.maestra_id === filtraMaestra)
@@ -150,12 +213,22 @@ export default function Bitacoras() {
         <div className="p-4 border-b border-gray-100">
           <div className="flex justify-between items-center mb-3">
             <h2 className="text-lg font-bold text-gray-800">Bitácoras</h2>
-            <button
-              onClick={cargarPendientesImpresion}
-              className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded-lg transition"
-            >
-              🖨️ Imprimir
-            </button>
+            <div className="flex gap-1">
+              {usuario.rol === 'directora' && (
+                <button
+                  onClick={cargarProgramasLista}
+                  className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded-lg transition"
+                >
+                  ⚙️
+                </button>
+              )}
+              <button
+                onClick={cargarPendientesImpresion}
+                className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded-lg transition"
+              >
+                🖨️ Imprimir
+              </button>
+            </div>
           </div>
           <input
             type="text"
@@ -444,22 +517,23 @@ export default function Bitacoras() {
                     <span className="text-xs text-gray-400 font-normal">({items.length} actividades)</span>
                   </h4>
                   <div className="space-y-2">
-                    {items.map((item, i) => (
-                      <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-2.5">
-                        <div>
-                          <p className="text-sm font-medium text-gray-800">{item.alumno}</p>
-                          <p className="text-xs text-gray-500 font-mono">{item.nomenclatura}</p>
-                        </div>
-                        {item.drive_url ? (
-                          <a href={item.drive_url} target="_blank" rel="noopener noreferrer"
-                            className="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1 rounded-full transition flex-shrink-0">
-                            📁 Abrir Drive
-                          </a>
-                        ) : (
-                          <span className="text-xs text-gray-400">Sin URL</span>
-                        )}
+                    {agruparRangos(items).map((grupo, i) => (
+                    <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-2.5">
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{grupo.alumno}</p>
+                        <p className="text-xs text-gray-500 font-mono">{grupo.rango}</p>
+                        <p className="text-xs text-gray-400">{grupo.count} actividades</p>
                       </div>
-                    ))}
+                      {grupo.drive_url ? (
+                        <a href={grupo.drive_url} target="_blank" rel="noopener noreferrer"
+                          className="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1 rounded-full transition flex-shrink-0">
+                          📁 Abrir Drive
+                        </a>
+                      ) : (
+                        <span className="text-xs text-gray-400">Sin URL</span>
+                      )}
+                    </div>
+                  ))}
                   </div>
                 </div>
               ))
@@ -467,6 +541,40 @@ export default function Bitacoras() {
           </div>
         </div>
       </div>
+      )}
+      {mostrarUrls && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-screen overflow-y-auto">
+            <div className="p-6 border-b flex justify-between items-center">
+              <h3 className="text-lg font-bold text-gray-800">⚙️ URLs de Drive por programa</h3>
+              <button onClick={() => setMostrarUrls(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            <div className="p-6 space-y-3">
+              {programasLista.map((p, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <span className="font-mono text-sm font-bold text-gray-700 w-24 flex-shrink-0">{p.programa}</span>
+                  <input
+                    type="text"
+                    value={urlsEditadas[p.programa] || ''}
+                    onChange={e => setUrlsEditadas(prev => ({ ...prev, [p.programa]: e.target.value }))}
+                    placeholder="https://drive.google.com/..."
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="p-6 border-t flex justify-end gap-3">
+              <button onClick={() => setMostrarUrls(false)}
+                className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm">
+                Cancelar
+              </button>
+              <button onClick={guardarUrls} disabled={guardandoUrls}
+                className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                {guardandoUrls ? 'Guardando...' : 'Guardar todas las URLs'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

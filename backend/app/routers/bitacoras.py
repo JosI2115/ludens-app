@@ -301,3 +301,34 @@ def get_pendientes_impresion(
         })
 
     return resultado
+
+
+@router.get("/programas/lista")
+def get_programas_lista(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from sqlalchemy import func
+    programas = db.query(
+        ProgramaCatalogo.programa,
+        ProgramaCatalogo.drive_url
+    ).distinct(ProgramaCatalogo.programa).order_by(ProgramaCatalogo.programa).all()
+
+    return [{"programa": p.programa, "drive_url": p.drive_url} for p in programas]
+
+
+@router.put("/programas/{programa}/url")
+def actualizar_url_programa(
+    programa: str,
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    if current_user.rol != "directora":
+        raise HTTPException(status_code=403, detail="Solo la directora")
+
+    db.query(ProgramaCatalogo).filter(
+        ProgramaCatalogo.programa == programa
+    ).update({"drive_url": data.get("drive_url")})
+    db.commit()
+    return {"mensaje": f"URL actualizada para {programa}"}

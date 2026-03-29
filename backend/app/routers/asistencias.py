@@ -11,6 +11,24 @@ from app.models.usuario import Usuario
 
 router = APIRouter(prefix="/asistencias", tags=["asistencias"])
 
+def alumno_asiste_hoy(horario: str, dia_semana: int) -> bool:
+    """
+    dia_semana: 0=Lunes, 1=Martes, 2=Miércoles, 3=Jueves, 4=Viernes, 5=Sábado
+    """
+    if not horario:
+        return True  # Si no tiene horario registrado, mostrar siempre
+
+    dias_map = {
+        'lunes': 0, 'martes': 1, 'miércoles': 2, 'miercoles': 2,
+        'jueves': 3, 'viernes': 4, 'sábado': 5, 'sabado': 5
+    }
+
+    horario_lower = horario.lower()
+    for dia_nombre, dia_num in dias_map.items():
+        if dia_nombre in horario_lower and dia_num == dia_semana:
+            return True
+    return False
+
 class AsistenciaCreate(BaseModel):
     alumno_id: str
     fecha: date
@@ -40,6 +58,7 @@ def get_asistencias(
 @router.get("/dia")
 def get_alumnos_del_dia(
     fecha: Optional[date] = None,
+    todos: bool = False,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
@@ -56,8 +75,14 @@ def get_alumnos_del_dia(
 
     alumnos = query.order_by(Alumno.nombre).all()
 
+    dia_semana = fecha.weekday()  # 0=Lunes, 6=Domingo
+    if not todos:
+        alumnos_filtrados = [a for a in alumnos if alumno_asiste_hoy(a.horario, dia_semana)]
+    else:
+        alumnos_filtrados = alumnos
+
     resultado = []
-    for alumno in alumnos:
+    for alumno in alumnos_filtrados:
         asistencia = db.query(Asistencia).filter(
             Asistencia.alumno_id == alumno.id,
             Asistencia.fecha == fecha

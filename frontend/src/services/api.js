@@ -51,7 +51,7 @@ export const pagosService = {
 }
 
 export const asistenciasService = {
-  getDia: (fecha) => api.get('/asistencias/dia', { params: { fecha } }),
+  getDia: (fecha, todos = false) => api.get('/asistencias/dia', { params: { fecha, todos } }),
   registrar: (data) => api.post('/asistencias/registrar', data),
   resumen: (alumno_id, params) => api.get(`/asistencias/resumen/${alumno_id}`, { params }),
 }

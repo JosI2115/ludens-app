@@ -7,15 +7,16 @@ export default function Asistencias() {
   const [alumnos, setAlumnos] = useState([])
   const [loading, setLoading] = useState(true)
   const [guardando, setGuardando] = useState({})
+  const [verTodos, setVerTodos] = useState(false)
 
   useEffect(() => {
     cargarAlumnos()
-  }, [fecha])
+  }, [fecha, verTodos])
 
   const cargarAlumnos = async () => {
     try {
       setLoading(true)
-      const response = await asistenciasService.getDia(fecha)
+      const response = await asistenciasService.getDia(fecha, verTodos)
       setAlumnos(response.data)
     } catch (err) {
       console.error('Error cargando asistencias')
@@ -46,12 +47,28 @@ export default function Asistencias() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Asistencias</h2>
-        <input
-          type="date"
-          value={fecha}
-          onChange={e => setFecha(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-        />
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Solo los de hoy</span>
+            <button
+              onClick={() => setVerTodos(!verTodos)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                verTodos ? 'bg-purple-600' : 'bg-gray-300'
+              }`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                verTodos ? 'translate-x-6' : 'translate-x-1'
+              }`} />
+            </button>
+            <span className="text-sm text-gray-600">Ver todos</span>
+          </div>
+          <input
+            type="date"
+            value={fecha}
+            onChange={e => setFecha(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-6">

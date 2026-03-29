@@ -221,6 +221,35 @@ def dashboard_pendientes(
             "items": items_imprimir[:5]
         })
 
+    # Alumnos en riesgo por inasistencias (20+ días sin asistir)
+    from app.models.asistencia import Asistencia
+    from datetime import timedelta
+
+    hace_20_dias = hoy - timedelta(days=20)
+    hace_30_dias = hoy - timedelta(days=30)
+
+    en_riesgo_inasistencia = []
+    for alumno in alumnos:
+        ultima = db.query(Asistencia).filter(
+            Asistencia.alumno_id == alumno.id,
+            Asistencia.asistio == True
+        ).order_by(Asistencia.fecha.desc()).first()
+
+        if ultima and ultima.fecha <= hace_20_dias:
+            dias_sin_asistir = (hoy - ultima.fecha).days
+            en_riesgo_inasistencia.append({
+                "tipo": "inasistencia",
+                "mensaje": f"{alumno.nombre} {alumno.apellido} — {dias_sin_asistir} días sin asistir",
+                "urgente": ultima.fecha <= hace_30_dias,
+                "alumno_id": str(alumno.id)
+            })
+
+    if en_riesgo_inasistencia:
+        pendientes.append({
+            "categoria": "⚠️ En riesgo por inasistencias",
+            "items": en_riesgo_inasistencia[:5]
+        })
+
     return pendientes
 
 @router.get("/dashboard/cumpleanos")

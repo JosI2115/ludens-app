@@ -123,7 +123,7 @@ export default function Dashboard() {
                 {pendientes.map((grupo, i) => (
                   <div key={i} className="bg-white rounded-xl shadow p-5">
                     <h4 className="font-bold text-gray-700 mb-3 text-sm">{grupo.categoria}</h4>
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
                       {grupo.items.map((item, j) => (
                         <div key={j} className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg ${
                           item.urgente ? 'bg-red-50 text-red-700' : 'bg-gray-50 text-gray-700'

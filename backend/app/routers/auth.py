@@ -204,21 +204,29 @@ def dashboard_pendientes(
         Bitacora.estado == "Imprimir"
     ).all()
 
-    items_imprimir = []
+    alumnos_imprimir = {}
     for b in bitacoras_imprimir:
         alumno = db.query(Alumno).filter(Alumno.id == b.alumno_id).first()
         if alumno:
-            items_imprimir.append({
-                "tipo": "imprimir",
-                "mensaje": f"{alumno.nombre} {alumno.apellido} — {b.nomenclatura}",
-                "urgente": False,
-                "alumno_id": str(alumno.id)
-            })
+            nombre = f"{alumno.nombre} {alumno.apellido}"
+            if nombre not in alumnos_imprimir:
+                alumnos_imprimir[nombre] = {
+                    "tipo": "imprimir",
+                    "mensaje": nombre,
+                    "urgente": False,
+                    "alumno_id": str(alumno.id),
+                    "count": 0
+                }
+            alumnos_imprimir[nombre]["count"] += 1
+
+    items_imprimir = list(alumnos_imprimir.values())
+    for item in items_imprimir:
+        item["mensaje"] = f"{item['mensaje']} — {item['count']} actividades"
 
     if items_imprimir:
         pendientes.append({
             "categoria": "🖨️ Por imprimir",
-            "items": items_imprimir[:5]
+            "items": items_imprimir
         })
 
     # Alumnos en riesgo por inasistencias (20+ días sin asistir)

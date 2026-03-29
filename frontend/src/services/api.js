@@ -46,6 +46,7 @@ export const pagosService = {
   getAll: (params) => api.get('/pagos/', { params }),
   resumen: (params) => api.get('/pagos/resumen', { params }),
   registrar: (data) => api.post('/pagos/registrar', data),
+  tablero: () => api.get('/pagos/tablero'),
 }
 
 export const asistenciasService = {

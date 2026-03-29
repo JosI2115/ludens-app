@@ -24,10 +24,22 @@ export default function Pagos() {
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
   const [modalPago, setModalPago] = useState(null)
+  const [tablero, setTablero] = useState({ por_vencer: [], con_recargo: [], bloqueados: [] })
+  const [vistaTablero, setVistaTablero] = useState(false)
 
   useEffect(() => {
     cargarDatos()
+    cargarTablero()
   }, [mes, anio])
+
+  const cargarTablero = async () => {
+    try {
+      const res = await pagosService.tablero()
+      setTablero(res.data)
+    } catch (err) {
+      console.error('Error cargando tablero')
+    }
+  }
 
   const cargarDatos = async () => {
     try {
@@ -52,8 +64,16 @@ export default function Pagos() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Control de pagos</h2>
+        <h2 className="text-2xl font-bold text-gray-800">Control de Pagos</h2>
         <div className="flex gap-2">
+          <button
+            onClick={() => setVistaTablero(!vistaTablero)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+              vistaTablero ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+            }`}
+          >
+            {vistaTablero ? '← Vista normal' : '📊 Tablero de pagos'}
+          </button>
           <select value={mes} onChange={e => setMes(Number(e.target.value))}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
             {MESES.map((m, i) => (
@@ -69,7 +89,101 @@ export default function Pagos() {
         </div>
       </div>
 
-      {resumen && (
+      {vistaTablero && (
+        <div className="space-y-6 mb-6">
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 bg-yellow-50">
+              <h3 className="font-bold text-yellow-700">⏰ Por vencer en los próximos 7 días ({tablero.por_vencer.length})</h3>
+            </div>
+            {tablero.por_vencer.length === 0 ? (
+              <p className="text-center text-gray-400 py-4 text-sm">Sin alumnos por vencer</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Alumno</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Día de pago</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Faltan</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Plan</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {tablero.por_vencer.map((a, i) => (
+                    <tr key={i} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium">{a.nombre}</td>
+                      <td className="px-4 py-3 text-gray-500">Día {a.dia_pago}</td>
+                      <td className="px-4 py-3"><span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-medium">{a.dias_para_pagar} días</span></td>
+                      <td className="px-4 py-3 text-gray-500">${a.plan_pago}/mes</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 bg-orange-50">
+              <h3 className="font-bold text-orange-700">⚠️ Con recargo — 6 a 9 días ({tablero.con_recargo.length})</h3>
+            </div>
+            {tablero.con_recargo.length === 0 ? (
+              <p className="text-center text-gray-400 py-4 text-sm">Sin alumnos con recargo</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Alumno</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Día de pago</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Días de retraso</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Plan</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {tablero.con_recargo.map((a, i) => (
+                    <tr key={i} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium">{a.nombre}</td>
+                      <td className="px-4 py-3 text-gray-500">Día {a.dia_pago}</td>
+                      <td className="px-4 py-3"><span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs font-medium">{a.dias} días</span></td>
+                      <td className="px-4 py-3 text-gray-500">${a.plan_pago}/mes</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 bg-red-50">
+              <h3 className="font-bold text-red-700">🚫 Bloqueados — más de 10 días ({tablero.bloqueados.length})</h3>
+            </div>
+            {tablero.bloqueados.length === 0 ? (
+              <p className="text-center text-gray-400 py-4 text-sm">Sin alumnos bloqueados</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Alumno</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Día de pago</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Días de retraso</th>
+                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Plan</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {tablero.bloqueados.map((a, i) => (
+                    <tr key={i} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-red-700">{a.nombre}</td>
+                      <td className="px-4 py-3 text-gray-500">Día {a.dia_pago}</td>
+                      <td className="px-4 py-3"><span className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-medium">{a.dias} días</span></td>
+                      <td className="px-4 py-3 text-gray-500">${a.plan_pago}/mes</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!vistaTablero && resumen && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
           <div className="bg-white rounded-xl shadow p-4 border-l-4 border-green-500">
             <p className="text-xs text-gray-500">Pagados</p>
@@ -94,6 +208,7 @@ export default function Pagos() {
         </div>
       )}
 
+      {!vistaTablero && <>
       <div className="mb-4 flex gap-3 items-center">
         <input
           type="text"
@@ -168,6 +283,7 @@ export default function Pagos() {
           )}
         </div>
       )}
+      </>}
 
       {modalPago && (
         <ModalRegistrarPago

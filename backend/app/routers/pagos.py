@@ -211,3 +211,76 @@ def resumen_pagos(
         "bloqueados": bloqueados,
         "total_recaudado": total_recaudado,
     }
+
+@router.get("/tablero")
+def get_tablero_pagos(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.alumno import Alumno
+    from app.models.pago import Pago
+    from datetime import date
+
+    hoy = date.today()
+    mes = hoy.month
+    anio = hoy.year
+
+    query = db.query(Alumno).filter(
+        Alumno.activo == True,
+        Alumno.situacion.in_(['activo', 'pendiente', 'en_riesgo', 'bloqueado', 'becado', 'inscripcion'])
+    )
+    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+
+    alumnos = query.all()
+
+    por_vencer = []      # Pagan en los próximos 7 días
+    con_recargo = []     # 6-9 días de retraso
+    bloqueados = []      # +10 días de retraso
+
+    for alumno in alumnos:
+        if not alumno.dia_pago:
+            continue
+
+        try:
+            fecha_pago = date(anio, mes, alumno.dia_pago)
+        except ValueError:
+            fecha_pago = date(anio, mes, 28)
+
+        # Si ingresó después del día de pago no está en mora
+        if alumno.fecha_ingreso and alumno.fecha_ingreso > fecha_pago:
+            continue
+
+        # Verificar si ya pagó este mes
+        pago = db.query(Pago).filter(
+            Pago.alumno_id == alumno.id,
+            Pago.mes == mes,
+            Pago.anio == anio
+        ).first()
+        if pago:
+            continue
+
+        dias = (hoy - fecha_pago).days
+        info = {
+            "alumno_id": str(alumno.id),
+            "nombre": f"{alumno.nombre} {alumno.apellido}",
+            "dia_pago": alumno.dia_pago,
+            "fecha_pago": str(fecha_pago),
+            "dias": dias,
+            "plan_pago": str(alumno.plan_pago),
+        }
+
+        if dias < 0 and dias >= -7:
+            # Faltan 7 días o menos para pagar
+            info["dias_para_pagar"] = abs(dias)
+            por_vencer.append(info)
+        elif 6 <= dias <= 9:
+            con_recargo.append(info)
+        elif dias >= 10:
+            bloqueados.append(info)
+
+    return {
+        "por_vencer": sorted(por_vencer, key=lambda x: x["dias"]),
+        "con_recargo": sorted(con_recargo, key=lambda x: x["dias"]),
+        "bloqueados": sorted(bloqueados, key=lambda x: x["dias"], reverse=True)
+    }

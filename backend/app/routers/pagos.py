@@ -54,6 +54,7 @@ class PagoCreate(BaseModel):
     con_penalizacion: Optional[bool] = False
     monto_penalizacion: Optional[float] = 0
     comentarios: Optional[str] = None
+    fecha_recepcion: Optional[date] = None
 
 @router.get("/")
 def get_pagos(
@@ -144,7 +145,8 @@ def registrar_pago(
         con_penalizacion=con_penalizacion,
         monto_penalizacion=monto_penalizacion,
         registrado_por=current_user.id,
-        comentarios=data.comentarios
+        comentarios=data.comentarios,
+        fecha_recepcion=data.fecha_recepcion
     )
     db.add(pago)
 

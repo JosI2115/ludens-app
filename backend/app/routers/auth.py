@@ -283,6 +283,7 @@ def migrate_db(
         "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS numero_hermano INTEGER DEFAULT 1",
         "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programas_lectura_historial TEXT",
         "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programas_matematicas_historial TEXT",
+        "ALTER TABLE pagos ADD COLUMN IF NOT EXISTS fecha_recepcion DATE",
     ]
 
     resultados = []

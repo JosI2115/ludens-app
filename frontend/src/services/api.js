@@ -88,4 +88,12 @@ export const bitacorasService = {
   actualizarUrlPrograma: (programa, url) => api.put(`/bitacoras/programas/${encodeURIComponent(programa)}/url`, { drive_url: url }),
 }
 
+export const reportesService = {
+  getDeAlumno: (alumno_id) => api.get(`/reportes/alumno/${alumno_id}`),
+  subir: (formData) => api.post('/reportes/subir', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  eliminar: (id) => api.delete(`/reportes/${id}`),
+}
+
 export default api

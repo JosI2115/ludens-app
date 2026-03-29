@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { alumnosService, usuariosService } from '../services/api'
+import { alumnosService, usuariosService, reportesService } from '../services/api'
 
 const SITUACION_COLORES = {
   prospecto:   'bg-gray-100 text-gray-600',
@@ -26,6 +26,10 @@ export default function Expedientes() {
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null)
   const [perfil, setPerfil] = useState(null)
   const [loadingPerfil, setLoadingPerfil] = useState(false)
+  const [reportes, setReportes] = useState([])
+  const [subiendoReporte, setSubiendoReporte] = useState(false)
+  const [mesReporte, setMesReporte] = useState(new Date().getMonth() + 1)
+  const [anioReporte, setAnioReporte] = useState(new Date().getFullYear())
 
   useEffect(() => {
     cargarAlumnos()
@@ -62,10 +66,68 @@ export default function Expedientes() {
     try {
       const res = await alumnosService.getPerfil(alumno.id)
       setPerfil(res.data)
+      cargarReportes(alumno.id)
     } catch (err) {
       console.error('Error cargando perfil')
     } finally {
       setLoadingPerfil(false)
+    }
+  }
+
+  const cargarReportes = async (alumno_id) => {
+    try {
+      const res = await reportesService.getDeAlumno(alumno_id)
+      setReportes(res.data)
+    } catch (err) {
+      console.error('Error cargando reportes')
+    }
+  }
+
+  const subirReporte = async (e) => {
+    const archivo = e.target.files[0]
+    if (!archivo) return
+    setSubiendoReporte(true)
+    try {
+      const formData = new FormData()
+      formData.append('alumno_id', alumnoSeleccionado.id)
+      formData.append('mes', mesReporte)
+      formData.append('anio', anioReporte)
+      formData.append('archivo', archivo)
+      await reportesService.subir(formData)
+      cargarReportes(alumnoSeleccionado.id)
+      alert('Reporte subido correctamente')
+    } catch (err) {
+      alert('Error subiendo reporte')
+    } finally {
+      setSubiendoReporte(false)
+      e.target.value = ''
+    }
+  }
+
+  const descargarReporte = async (url, nombre) => {
+    try {
+      const response = await fetch(url)
+      const blob = await response.blob()
+      const blobUrl = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }))
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = nombre + '.pdf'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(blobUrl)
+    } catch (err) {
+      console.error('Error descargando')
+    }
+  }
+
+  const eliminarReporte = async (id) => {
+    if (!window.confirm('¿Eliminar este reporte?')) return
+    try {
+      await reportesService.eliminar(id)
+      cargarReportes(alumnoSeleccionado.id)
+    } catch (err) {
+      alert('Error eliminando reporte')
     }
   }
 
@@ -363,6 +425,61 @@ export default function Expedientes() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            <div className="bg-white rounded-xl shadow p-5 mb-6">
+              <h3 className="font-bold text-gray-700 mb-4 text-sm uppercase tracking-wide">📄 Reportes mensuales</h3>
+
+              <div className="flex gap-3 items-center mb-4 flex-wrap">
+                <select value={mesReporte} onChange={e => setMesReporte(parseInt(e.target.value))}
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                  {['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'].map((m, i) => (
+                    <option key={i+1} value={i+1}>{m}</option>
+                  ))}
+                </select>
+                <select value={anioReporte} onChange={e => setAnioReporte(parseInt(e.target.value))}
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                  {[2024, 2025, 2026, 2027].map(a => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
+                <label className={`cursor-pointer bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition ${subiendoReporte ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  {subiendoReporte ? 'Subiendo...' : '⬆️ Subir PDF'}
+                  <input type="file" accept=".pdf" onChange={subirReporte} disabled={subiendoReporte} className="hidden" />
+                </label>
+              </div>
+
+              {reportes.length === 0 ? (
+                <p className="text-center text-gray-400 text-sm py-4">Sin reportes subidos</p>
+              ) : (
+                <div className="space-y-2">
+                  {reportes.map((r, i) => (
+                    <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">📄</span>
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">
+                            {['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][r.mes-1]} {r.anio}
+                          </p>
+                          <p className="text-xs text-gray-400">Subido el {r.created_at?.split('T')[0]}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => descargarReporte(r.url, `reporte_${r.anio}_${String(r.mes).padStart(2,'0')}_${perfil.alumno.nombre}${perfil.alumno.apellido}`)}
+                          className="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition"
+                        >
+                          ⬇️ Descargar PDF
+                        </button>
+                        <button onClick={() => eliminarReporte(r.id)}
+                          className="text-xs bg-red-50 text-red-500 hover:bg-red-100 px-3 py-1.5 rounded-lg transition">
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {perfil.historial.length > 0 && (

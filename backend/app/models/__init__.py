@@ -6,3 +6,4 @@ from app.models.asistencia import Asistencia
 from app.models.historial import HistorialCambio
 from app.models.catalogo import ProgramaCatalogo
 from app.models.bitacora import Bitacora
+from app.models.reporte import ReporteMensual

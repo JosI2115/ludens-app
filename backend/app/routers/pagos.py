@@ -21,8 +21,11 @@ def calcular_estado_pago(alumno, hoy=None):
     mes_actual = hoy.month
     anio_actual = hoy.year
 
+    import calendar
     try:
-        fecha_pago_este_mes = date(anio_actual, mes_actual, alumno.dia_pago)
+        ultimo_dia = calendar.monthrange(anio_actual, mes_actual)[1]
+        dia = min(alumno.dia_pago, ultimo_dia)
+        fecha_pago_este_mes = date(anio_actual, mes_actual, dia)
     except ValueError:
         fecha_pago_este_mes = date(anio_actual, mes_actual, 28)
 

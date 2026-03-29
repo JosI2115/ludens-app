@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { alumnosService } from '../services/api'
+import { alumnosService, usuariosService } from '../services/api'
 
 const SITUACION_COLORES = {
   prospecto:   'bg-gray-100 text-gray-600',
@@ -20,6 +20,8 @@ export default function Expedientes() {
   const [bajas, setBajas] = useState([])
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
+  const [filtroMaestra, setFiltroMaestra] = useState('')
+  const [maestras, setMaestras] = useState([])
   const [tab, setTab] = useState('activos')
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null)
   const [perfil, setPerfil] = useState(null)
@@ -27,7 +29,17 @@ export default function Expedientes() {
 
   useEffect(() => {
     cargarAlumnos()
+    cargarMaestras()
   }, [])
+
+  const cargarMaestras = async () => {
+    try {
+      const res = await usuariosService.getAll()
+      setMaestras(res.data.filter(u => u.rol === 'maestra' || u.rol === 'encargada'))
+    } catch (err) {
+      console.error('Error cargando maestras')
+    }
+  }
 
   const cargarAlumnos = async () => {
     try {
@@ -163,7 +175,8 @@ export default function Expedientes() {
 
   const lista = tab === 'activos' ? alumnos : bajas
   const filtrados = lista.filter(a =>
-    `${a.nombre} ${a.apellido}`.toLowerCase().includes(busqueda.toLowerCase())
+    `${a.nombre} ${a.apellido}`.toLowerCase().includes(busqueda.toLowerCase()) &&
+    (filtroMaestra === '' || a.maestra_id === filtroMaestra)
   )
 
   return (
@@ -178,6 +191,16 @@ export default function Expedientes() {
             onChange={e => setBusqueda(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 mb-3"
           />
+          <select
+            value={filtroMaestra}
+            onChange={e => setFiltroMaestra(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 mb-3"
+          >
+            <option value="">Todas las maestras</option>
+            {maestras.map(m => (
+              <option key={m.id} value={m.id}>{m.nombre}</option>
+            ))}
+          </select>
           <div className="flex gap-1">
             <button onClick={() => setTab('activos')}
               className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition ${tab === 'activos' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600'}`}>

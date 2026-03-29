@@ -387,6 +387,7 @@ def migrate_db(
         "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programas_lectura_historial TEXT",
         "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programas_matematicas_historial TEXT",
         "ALTER TABLE pagos ADD COLUMN IF NOT EXISTS fecha_recepcion DATE",
+        "CREATE TABLE IF NOT EXISTS reportes_mensuales (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), alumno_id UUID REFERENCES alumnos(id), mes INTEGER NOT NULL, anio INTEGER NOT NULL, url_cloudinary TEXT NOT NULL, public_id_cloudinary VARCHAR(200), subido_por UUID REFERENCES usuarios(id), created_at TIMESTAMPTZ DEFAULT NOW())",
     ]
 
     resultados = []

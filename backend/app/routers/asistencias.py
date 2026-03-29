@@ -164,3 +164,38 @@ def resumen_asistencias(
         "ausentes": ausentes,
         "porcentaje": round((presentes / total * 100) if total > 0 else 0, 1)
     }
+
+@router.get("/historial/{alumno_id}")
+def get_historial_alumno(
+    alumno_id: str,
+    inicio: Optional[date] = None,
+    fin: Optional[date] = None,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    query = db.query(Asistencia).filter(Asistencia.alumno_id == alumno_id)
+    if inicio:
+        query = query.filter(Asistencia.fecha >= inicio)
+    if fin:
+        query = query.filter(Asistencia.fecha <= fin)
+    asistencias = query.order_by(Asistencia.fecha.desc()).all()
+
+    alumno = db.query(Alumno).filter(Alumno.id == alumno_id).first()
+
+    total = len(asistencias)
+    presentes = sum(1 for a in asistencias if a.asistio)
+    ausentes = total - presentes
+
+    return {
+        "alumno": f"{alumno.nombre} {alumno.apellido}" if alumno else "Desconocido",
+        "presentes": presentes,
+        "ausentes": ausentes,
+        "porcentaje": round((presentes / total * 100) if total > 0 else 0, 1),
+        "registros": [
+            {
+                "fecha": str(a.fecha),
+                "asistio": a.asistio,
+            }
+            for a in asistencias
+        ]
+    }

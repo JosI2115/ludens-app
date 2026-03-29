@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { asistenciasService } from '../services/api'
 
+const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+
 export default function Asistencias() {
   const hoy = new Date().toISOString().split('T')[0]
   const [fecha, setFecha] = useState(hoy)
@@ -8,6 +10,12 @@ export default function Asistencias() {
   const [loading, setLoading] = useState(true)
   const [guardando, setGuardando] = useState({})
   const [verTodos, setVerTodos] = useState(false)
+  const [mostrarHistorial, setMostrarHistorial] = useState(false)
+  const [historial, setHistorial] = useState(null)
+  const [loadingHistorial, setLoadingHistorial] = useState(false)
+  const [historialInicio, setHistorialInicio] = useState('')
+  const [historialFin, setHistorialFin] = useState('')
+  const [historialAlumnoId, setHistorialAlumnoId] = useState('')
 
   useEffect(() => {
     cargarAlumnos()
@@ -36,6 +44,27 @@ export default function Asistencias() {
       console.error('Error registrando asistencia')
     } finally {
       setGuardando(g => ({ ...g, [alumno_id]: false }))
+    }
+  }
+
+  const verHistorial = (alumno_id) => {
+    setHistorialAlumnoId(alumno_id)
+    setHistorialInicio('')
+    setHistorialFin('')
+    setHistorial(null)
+    setMostrarHistorial(true)
+  }
+
+  const buscarHistorial = async () => {
+    if (!historialAlumnoId || !historialInicio || !historialFin) return
+    setLoadingHistorial(true)
+    try {
+      const res = await asistenciasService.getHistorial(historialAlumnoId, historialInicio, historialFin)
+      setHistorial(res.data)
+    } catch (err) {
+      console.error('Error')
+    } finally {
+      setLoadingHistorial(false)
     }
   }
 
@@ -99,6 +128,7 @@ export default function Asistencias() {
               <tr>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">Alumno</th>
                 <th className="text-center px-4 py-3 text-gray-600 font-medium">Asistencia</th>
+                <th className="text-center px-4 py-3 text-gray-600 font-medium w-20"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -134,10 +164,79 @@ export default function Asistencias() {
                       </button>
                     </div>
                   </td>
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={() => verHistorial(alumno.id)}
+                      className="text-xs text-gray-400 hover:text-purple-600 transition"
+                      title="Ver historial"
+                    >
+                      📅
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {mostrarHistorial && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col">
+            <div className="p-5 border-b flex justify-between items-center">
+              <h3 className="text-lg font-bold text-gray-800">
+                📅 Historial — {historial?.alumno || ''}
+              </h3>
+              <button onClick={() => setMostrarHistorial(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha inicio</label>
+                  <input type="date" value={historialInicio} onChange={e => setHistorialInicio(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha fin</label>
+                  <input type="date" value={historialFin} onChange={e => setHistorialFin(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+                </div>
+              </div>
+              <button onClick={buscarHistorial} disabled={loadingHistorial || !historialInicio || !historialFin}
+                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white py-2 rounded-lg text-sm font-medium">
+                {loadingHistorial ? 'Buscando...' : 'Buscar'}
+              </button>
+
+              {historial && (
+                <div>
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div className="bg-green-50 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-green-700">{historial.presentes}</p>
+                      <p className="text-xs text-gray-500">Presentes</p>
+                    </div>
+                    <div className="bg-red-50 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-red-700">{historial.ausentes}</p>
+                      <p className="text-xs text-gray-500">Ausentes</p>
+                    </div>
+                    <div className="bg-purple-50 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-purple-700">{historial.porcentaje}%</p>
+                      <p className="text-xs text-gray-500">Asistencia</p>
+                    </div>
+                  </div>
+                  <div className="space-y-1 max-h-60 overflow-y-auto">
+                    {historial.registros.map((r, i) => (
+                      <div key={i} className={`flex justify-between px-3 py-1.5 rounded-lg text-sm ${r.asistio ? 'bg-green-50' : 'bg-red-50'}`}>
+                        <span className="text-gray-600">{r.fecha}</span>
+                        <span className={r.asistio ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                          {r.asistio ? '✓ Asistió' : '✗ Faltó'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

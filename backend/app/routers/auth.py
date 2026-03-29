@@ -293,6 +293,69 @@ def dashboard_cumpleanos(
     cumpleanos.sort(key=lambda x: x["dia"])
     return {"mes": mes, "alumnos": cumpleanos}
 
+@router.get("/calendario")
+def get_calendario(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.alumno import Alumno
+
+    query = db.query(Alumno).filter(
+        Alumno.activo == True,
+        Alumno.situacion.in_(['activo', 'inscripcion', 'becado', 'pendiente'])
+    )
+    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+
+    alumnos = query.all()
+
+    dias_map = {
+        'lunes': 0, 'martes': 1, 'miércoles': 2, 'miercoles': 2,
+        'jueves': 3, 'viernes': 4, 'sábado': 5, 'sabado': 5
+    }
+
+    calendario = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
+
+    for alumno in alumnos:
+        if not alumno.horario:
+            continue
+
+        horario_lower = alumno.horario.lower()
+        franjas = horario_lower.split('|')
+
+        for franja in franjas:
+            franja = franja.strip()
+            dias_encontrados = []
+
+            for dia_nombre, dia_num in dias_map.items():
+                if dia_nombre in franja:
+                    if dia_num not in dias_encontrados:
+                        dias_encontrados.append(dia_num)
+
+            import re
+            horas = re.findall(r'\d+:\d+', franja)
+            if len(horas) >= 2:
+                hora_info = f"{horas[0]}-{horas[1]}"
+            elif len(horas) == 1:
+                hora_info = horas[0]
+            else:
+                hora_info = ''
+
+            for dia_num in dias_encontrados:
+                calendario[dia_num].append({
+                    "alumno_id": str(alumno.id),
+                    "nombre": f"{alumno.nombre} {alumno.apellido}",
+                    "hora": hora_info,
+                    "grado": alumno.grado,
+                    "maestra_id": str(alumno.maestra_id) if alumno.maestra_id else None,
+                })
+
+    for dia in calendario:
+        calendario[dia].sort(key=lambda x: x["hora"])
+
+    return calendario
+
+
 @router.get("/ingresos-bajas")
 def get_ingresos_bajas(
     mes: Optional[int] = None,

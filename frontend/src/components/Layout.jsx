@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 
 const menuItems = [
   { path: '/dashboard', icon: '🏠', label: 'Inicio' },
+  { path: '/calendario', icon: '📅', label: 'Calendario' },
   { path: '/alumnos', icon: '👨‍🎓', label: 'Alumnos' },
   { path: '/bitacoras', icon: '📒', label: 'Bitácoras', roles: ['directora', 'encargada', 'maestra'] },
   { path: '/pagos', icon: '💰', label: 'Pagos', roles: ['directora', 'encargada', 'recepcionista', 'contadora'] },

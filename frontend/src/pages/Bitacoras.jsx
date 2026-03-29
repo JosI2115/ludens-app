@@ -39,6 +39,7 @@ export default function Bitacoras() {
   const [maestras, setMaestras] = useState([])
   const [mostrarImpresion, setMostrarImpresion] = useState(false)
   const [pendientesImpresion, setPendientesImpresion] = useState({})
+  const [programasColapsados, setProgramasColapsados] = useState({})
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
 
   useEffect(() => {
@@ -126,6 +127,13 @@ export default function Bitacoras() {
       })
     })
     await Promise.all(promesas)
+  }
+
+  const togglePrograma = (programa) => {
+    setProgramasColapsados(prev => ({
+      ...prev,
+      [programa]: !prev[programa]
+    }))
   }
 
   const alumnosFiltrados = alumnos.filter(a =>
@@ -270,7 +278,13 @@ export default function Bitacoras() {
             ) : (
               bitacora.programas.map((prog, pi) => (
                 <div key={pi} className="mb-8">
-                  <div className="flex items-center gap-3 mb-4">
+                  <div
+                    className="flex items-center gap-3 mb-4 cursor-pointer select-none"
+                    onClick={() => togglePrograma(prog.programa)}
+                  >
+                    <span className="text-gray-400 text-sm">
+                      {programasColapsados[prog.programa] ? '▶' : '▼'}
+                    </span>
                     <h3 className="text-lg font-bold text-gray-700">{prog.programa}</h3>
                     <span className="text-xs text-gray-400 capitalize">{prog.tipo}</span>
                     {prog.drive_url && (
@@ -278,13 +292,18 @@ export default function Bitacoras() {
                         href={prog.drive_url}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
                         className="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1 rounded-full transition"
                       >
                         📁 Ver en Drive
                       </a>
                     )}
+                    <span className="text-xs text-gray-400 ml-auto">
+                      {prog.actividades.filter(a => a.estado).length}/{prog.actividades.length} registradas
+                    </span>
                   </div>
 
+                  {!programasColapsados[prog.programa] && (
                   <div className="bg-white rounded-xl shadow overflow-hidden">
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50 border-b">
@@ -399,6 +418,7 @@ export default function Bitacoras() {
                       </tbody>
                     </table>
                   </div>
+                  )}
                 </div>
               ))
             )}

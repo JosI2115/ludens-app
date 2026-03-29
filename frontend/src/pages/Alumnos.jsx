@@ -10,6 +10,7 @@ const SITUACION_COLORES = {
   en_riesgo: 'bg-orange-100 text-orange-700',
   bloqueado: 'bg-red-100 text-red-700',
   baja: 'bg-red-200 text-red-800',
+  becado: 'bg-indigo-100 text-indigo-700',
 }
 
 const SITUACION_LABELS = {
@@ -20,6 +21,7 @@ const SITUACION_LABELS = {
   en_riesgo: 'En riesgo',
   bloqueado: 'Bloqueado',
   baja: 'Baja',
+  becado: 'Becado',
 }
 
 export default function Alumnos() {
@@ -439,6 +441,7 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
                 <option value="pendiente">Pendiente</option>
                 <option value="en_riesgo">En riesgo</option>
                 <option value="bloqueado">Bloqueado</option>
+                <option value="becado">Becado</option>
               </select>
             </div>
             <div>
@@ -469,28 +472,44 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
           </div>
 
           <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Plan de pago</label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Plan de pago</label>
+            {form.situacion === 'becado' ? (
+              <div className="space-y-2">
+                <input
+                  name="plan_pago"
+                  type="number"
+                  value={form.plan_pago}
+                  onChange={handleChange}
+                  placeholder="Monto personalizado (puede ser 0)"
+                  className="w-full border border-purple-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                />
+                <p className="text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded">
+                  🎓 Alumno becado — ingresa el monto mensual (0 si es beca completa)
+                </p>
+              </div>
+            ) : (
               <select name="plan_pago" value={form.plan_pago} onChange={(e) => {
                 const val = e.target.value
-                setForm(f => ({
-                  ...f,
-                  plan_pago: val,
-                  materias: val === '1200' || val === '1500' ? 'Lectura y Matematicas' : f.materias,
-                  horas_semana: val === '900' ? 2 : val === '1200' ? 2 : val === '1500' ? 4 : f.horas_semana
-                }))
+                let materias = form.materias
+                let horas = form.horas_semana
+                if (val === '1200') { materias = 'Lectura y Matematicas'; horas = 2 }
+                if (val === '1500') { materias = 'Lectura y Matematicas'; horas = 4 }
+                if (val === '900') { horas = 2 }
+                setForm(f => ({ ...f, plan_pago: val, materias, horas_semana: horas }))
               }}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
-                <option value="">Seleccionar</option>
-                <option value="900">$900 - 2hrs/1 materia</option>
-                <option value="1200">$1,200 - 2hrs/2 materias</option>
-                <option value="1500">$1,500 - 4hrs/2 materias</option>
+                <option value="">Seleccionar plan</option>
+                <option value="900">$900 — 2hrs/sem · 1 materia</option>
+                <option value="1200">$1,200 — 2hrs/sem · 2 materias</option>
+                <option value="1500">$1,500 — 4hrs/sem · 2 materias</option>
               </select>
-            </div>
+            )}
+          </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Materias</label>
               <select name="materias" value={form.materias} onChange={handleChange}
-                disabled={form.plan_pago === '1200' || form.plan_pago === '1500'}
+                disabled={(form.plan_pago === '1200' || form.plan_pago === '1500') && form.situacion !== 'becado'}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 disabled:bg-gray-100">
                 <option value="">Seleccionar</option>
                 <option value="Lectura">Lectura</option>

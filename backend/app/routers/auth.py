@@ -85,60 +85,63 @@ def dashboard_stats(
 ):
     from app.models.alumno import Alumno
     from app.models.pago import Pago
+    from app.models.sucursal import Sucursal
     from datetime import date
-    
+
     hoy = date.today()
     mes = hoy.month
     anio = hoy.year
+    primer_dia_mes = date(anio, mes, 1)
 
-    query = db.query(Alumno).filter(Alumno.activo == True)
-    
+    query_base = db.query(Alumno)
     if current_user.rol in ["maestra", "encargada", "recepcionista"]:
-        query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+        query_base = query_base.filter(Alumno.sucursal_id == current_user.sucursal_id)
 
-    todos = query.all()
-    
-    activos = [a for a in todos if a.situacion in ['activo', 'pendiente', 'en_riesgo', 'bloqueado']]
-    prospectos = [a for a in todos if a.situacion == 'prospecto']
-    
-    pagados = 0
-    pendientes = 0
-    en_riesgo = 0
-    bloqueados = 0
+    # Total alumnos activos
+    total_activos = query_base.filter(Alumno.activo == True, Alumno.situacion != 'baja').count()
 
-    for alumno in activos:
-        pago = db.query(Pago).filter(
-            Pago.alumno_id == alumno.id,
-            Pago.mes == mes,
-            Pago.anio == anio
-        ).first()
+    # Alumnos nuevos este mes
+    nuevos_mes = query_base.filter(
+        Alumno.activo == True,
+        Alumno.fecha_ingreso >= primer_dia_mes
+    ).count()
 
-        if pago:
-            pagados += 1
-        elif alumno.dia_pago:
-            try:
-                fecha_pago = date(anio, mes, alumno.dia_pago)
-                dias = (hoy - fecha_pago).days
-                if dias > 10:
-                    bloqueados += 1
-                elif dias > 5:
-                    en_riesgo += 1
-                else:
-                    pendientes += 1
-            except:
-                pendientes += 1
-        else:
-            pendientes += 1
+    # Alumnos dados de baja este mes
+    bajas_mes = query_base.filter(
+        Alumno.situacion == 'baja',
+        Alumno.fecha_baja >= primer_dia_mes
+    ).count()
+
+    # Total ingresos del mes
+    pagos_query = db.query(Pago).filter(Pago.mes == mes, Pago.anio == anio)
+    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        alumno_ids = [a.id for a in query_base.all()]
+        pagos_query = pagos_query.filter(Pago.alumno_id.in_(alumno_ids))
+    pagos_mes = pagos_query.all()
+    total_ingresos = sum(float(p.monto) + float(p.monto_penalizacion) for p in pagos_mes)
+
+    # Alumnos por sucursal
+    sucursales = db.query(Sucursal).filter(Sucursal.activa == True).all()
+    por_sucursal = []
+    for suc in sucursales:
+        count = db.query(Alumno).filter(
+            Alumno.activo == True,
+            Alumno.situacion != 'baja',
+            Alumno.sucursal_id == suc.id
+        ).count()
+        por_sucursal.append({
+            "sucursal": suc.nombre,
+            "total": count
+        })
 
     return {
-        "total_activos": len(activos),
-        "total_prospectos": len(prospectos),
-        "pagados": pagados,
-        "pendientes": pendientes,
-        "en_riesgo": en_riesgo,
-        "bloqueados": bloqueados,
+        "total_activos": total_activos,
+        "nuevos_mes": nuevos_mes,
+        "bajas_mes": bajas_mes,
+        "total_ingresos": total_ingresos,
+        "por_sucursal": por_sucursal,
         "mes": mes,
-        "anio": anio,
+        "anio": anio
     }
 
 @router.get("/dashboard/pendientes")

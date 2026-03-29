@@ -83,34 +83,38 @@ export default function Dashboard() {
             Resumen de {MESES[stats.mes - 1]} {stats.anio}
           </p>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-            <div className="bg-white rounded-xl shadow p-5 border-l-4 border-purple-500">
-              <p className="text-xs text-gray-500 mb-1">Alumnos activos</p>
-              <p className="text-3xl font-bold text-gray-800">{stats.total_activos}</p>
-              {stats.total_prospectos > 0 && (
-                <p className="text-xs text-gray-400 mt-1">{stats.total_prospectos} prospectos</p>
-              )}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <div className="bg-white rounded-xl shadow p-5">
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Alumnos activos</p>
+                <p className="text-3xl font-bold text-purple-600">{stats.total_activos || 0}</p>
+              </div>
+              <div className="bg-white rounded-xl shadow p-5">
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Nuevos este mes</p>
+                <p className="text-3xl font-bold text-green-600">{stats.nuevos_mes || 0}</p>
+              </div>
+              <div className="bg-white rounded-xl shadow p-5">
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Bajas este mes</p>
+                <p className="text-3xl font-bold text-red-500">{stats.bajas_mes || 0}</p>
+              </div>
+              <div className="bg-white rounded-xl shadow p-5">
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Ingresos del mes</p>
+                <p className="text-3xl font-bold text-blue-600">${(stats.total_ingresos || 0).toLocaleString('es-MX', {minimumFractionDigits: 0})}</p>
+              </div>
             </div>
-            <div className="bg-white rounded-xl shadow p-5 border-l-4 border-green-500">
-              <p className="text-xs text-gray-500 mb-1">Pagos al día</p>
-              <p className="text-3xl font-bold text-gray-800">{stats.pagados}</p>
-              <p className="text-xs text-gray-400 mt-1">de {stats.total_activos} alumnos</p>
-            </div>
-            <div className="bg-white rounded-xl shadow p-5 border-l-4 border-yellow-400">
-              <p className="text-xs text-gray-500 mb-1">Pendientes</p>
-              <p className="text-3xl font-bold text-gray-800">{stats.pendientes}</p>
-            </div>
-            <div className="bg-white rounded-xl shadow p-5 border-l-4 border-orange-500">
-              <p className="text-xs text-gray-500 mb-1">Con recargo</p>
-              <p className="text-3xl font-bold text-gray-800">{stats.en_riesgo}</p>
-              <p className="text-xs text-orange-400 mt-1">+$50 de penalización</p>
-            </div>
-            <div className="bg-white rounded-xl shadow p-5 border-l-4 border-red-600">
-              <p className="text-xs text-gray-500 mb-1">Bloqueados</p>
-              <p className="text-3xl font-bold text-gray-800">{stats.bloqueados}</p>
-              <p className="text-xs text-red-400 mt-1">+10 días sin pagar</p>
-            </div>
-          </div>
+
+            {stats.por_sucursal && stats.por_sucursal.length > 0 && (
+              <div className="bg-white rounded-xl shadow p-5 mb-8">
+                <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4">Alumnos por sucursal</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {stats.por_sucursal.map((s, i) => (
+                    <div key={i} className="bg-purple-50 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-purple-600">{s.total}</p>
+                      <p className="text-xs text-gray-500 mt-1">{s.sucursal}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
           {pendientes.length > 0 && (
             <div className="mb-8">
@@ -187,9 +191,9 @@ export default function Dashboard() {
             >
               <div className="text-3xl mb-2">💰</div>
               <p className="font-medium text-gray-800 text-sm">Pagos</p>
-              {stats.pendientes + stats.en_riesgo + stats.bloqueados > 0 && (
+              {(stats.total_activos || 0) > 0 && (
                 <span className="text-xs text-red-500 font-medium">
-                  {stats.pendientes + stats.en_riesgo + stats.bloqueados} sin pagar
+                  {stats.total_activos || 0} sin pagar
                 </span>
               )}
             </button>

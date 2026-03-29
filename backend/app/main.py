@@ -27,6 +27,46 @@ app.include_router(asistencias.router)
 app.include_router(usuarios.router)
 app.include_router(bitacoras.router)
 
+def actualizar_situaciones_por_inasistencia():
+    from app.database import SessionLocal
+    from app.models.alumno import Alumno
+    from app.models.asistencia import Asistencia
+    from datetime import date, timedelta
+
+    db = SessionLocal()
+    try:
+        hoy = date.today()
+        hace_20 = hoy - timedelta(days=20)
+        hace_30 = hoy - timedelta(days=30)
+
+        alumnos = db.query(Alumno).filter(
+            Alumno.activo == True,
+            Alumno.situacion.in_(['activo', 'en_riesgo', 'pendiente'])
+        ).all()
+
+        for alumno in alumnos:
+            ultima = db.query(Asistencia).filter(
+                Asistencia.alumno_id == alumno.id,
+                Asistencia.asistio == True
+            ).order_by(Asistencia.fecha.desc()).first()
+
+            if not ultima:
+                continue
+
+            if ultima.fecha <= hace_30:
+                if alumno.situacion != 'baja':
+                    alumno.situacion = 'baja'
+                    alumno.fecha_baja = hoy
+                    alumno.motivo_baja = 'Baja automática por 30 días de inasistencia'
+            elif ultima.fecha <= hace_20:
+                if alumno.situacion not in ['en_riesgo', 'baja']:
+                    alumno.situacion = 'en_riesgo'
+
+        db.commit()
+    finally:
+        db.close()
+
+
 @app.on_event("startup")
 def startup():
     from app.database import Base, engine, SessionLocal
@@ -113,6 +153,8 @@ def startup():
         db.commit()
 
     db.close()
+
+    actualizar_situaciones_por_inasistencia()
 
 @app.get("/")
 def root():

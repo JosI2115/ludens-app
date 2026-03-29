@@ -7,6 +7,7 @@ const menuItems = [
   { path: '/pagos', icon: '💰', label: 'Pagos', roles: ['directora', 'encargada', 'recepcionista', 'contadora'] },
   { path: '/asistencias', icon: '📋', label: 'Asistencias', roles: ['directora', 'encargada', 'maestra', 'recepcionista'] },
   { path: '/expedientes', icon: '📁', label: 'Expedientes', roles: ['directora', 'encargada', 'maestra', 'recepcionista'] },
+  { path: '/ingresos-bajas', icon: '📊', label: 'Ingresos y Bajas', roles: ['directora', 'encargada', 'contadora'] },
   { path: '/usuarios', icon: '👥', label: 'Usuarios', roles: ['directora'] },
 ]
 

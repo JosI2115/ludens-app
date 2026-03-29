@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from typing import Optional
 from pydantic import BaseModel
 from app.database import get_db
 from app.models.usuario import Usuario
@@ -262,6 +263,79 @@ def dashboard_cumpleanos(
 
     cumpleanos.sort(key=lambda x: x["dia"])
     return {"mes": mes, "alumnos": cumpleanos}
+
+@router.get("/ingresos-bajas")
+def get_ingresos_bajas(
+    mes: Optional[int] = None,
+    anio: Optional[int] = None,
+    sucursal_id: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.alumno import Alumno
+    from datetime import date
+
+    hoy = date.today()
+    if not mes:
+        mes = hoy.month
+    if not anio:
+        anio = hoy.year
+
+    primer_dia = date(anio, mes, 1)
+    if mes == 12:
+        ultimo_dia = date(anio + 1, 1, 1)
+    else:
+        ultimo_dia = date(anio, mes + 1, 1)
+
+    query_base = db.query(Alumno)
+    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        query_base = query_base.filter(Alumno.sucursal_id == current_user.sucursal_id)
+    elif sucursal_id:
+        query_base = query_base.filter(Alumno.sucursal_id == sucursal_id)
+
+    alumnos_ingreso = query_base.filter(
+        Alumno.activo == True,
+        Alumno.fecha_ingreso >= primer_dia,
+        Alumno.fecha_ingreso < ultimo_dia
+    ).order_by(Alumno.fecha_ingreso).all()
+
+    alumnos_baja = query_base.filter(
+        Alumno.situacion == 'baja',
+        Alumno.fecha_baja >= primer_dia,
+        Alumno.fecha_baja < ultimo_dia
+    ).order_by(Alumno.fecha_baja).all()
+
+    from app.models.sucursal import Sucursal
+    def get_sucursal_nombre(alumno):
+        if alumno.sucursal_id:
+            suc = db.query(Sucursal).filter(Sucursal.id == alumno.sucursal_id).first()
+            return suc.nombre if suc else None
+        return None
+
+    ingresos = [{
+        "alumno_id": str(a.id),
+        "nombre": f"{a.nombre} {a.apellido}",
+        "fecha_ingreso": str(a.fecha_ingreso) if a.fecha_ingreso else None,
+        "plan_pago": a.plan_pago,
+        "situacion": a.situacion,
+        "sucursal": get_sucursal_nombre(a),
+    } for a in alumnos_ingreso]
+
+    bajas = [{
+        "alumno_id": str(a.id),
+        "nombre": f"{a.nombre} {a.apellido}",
+        "fecha_baja": str(a.fecha_baja) if a.fecha_baja else None,
+        "motivo_baja": a.motivo_baja,
+        "sucursal": get_sucursal_nombre(a),
+    } for a in alumnos_baja]
+
+    return {
+        "mes": mes,
+        "anio": anio,
+        "ingresos": ingresos,
+        "bajas": bajas,
+    }
+
 
 @router.post("/admin/migrate")
 def migrate_db(

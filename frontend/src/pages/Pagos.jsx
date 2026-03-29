@@ -26,6 +26,7 @@ export default function Pagos() {
   const [modalPago, setModalPago] = useState(null)
   const [tablero, setTablero] = useState({ por_vencer: [], con_recargo: [], bloqueados: [] })
   const [vistaTablero, setVistaTablero] = useState(false)
+  const [filtroSituacionPago, setFiltroSituacionPago] = useState('')
 
   useEffect(() => {
     cargarDatos()
@@ -58,7 +59,8 @@ export default function Pagos() {
   }
 
   const pagosFiltrados = pagos.filter(p =>
-    p.nombre.toLowerCase().includes(busqueda.toLowerCase())
+    p.nombre.toLowerCase().includes(busqueda.toLowerCase()) &&
+    (filtroSituacionPago === '' || p.estado_color === filtroSituacionPago)
   )
 
   return (
@@ -217,13 +219,18 @@ export default function Pagos() {
           onChange={e => setBusqueda(e.target.value)}
           className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
         />
-        <div className="flex gap-2 text-xs">
-          {Object.entries(COLORES).filter(([k]) => k !== 'sin_fecha').map(([key, val]) => (
-            <span key={key} className={`px-2 py-1 rounded-full ${val.bg} ${val.text} font-medium`}>
-              {val.label}
-            </span>
-          ))}
-        </div>
+        <select
+          value={filtroSituacionPago}
+          onChange={e => setFiltroSituacionPago(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+        >
+          <option value="">Todos los estados</option>
+          <option value="verde">✅ Pagado</option>
+          <option value="amarillo">🟡 Por pagar</option>
+          <option value="rojo">🔴 Atrasado</option>
+          <option value="naranja">🟠 Con recargo</option>
+          <option value="cafe">🟫 Bloqueado</option>
+        </select>
       </div>
 
       {loading ? (

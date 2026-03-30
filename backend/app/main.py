@@ -85,6 +85,19 @@ def startup():
     from app.auth.auth import hashear_password
     from sqlalchemy import text
 
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        migraciones_auto = [
+            "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS color VARCHAR(20)",
+            "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS fecha_reactivacion DATE",
+        ]
+        for sql in migraciones_auto:
+            try:
+                conn.execute(text(sql))
+                conn.commit()
+            except Exception:
+                pass
+
     Base.metadata.create_all(bind=engine)
     
     # Agregar columnas nuevas si no existen

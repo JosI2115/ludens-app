@@ -61,6 +61,7 @@ def es_nuevo_ingreso(alumno, fecha_dia):
 @router.get("/semana")
 def get_calendario_semana(
     fecha_inicio: Optional[str] = None,
+    sucursal_id: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
@@ -81,6 +82,8 @@ def get_calendario_semana(
     )
     if current_user.rol in ["maestra", "encargada", "recepcionista"]:
         query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+    elif sucursal_id:
+        query = query.filter(Alumno.sucursal_id == sucursal_id)
 
     alumnos = query.all()
 
@@ -234,6 +237,7 @@ def eliminar_recuperacion(
 @router.get("/maestras")
 def get_calendario_maestras(
     fecha_inicio: Optional[str] = None,
+    sucursal_id: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
@@ -260,6 +264,8 @@ def get_calendario_maestras(
     )
     if current_user.rol in ["maestra", "encargada", "recepcionista"]:
         query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+    elif sucursal_id:
+        query = query.filter(Alumno.sucursal_id == sucursal_id)
 
     alumnos = query.all()
 

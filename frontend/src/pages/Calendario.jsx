@@ -22,17 +22,24 @@ export default function Calendario() {
   const [modalRecup, setModalRecup] = useState(null)
   const [vistaActual, setVistaActual] = useState('general')
   const [datosMaestras, setDatosMaestras] = useState(null)
+  const [sucursales, setSucursales] = useState([])
+  const [sucursalFiltro, setSucursalFiltro] = useState('')
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
 
   useEffect(() => {
+    if (usuario.rol === 'directora' || usuario.rol === 'contadora') {
+      api.get('/sucursales/').then(res => setSucursales(res.data))
+    }
     cargarCalendario()
     cargarCalendarioMaestras()
-  }, [fechaInicio])
+  }, [fechaInicio, sucursalFiltro])
 
   const cargarCalendario = async () => {
     setLoading(true)
     try {
-      const params = fechaInicio ? { fecha_inicio: fechaInicio } : {}
+      const params = {}
+      if (fechaInicio) params.fecha_inicio = fechaInicio
+      if (sucursalFiltro) params.sucursal_id = sucursalFiltro
       const res = await api.get('/calendario/semana', { params })
       setDatos(res.data)
     } catch (err) {
@@ -44,7 +51,9 @@ export default function Calendario() {
 
   const cargarCalendarioMaestras = async () => {
     try {
-      const params = fechaInicio ? { fecha_inicio: fechaInicio } : {}
+      const params = {}
+      if (fechaInicio) params.fecha_inicio = fechaInicio
+      if (sucursalFiltro) params.sucursal_id = sucursalFiltro
       const res = await api.get('/calendario/maestras', { params })
       setDatosMaestras(res.data)
     } catch (err) {
@@ -104,6 +113,18 @@ export default function Calendario() {
               👩‍🏫 Maestras
             </button>
           </div>
+          {(usuario.rol === 'directora' || usuario.rol === 'contadora') && (
+            <select
+              value={sucursalFiltro}
+              onChange={e => setSucursalFiltro(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+            >
+              <option value="">Todas las sucursales</option>
+              {sucursales.map(s => (
+                <option key={s.id} value={s.id}>{s.nombre}</option>
+              ))}
+            </select>
+          )}
           <button onClick={semanaAnterior} className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50">← Anterior</button>
           <button onClick={semanaActual} className="px-3 py-1.5 bg-purple-100 text-purple-700 border border-purple-300 rounded-lg text-sm font-medium">Hoy</button>
           <button onClick={semanaSiguiente} className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50">Siguiente →</button>

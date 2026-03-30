@@ -199,3 +199,21 @@ def get_historial_alumno(
             for a in asistencias
         ]
     }
+
+@router.delete("/")
+def eliminar_asistencia(
+    alumno_id: str,
+    fecha: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from datetime import datetime
+    fecha_date = datetime.strptime(fecha, '%Y-%m-%d').date()
+    asistencia = db.query(Asistencia).filter(
+        Asistencia.alumno_id == alumno_id,
+        Asistencia.fecha == fecha_date
+    ).first()
+    if asistencia:
+        db.delete(asistencia)
+        db.commit()
+    return {"mensaje": "Asistencia eliminada"}

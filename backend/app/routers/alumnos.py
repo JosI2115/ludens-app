@@ -78,16 +78,61 @@ class AlumnoUpdate(BaseModel):
 def get_alumnos(
     sucursal_id: Optional[str] = None,
     situacion: Optional[str] = None,
+    incluir_bajas: bool = False,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
+    # Actualizar situaciones por inasistencia antes de listar
+    from datetime import date, timedelta
+    from app.models.asistencia import Asistencia
+
+    hoy = date.today()
+    hace_20 = hoy - timedelta(days=20)
+    hace_30 = hoy - timedelta(days=30)
+
+    alumnos_check = db.query(Alumno).filter(
+        Alumno.activo == True,
+        Alumno.situacion.in_(['activo', 'en_riesgo', 'pendiente', 'inscripcion'])
+    ).all()
+
+    actualizado = False
+    for alumno in alumnos_check:
+        ultima = db.query(Asistencia).filter(
+            Asistencia.alumno_id == alumno.id,
+            Asistencia.asistio == True
+        ).order_by(Asistencia.fecha.desc()).first()
+
+        if not ultima:
+            continue
+
+        # Si fue reactivado manualmente, respetar esa decisión
+        if alumno.fecha_reactivacion and ultima.fecha <= alumno.fecha_reactivacion:
+            continue
+
+        if ultima.fecha <= hace_30:
+            if alumno.situacion != 'baja':
+                alumno.situacion = 'baja'
+                alumno.fecha_baja = hoy
+                alumno.motivo_baja = 'Baja automática por 30 días de inasistencia'
+                actualizado = True
+        elif ultima.fecha <= hace_20:
+            if alumno.situacion not in ['en_riesgo', 'baja']:
+                alumno.situacion = 'en_riesgo'
+                actualizado = True
+
+    if actualizado:
+        db.commit()
+
     query = db.query(Alumno).filter(Alumno.activo == True)
-    
+
+    if not incluir_bajas:
+        query = query.filter(Alumno.situacion != 'baja')
+
     if current_user.rol in ["maestra", "encargada", "recepcionista"]:
         query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
     elif sucursal_id:
         query = query.filter(Alumno.sucursal_id == sucursal_id)
-    
+
     if situacion:
         query = query.filter(Alumno.situacion == situacion)
     
@@ -197,6 +242,13 @@ def actualizar_alumno(
         if alumno.programa_matematicas and alumno.programa_matematicas not in historial:
             historial.append(alumno.programa_matematicas)
         cambios['programas_matematicas_historial'] = json.dumps(historial)
+
+    if 'situacion' in cambios and cambios['situacion'] != 'baja' and alumno.situacion == 'baja':
+        from datetime import date as date_type
+        cambios['fecha_baja'] = None
+        cambios['fecha_reactivacion'] = date_type.today()
+        if alumno.motivo_baja and 'automática' in alumno.motivo_baja:
+            cambios['motivo_baja'] = None
 
     for campo, valor_nuevo in cambios.items():
         valor_anterior = getattr(alumno, campo)

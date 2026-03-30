@@ -30,6 +30,7 @@ class Alumno(Base):
     fecha_ingreso = Column(Date)
     fecha_baja = Column(Date)
     motivo_baja = Column(Text)
+    fecha_reactivacion = Column(Date, nullable=True)
     ultima_asistencia = Column(Date)
     horario = Column(Text)
     domicilio = Column(Text)

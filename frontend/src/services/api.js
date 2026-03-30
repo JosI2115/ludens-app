@@ -55,6 +55,7 @@ export const asistenciasService = {
   registrar: (data) => api.post('/asistencias/registrar', data),
   resumen: (alumno_id, params) => api.get(`/asistencias/resumen/${alumno_id}`, { params }),
   getHistorial: (alumno_id, inicio, fin) => api.get(`/asistencias/historial/${alumno_id}`, { params: { inicio, fin } }),
+  eliminar: (alumno_id, fecha) => api.delete('/asistencias/', { params: { alumno_id, fecha } }),
 }
 
 

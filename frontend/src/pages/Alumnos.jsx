@@ -34,6 +34,7 @@ export default function Alumnos() {
   const [filtroSituacion, setFiltroSituacion] = useState('')
   const [sucursales, setSucursales] = useState([])
   const [filtroSucursal, setFiltroSucursal] = useState('')
+  const [verBajas, setVerBajas] = useState(false)
   const [modalAbierto, setModalAbierto] = useState(false)
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null)
   const [error, setError] = useState('')
@@ -43,7 +44,7 @@ export default function Alumnos() {
   useEffect(() => {
     cargarAlumnos()
     cargarSucursales()
-  }, [filtroSituacion])
+  }, [filtroSituacion, verBajas])
 
   const cargarSucursales = async () => {
     try {
@@ -59,6 +60,7 @@ export default function Alumnos() {
       setLoading(true)
       const params = {}
       if (filtroSituacion) params.situacion = filtroSituacion
+      if (verBajas) params.incluir_bajas = true
       const response = await alumnosService.getAll(params)
       setAlumnos(response.data)
     } catch (err) {
@@ -155,6 +157,14 @@ export default function Alumnos() {
               <option key={s.id} value={s.id}>{s.nombre}</option>
             ))}
           </select>
+          <button
+            onClick={() => setVerBajas(!verBajas)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+              verBajas ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {verBajas ? '✕ Ocultar bajas' : '📋 Ver bajas'}
+          </button>
         </div>
 
       {loading ? (
@@ -506,6 +516,7 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
                 <option value="en_riesgo">En riesgo</option>
                 <option value="bloqueado">Bloqueado</option>
                 <option value="becado">Becado</option>
+                <option value="baja">Baja</option>
               </select>
             </div>
             <div>

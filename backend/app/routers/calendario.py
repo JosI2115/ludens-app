@@ -48,13 +48,14 @@ def parsear_horario(horario: str):
 
     return resultado
 
-def es_nuevo_ingreso(alumno, hoy):
-    if alumno.situacion in ['inscripcion']:
+def es_nuevo_ingreso(alumno, fecha_dia):
+    if not alumno.fecha_ingreso:
+        return False
+    dias = (fecha_dia - alumno.fecha_ingreso).days
+    if dias < 0 or dias > 7:
+        return False
+    if alumno.situacion in ['inscripcion', 'activo']:
         return True
-    if alumno.fecha_ingreso:
-        dias = (hoy - alumno.fecha_ingreso).days
-        if dias <= 7 and alumno.situacion == 'activo':
-            return True
     return False
 
 @router.get("/semana")
@@ -98,11 +99,17 @@ def get_calendario_semana(
 
     for alumno in alumnos:
         franjas = parsear_horario(alumno.horario)
-        nuevo = es_nuevo_ingreso(alumno, hoy)
 
         for franja in franjas:
             dia = franja['dia']
             hora_inicio = franja['hora_inicio']
+            fecha_dia = fechas_semana[dia] if dia < len(fechas_semana) else hoy
+
+            # No mostrar alumno antes de su fecha de ingreso
+            if alumno.fecha_ingreso and fecha_dia < alumno.fecha_ingreso:
+                continue
+
+            nuevo = es_nuevo_ingreso(alumno, fecha_dia)
 
             hora_key = None
             for h in HORAS:
@@ -117,14 +124,14 @@ def get_calendario_semana(
             confirmado = conf_map.get((str(alumno.id), str(fecha_dia))) if fecha_dia else None
 
             estado = 'sin_confirmar'
-            if alumno.situacion == 'prospecto':
-                estado = 'prospecto'
-            elif nuevo:
-                estado = 'nuevo_ingreso'
-            elif confirmado is True:
+            if confirmado is True:
                 estado = 'confirma_asiste'
             elif confirmado is False:
                 estado = 'confirma_no_asiste'
+            elif alumno.situacion == 'prospecto':
+                estado = 'prospecto'
+            elif nuevo:
+                estado = 'nuevo_ingreso'
 
             calendario[hora_key][dia].append({
                 "alumno_id": str(alumno.id),

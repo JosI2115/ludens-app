@@ -274,16 +274,49 @@ def dar_baja_alumno(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
+    if current_user.rol not in ["directora", "encargada", "recepcionista"]:
+        raise HTTPException(status_code=403, detail="Sin permisos")
+
     alumno = db.query(Alumno).filter(Alumno.id == alumno_id).first()
     if not alumno:
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
-    
+
     alumno.situacion = "baja"
     alumno.fecha_baja = date.today()
     alumno.motivo_baja = motivo
     alumno.activo = False
     db.commit()
     return {"mensaje": "Alumno dado de baja correctamente"}
+
+@router.delete("/{alumno_id}/eliminar")
+def eliminar_alumno_completo(
+    alumno_id: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    if current_user.rol not in ["directora", "encargada"]:
+        raise HTTPException(status_code=403, detail="Solo directora o encargada")
+
+    from sqlalchemy import text
+    from app.models.bitacora import Bitacora
+    from app.models.pago import Pago
+    from app.models.asistencia import Asistencia
+    from app.models.historial import HistorialCambio
+
+    alumno = db.query(Alumno).filter(Alumno.id == alumno_id).first()
+    if not alumno:
+        raise HTTPException(status_code=404, detail="Alumno no encontrado")
+
+    db.execute(text("DELETE FROM confirmaciones_asistencia WHERE alumno_id = :id"), {"id": alumno_id})
+    db.execute(text("DELETE FROM clases_recuperacion WHERE alumno_id = :id"), {"id": alumno_id})
+    db.execute(text("DELETE FROM reportes_mensuales WHERE alumno_id = :id"), {"id": alumno_id})
+    db.query(Bitacora).filter(Bitacora.alumno_id == alumno_id).delete()
+    db.query(HistorialCambio).filter(HistorialCambio.alumno_id == alumno_id).delete()
+    db.query(Asistencia).filter(Asistencia.alumno_id == alumno_id).delete()
+    db.query(Pago).filter(Pago.alumno_id == alumno_id).delete()
+    db.delete(alumno)
+    db.commit()
+    return {"mensaje": "Alumno eliminado completamente"}
 
 @router.get("/{alumno_id}/perfil")
 def get_perfil_alumno(

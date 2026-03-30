@@ -216,6 +216,23 @@ export default function Alumnos() {
                     >
                       Editar
                     </button>
+                    {(usuario.rol === 'directora' || usuario.rol === 'encargada') && (
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation()
+                          if (!window.confirm(`¿Eliminar completamente a ${alumno.nombre} ${alumno.apellido}? Esta acción no se puede deshacer.`)) return
+                          try {
+                            await alumnosService.eliminarCompleto(alumno.id)
+                            cargarAlumnos()
+                          } catch (err) {
+                            alert('Error eliminando alumno')
+                          }
+                        }}
+                        className="text-red-500 hover:text-red-700 text-xs font-medium ml-2"
+                      >
+                        Eliminar
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

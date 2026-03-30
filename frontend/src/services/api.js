@@ -40,6 +40,7 @@ export const alumnosService = {
   crear: (data) => api.post('/alumnos/', data),
   actualizar: (id, data) => api.put(`/alumnos/${id}`, data),
   darBaja: (id, motivo) => api.delete(`/alumnos/${id}`, { params: { motivo } }),
+  eliminarCompleto: (id) => api.delete(`/alumnos/${id}/eliminar`),
 }
 
 export const pagosService = {

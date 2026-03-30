@@ -73,6 +73,11 @@ def get_alumnos_del_dia(
     if current_user.rol in ["maestra", "encargada", "recepcionista"]:
         query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
 
+    # Solo mostrar alumnos que ya ingresaron en esa fecha
+    query = query.filter(
+        (Alumno.fecha_ingreso == None) | (Alumno.fecha_ingreso <= fecha)
+    )
+
     alumnos = query.order_by(Alumno.nombre).all()
 
     dia_semana = fecha.weekday()  # 0=Lunes, 6=Domingo

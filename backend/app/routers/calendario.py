@@ -12,7 +12,7 @@ from app.auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/calendario", tags=["calendario"])
 
-HORAS = ['9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00']
+HORAS = ['9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00']
 
 DIAS_MAP = {
     'lunes': 0, 'martes': 1, 'miércoles': 2, 'miercoles': 2,

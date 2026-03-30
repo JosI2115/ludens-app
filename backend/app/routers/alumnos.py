@@ -97,23 +97,24 @@ def get_alumnos(
 
     actualizado = False
     for alumno in alumnos_check:
-        ultima = db.query(Asistencia).filter(
-            Asistencia.alumno_id == alumno.id,
-            Asistencia.asistio == True
-        ).order_by(Asistencia.fecha.desc()).first()
-
-        # Punto de inicio del conteo: fecha de reactivación o fecha de ingreso
+        # Punto de inicio del conteo
         punto_inicio = alumno.fecha_reactivacion or alumno.fecha_ingreso
-
-        if not ultima:
+        if not punto_inicio:
             continue
 
-        # Si fue reactivado, solo contar desde la reactivación
-        if punto_inicio and ultima.fecha <= punto_inicio:
-            # No hay asistencias después de la reactivación — contar desde punto_inicio
-            dias_sin_asistir = (hoy - punto_inicio).days
-        else:
+        # Buscar última asistencia DESPUÉS del punto de inicio
+        ultima = db.query(Asistencia).filter(
+            Asistencia.alumno_id == alumno.id,
+            Asistencia.asistio == True,
+            Asistencia.fecha > punto_inicio
+        ).order_by(Asistencia.fecha.desc()).first()
+
+        if ultima:
+            # Hay asistencias después del punto de inicio
             dias_sin_asistir = (hoy - ultima.fecha).days
+        else:
+            # No hay asistencias después del punto de inicio
+            dias_sin_asistir = (hoy - punto_inicio).days
 
         if dias_sin_asistir >= 30:
             if alumno.situacion != 'baja':
@@ -248,6 +249,18 @@ def actualizar_alumno(
         if alumno.programa_matematicas and alumno.programa_matematicas not in historial:
             historial.append(alumno.programa_matematicas)
         cambios['programas_matematicas_historial'] = json.dumps(historial)
+
+    if 'fecha_ingreso' in cambios and cambios['fecha_ingreso'] and alumno.fecha_ingreso != cambios['fecha_ingreso']:
+        from app.models.asistencia import Asistencia
+        from datetime import datetime as dt
+        nueva_fecha = cambios['fecha_ingreso']
+        if isinstance(nueva_fecha, str):
+            nueva_fecha = dt.strptime(nueva_fecha, '%Y-%m-%d').date()
+        db.query(Asistencia).filter(
+            Asistencia.alumno_id == alumno.id,
+            Asistencia.fecha < nueva_fecha
+        ).delete()
+        cambios['fecha_reactivacion'] = nueva_fecha
 
     if 'situacion' in cambios and cambios['situacion'] != 'baja' and alumno.situacion == 'baja':
         from datetime import date as date_type

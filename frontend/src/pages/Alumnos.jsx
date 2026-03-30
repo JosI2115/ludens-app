@@ -626,9 +626,22 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha ingreso</label>
-              <input name="fecha_ingreso" type="date" value={form.fecha_ingreso} onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de ingreso</label>
+              <input
+                name="fecha_ingreso"
+                type="date"
+                value={form.fecha_ingreso}
+                onChange={(e) => {
+                  const nuevaFecha = e.target.value
+                  if (alumno?.fecha_ingreso && nuevaFecha !== alumno.fecha_ingreso) {
+                    if (!window.confirm('⚠️ Si cambias la fecha de ingreso se borrarán todas las asistencias registradas anteriores a esa fecha y se reiniciará el conteo de riesgo/baja. ¿Continuar?')) {
+                      return
+                    }
+                  }
+                  setForm(f => ({ ...f, fecha_ingreso: nuevaFecha }))
+                }}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+              />
             </div>
           </div>
 

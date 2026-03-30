@@ -8,3 +8,5 @@ from app.models.catalogo import ProgramaCatalogo
 from app.models.bitacora import Bitacora
 from app.models.reporte import ReporteMensual
 from app.models.aviso import Aviso
+from app.models.confirmacion_asistencia import ConfirmacionAsistencia
+from app.models.recuperacion import ClaseRecuperacion

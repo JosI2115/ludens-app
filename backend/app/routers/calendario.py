@@ -320,3 +320,41 @@ def get_calendario_maestras(
             for hora, dias in calendario.items()
         }
     }
+
+@router.get("/nuevos")
+def get_nuevos_alumnos(
+    fecha_inicio: Optional[str] = None,
+    sucursal_id: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from datetime import datetime
+    hoy = date.today()
+    if fecha_inicio:
+        inicio_semana = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+    else:
+        dias_para_lunes = hoy.weekday()
+        inicio_semana = hoy - timedelta(days=dias_para_lunes)
+
+    fin_semana = inicio_semana + timedelta(days=6)
+
+    query = db.query(Alumno).filter(
+        Alumno.activo == True,
+        Alumno.fecha_ingreso >= inicio_semana,
+        Alumno.fecha_ingreso <= fin_semana
+    )
+    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+    elif sucursal_id:
+        query = query.filter(Alumno.sucursal_id == sucursal_id)
+
+    alumnos = query.order_by(Alumno.fecha_ingreso).all()
+
+    return [{
+        "nombre": f"{a.nombre} {a.apellido}",
+        "alumno_id": str(a.id),
+        "materias": a.materias,
+        "programa_lectura": a.programa_lectura,
+        "programa_matematicas": a.programa_matematicas,
+        "fecha_ingreso": str(a.fecha_ingreso)
+    } for a in alumnos]

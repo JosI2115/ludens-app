@@ -24,6 +24,7 @@ export default function Calendario() {
   const [datosMaestras, setDatosMaestras] = useState(null)
   const [sucursales, setSucursales] = useState([])
   const [sucursalFiltro, setSucursalFiltro] = useState('')
+  const [nuevosAlumnos, setNuevosAlumnos] = useState([])
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
 
   useEffect(() => {
@@ -32,7 +33,20 @@ export default function Calendario() {
     }
     cargarCalendario()
     cargarCalendarioMaestras()
+    cargarNuevosAlumnos()
   }, [fechaInicio, sucursalFiltro])
+
+  const cargarNuevosAlumnos = async () => {
+    try {
+      const params = {}
+      if (fechaInicio) params.fecha_inicio = fechaInicio
+      if (sucursalFiltro) params.sucursal_id = sucursalFiltro
+      const res = await api.get('/calendario/nuevos', { params })
+      setNuevosAlumnos(res.data)
+    } catch (err) {
+      console.error('Error cargando nuevos alumnos')
+    }
+  }
 
   const cargarCalendario = async () => {
     setLoading(true)
@@ -271,6 +285,36 @@ export default function Calendario() {
           onClose={() => setModalRecup(null)}
           onAgendar={agendarRecuperacion}
         />
+      )}
+
+      {nuevosAlumnos.length > 0 && (
+        <div className="mt-6">
+          <h3 className="font-bold text-gray-700 mb-3">🆕 Nuevos alumnos esta semana ({nuevosAlumnos.length})</h3>
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="text-left px-4 py-3 text-gray-500 font-medium">Nombre</th>
+                  <th className="text-left px-4 py-3 text-gray-500 font-medium">Materias</th>
+                  <th className="text-left px-4 py-3 text-gray-500 font-medium">Prog. Lectura</th>
+                  <th className="text-left px-4 py-3 text-gray-500 font-medium">Prog. Matemáticas</th>
+                  <th className="text-left px-4 py-3 text-gray-500 font-medium">Fecha ingreso</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {nuevosAlumnos.map((a, i) => (
+                  <tr key={i} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-purple-600">{a.nombre}</td>
+                    <td className="px-4 py-3 text-gray-500">{a.materias || '—'}</td>
+                    <td className="px-4 py-3 font-mono text-blue-600 text-xs">{a.programa_lectura || '—'}</td>
+                    <td className="px-4 py-3 font-mono text-red-600 text-xs">{a.programa_matematicas || '—'}</td>
+                    <td className="px-4 py-3 text-gray-500">{a.fecha_ingreso}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </div>
   )

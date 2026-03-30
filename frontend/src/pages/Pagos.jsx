@@ -242,8 +242,8 @@ export default function Pagos() {
               <tr>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">Alumno</th>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">Plan</th>
-                <th className="text-left px-4 py-3 text-gray-600 font-medium">Día de pago</th>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">Estado</th>
+                <th className="text-left px-4 py-3 text-gray-600 font-medium">Comentarios</th>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">Acción</th>
                 <th className="text-left px-4 py-3 text-gray-600 font-medium">Acciones</th>
               </tr>
@@ -257,15 +257,13 @@ export default function Pagos() {
                     <td className="px-4 py-3 text-gray-600">
                       {p.plan_pago ? `$${p.plan_pago}` : '—'}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      Día {p.dia_pago || '—'}
-                    </td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${color.bg} ${color.text}`}>
                         {color.label}
                         {!p.pagado && p.dias_retraso > 0 && ` (${p.dias_retraso} días)`}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-gray-500 text-sm">{p.comentarios || '—'}</td>
                     <td className="px-4 py-3">
                       {p.pagado ? (
                         <span className="text-green-600 text-xs font-medium">
@@ -326,7 +324,6 @@ export default function Pagos() {
 
 function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess }) {
   const [comentarios, setComentarios] = useState('')
-  const [fechaPago, setFechaPago] = useState('')
   const [fechaRecepcion, setFechaRecepcion] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -344,7 +341,7 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess }) {
         monto: monto,
         mes,
         anio,
-        fecha_pago: fechaPago || new Date().toISOString().split('T')[0],
+        fecha_pago: fechaRecepcion || new Date().toISOString().split('T')[0],
         con_penalizacion: conPenalizacion,
         monto_penalizacion: conPenalizacion ? 50 : 0,
         comentarios,
@@ -393,17 +390,6 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess }) {
               Este alumno tiene {alumno.dias_retraso} días de retraso. Se aplica recargo de $50.
             </div>
           )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de pago</label>
-            <input
-              type="date"
-              value={fechaPago}
-              onChange={e => setFechaPago(e.target.value)}
-              required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-            />
-          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

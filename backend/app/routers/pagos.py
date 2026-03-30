@@ -109,6 +109,7 @@ def get_pagos(
             "pagado": pago_mes is not None,
             "fecha_pago": pago_mes.fecha_pago if pago_mes else None,
             "con_penalizacion": pago_mes.con_penalizacion if pago_mes else False,
+            "comentarios": pago_mes.comentarios if pago_mes else None,
             "sucursal_id": str(alumno.sucursal_id) if alumno.sucursal_id else None,
             "pago_id": str(pago_mes.id) if pago_mes else None,
         })

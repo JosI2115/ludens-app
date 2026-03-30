@@ -437,6 +437,55 @@ def get_ingresos_bajas(
     }
 
 
+@router.get("/avisos")
+def get_avisos(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.aviso import Aviso
+    avisos = db.query(Aviso).filter(
+        Aviso.activo == True
+    ).order_by(Aviso.created_at.desc()).limit(5).all()
+    return [{
+        "id": str(a.id),
+        "mensaje": a.mensaje,
+        "autor": a.autor,
+        "created_at": str(a.created_at)
+    } for a in avisos]
+
+@router.post("/avisos")
+def crear_aviso(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.aviso import Aviso
+    if current_user.rol not in ["directora", "recepcionista", "encargada"]:
+        raise HTTPException(status_code=403, detail="Sin permisos")
+    aviso = Aviso(
+        mensaje=data.get("mensaje"),
+        autor=current_user.nombre,
+        activo=True
+    )
+    db.add(aviso)
+    db.commit()
+    return {"mensaje": "Aviso publicado"}
+
+@router.delete("/avisos/{aviso_id}")
+def eliminar_aviso(
+    aviso_id: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.aviso import Aviso
+    if current_user.rol not in ["directora", "recepcionista", "encargada"]:
+        raise HTTPException(status_code=403, detail="Sin permisos")
+    aviso = db.query(Aviso).filter(Aviso.id == aviso_id).first()
+    if aviso:
+        aviso.activo = False
+        db.commit()
+    return {"mensaje": "Aviso eliminado"}
+
 @router.post("/admin/migrate")
 def migrate_db(
     current_user: Usuario = Depends(get_current_user),

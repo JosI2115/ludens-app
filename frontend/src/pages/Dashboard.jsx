@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { dashboardService } from '../services/api'
+import api from '../services/api'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -10,12 +11,16 @@ export default function Dashboard() {
   const [cumpleanos, setCumpleanos] = useState([])
   const [mesCumple, setMesCumple] = useState(new Date().getMonth() + 1)
   const [loading, setLoading] = useState(true)
+  const [avisos, setAvisos] = useState([])
+  const [nuevoAviso, setNuevoAviso] = useState('')
+  const [mostrarFormAviso, setMostrarFormAviso] = useState(false)
 
   const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 
   useEffect(() => {
     cargarStats()
+    cargarAvisos()
   }, [])
 
   const cargarStats = async () => {
@@ -30,6 +35,36 @@ export default function Dashboard() {
       console.error('Error cargando stats')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const cargarAvisos = async () => {
+    try {
+      const res = await api.get('/auth/avisos')
+      setAvisos(res.data)
+    } catch (err) {
+      console.error('Error cargando avisos')
+    }
+  }
+
+  const publicarAviso = async () => {
+    if (!nuevoAviso.trim()) return
+    try {
+      await api.post('/auth/avisos', { mensaje: nuevoAviso })
+      setNuevoAviso('')
+      setMostrarFormAviso(false)
+      cargarAvisos()
+    } catch (err) {
+      console.error('Error publicando aviso')
+    }
+  }
+
+  const eliminarAviso = async (id) => {
+    try {
+      await api.delete(`/auth/avisos/${id}`)
+      cargarAvisos()
+    } catch (err) {
+      console.error('Error eliminando aviso')
     }
   }
 
@@ -115,6 +150,53 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+
+          {avisos.length > 0 && (
+            <div className="mb-6">
+              {avisos.map((a, i) => (
+                <div key={i} className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-2">
+                  <span className="text-blue-500 text-lg flex-shrink-0">📢</span>
+                  <div className="flex-1">
+                    <p className="text-sm text-blue-800">{a.mensaje}</p>
+                    <p className="text-xs text-blue-400 mt-1">{a.autor} · {a.created_at?.split('T')[0]}</p>
+                  </div>
+                  {(usuario.rol === 'directora' || usuario.rol === 'recepcionista' || usuario.rol === 'encargada') && (
+                    <button onClick={() => eliminarAviso(a.id)} className="text-blue-300 hover:text-blue-500 text-xs">✕</button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {(usuario.rol === 'directora' || usuario.rol === 'recepcionista' || usuario.rol === 'encargada') && (
+            <div className="mb-6">
+              {!mostrarFormAviso ? (
+                <button onClick={() => setMostrarFormAviso(true)}
+                  className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                  + Publicar aviso
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={nuevoAviso}
+                    onChange={e => setNuevoAviso(e.target.value)}
+                    placeholder="Escribe el aviso para todo el equipo..."
+                    className="flex-1 border border-blue-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    onKeyDown={e => e.key === 'Enter' && publicarAviso()}
+                  />
+                  <button onClick={publicarAviso}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                    Publicar
+                  </button>
+                  <button onClick={() => setMostrarFormAviso(false)}
+                    className="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm">
+                    Cancelar
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {pendientes.length > 0 && (
             <div className="mb-8">

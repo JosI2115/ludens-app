@@ -181,8 +181,6 @@ export default function Expedientes() {
             <div class="field"><label>Fecha de nacimiento</label><p>${a.fecha_nacimiento || '—'}</p></div>
             <div class="field"><label>Grado</label><p>${a.grado || '—'}</p></div>
             <div class="field"><label>Diagnóstico</label><p>${a.diagnostico || '—'}</p></div>
-            <div class="field"><label>Escuela de procedencia</label><p>${a.escuela_procedencia || '—'}</p></div>
-            <div class="field"><label>Domicilio</label><p>${a.domicilio || '—'}</p></div>
             ${a.condicion_medica ? `<div class="field" style="grid-column:span 2"><label>⚠️ Condición médica</label><p style="color:#DC2626">${a.condicion_medica}</p></div>` : ''}
           </div>
         </div>
@@ -208,17 +206,8 @@ export default function Expedientes() {
             <div class="field"><label>Programa Lectura</label><p>${a.programa_lectura || '—'}</p></div>
             <div class="field"><label>Programa Matemáticas</label><p>${a.programa_matematicas || '—'}</p></div>
             <div class="field"><label>Fecha ingreso</label><p>${a.fecha_ingreso || '—'}</p></div>
-            <div class="field"><label>Situación</label><p>${a.situacion}</p></div>
           </div>
-          ${a.objetivos ? `<div class="highlight"><label style="font-weight:bold;font-size:11px;text-transform:uppercase;color:#555">Objetivos de trabajo</label><p style="margin:4px 0 0">${a.objetivos}</p></div>` : ''}
-        </div>
-
-        <div class="section">
-          <h2>Historial de Pagos</h2>
-          <table>
-            <thead><tr><th>Mes</th><th>Monto</th><th>Fecha pago</th><th>Penalización</th></tr></thead>
-            <tbody>${pagosHTML || '<tr><td colspan="4" style="text-align:center;color:#999">Sin pagos registrados</td></tr>'}</tbody>
-          </table>
+          ${a.objetivos ? `<div class="field" style="grid-column:span 2"><label>Objetivos de trabajo</label><p>${a.objetivos}</p></div>` : ''}
         </div>
 
         <div class="footer">

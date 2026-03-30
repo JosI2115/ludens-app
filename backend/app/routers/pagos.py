@@ -50,7 +50,7 @@ def calcular_estado_pago(alumno, hoy=None):
 
 class PagoCreate(BaseModel):
     alumno_id: str
-    monto: float
+    monto: Optional[float] = None
     mes: int
     anio: int
     fecha_pago: Optional[date] = None
@@ -58,6 +58,7 @@ class PagoCreate(BaseModel):
     monto_penalizacion: Optional[float] = 0
     comentarios: Optional[str] = None
     fecha_recepcion: Optional[date] = None
+    monto_recibido: Optional[float] = None
 
 @router.get("/")
 def get_pagos(
@@ -139,17 +140,23 @@ def registrar_pago(
     estado_color, dias = calcular_estado_pago(alumno, hoy)
     con_penalizacion = dias > 5
     monto_penalizacion = 50.0 if con_penalizacion else 0.0
+    monto_final = data.monto_recibido if data.monto_recibido else float(alumno.plan_pago or 0)
+
+    comentario_auto = data.comentarios or ''
+    if data.monto_recibido and data.monto_recibido != float(alumno.plan_pago or 0):
+        nota = f"Pago personalizado: ${data.monto_recibido} (plan normal: ${alumno.plan_pago})"
+        comentario_auto = f"{nota}. {comentario_auto}".strip('. ')
 
     pago = Pago(
         alumno_id=data.alumno_id,
-        monto=data.monto,
+        monto=monto_final,
         mes=data.mes,
         anio=data.anio,
         fecha_pago=data.fecha_pago or hoy,
         con_penalizacion=con_penalizacion,
         monto_penalizacion=monto_penalizacion,
         registrado_por=current_user.id,
-        comentarios=data.comentarios,
+        comentarios=comentario_auto or None,
         fecha_recepcion=data.fecha_recepcion
     )
     db.add(pago)

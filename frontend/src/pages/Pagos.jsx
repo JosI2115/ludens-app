@@ -325,6 +325,7 @@ export default function Pagos() {
 function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess }) {
   const [comentarios, setComentarios] = useState('')
   const [fechaRecepcion, setFechaRecepcion] = useState('')
+  const [montoPersonalizado, setMontoPersonalizado] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -338,7 +339,6 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess }) {
     try {
       await pagosService.registrar({
         alumno_id: alumno.id,
-        monto: monto,
         mes,
         anio,
         fecha_pago: fechaRecepcion || new Date().toISOString().split('T')[0],
@@ -346,6 +346,7 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess }) {
         monto_penalizacion: conPenalizacion ? 50 : 0,
         comentarios,
         fecha_recepcion: fechaRecepcion || null,
+        monto_recibido: montoPersonalizado ? parseFloat(montoPersonalizado) : undefined,
       })
       onSuccess()
     } catch (err) {
@@ -413,6 +414,20 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess }) {
               placeholder="Ej: Pagó con cheque, adelantó siguiente mes..."
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Monto recibido (opcional)
+            </label>
+            <input
+              type="number"
+              value={montoPersonalizado}
+              onChange={e => setMontoPersonalizado(e.target.value)}
+              placeholder={`Monto normal: $${alumno.plan_pago || ''}`}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+            />
+            <p className="text-xs text-gray-400 mt-1">Solo si el monto recibido es diferente al plan. No modifica el plan mensual.</p>
           </div>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}

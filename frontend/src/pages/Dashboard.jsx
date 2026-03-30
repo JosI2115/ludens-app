@@ -127,17 +127,21 @@ export default function Dashboard() {
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Nuevos este mes</p>
                 <p className="text-3xl font-bold text-green-600">{stats.nuevos_mes || 0}</p>
               </div>
-              <div className="bg-white rounded-xl shadow p-5">
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Bajas este mes</p>
-                <p className="text-3xl font-bold text-red-500">{stats.bajas_mes || 0}</p>
-              </div>
-              <div className="bg-white rounded-xl shadow p-5">
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Ingresos del mes</p>
-                <p className="text-3xl font-bold text-blue-600">${(stats.total_ingresos || 0).toLocaleString('es-MX', {minimumFractionDigits: 0})}</p>
-              </div>
+              {usuario.rol !== 'maestra' && (
+                <div className="bg-white rounded-xl shadow p-5">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Bajas este mes</p>
+                  <p className="text-3xl font-bold text-red-500">{stats.bajas_mes || 0}</p>
+                </div>
+              )}
+              {usuario.rol !== 'maestra' && (
+                <div className="bg-white rounded-xl shadow p-5">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Ingresos del mes</p>
+                  <p className="text-3xl font-bold text-blue-600">${(stats.total_ingresos || 0).toLocaleString('es-MX', {minimumFractionDigits: 0})}</p>
+                </div>
+              )}
             </div>
 
-            {stats.por_sucursal && stats.por_sucursal.length > 0 && (
+            {usuario.rol !== 'maestra' && stats.por_sucursal && stats.por_sucursal.length > 0 && (
               <div className="bg-white rounded-xl shadow p-5 mb-8">
                 <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4">Alumnos por sucursal</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -267,31 +271,26 @@ export default function Dashboard() {
               <div className="text-3xl mb-2">👨‍🎓</div>
               <p className="font-medium text-gray-800 text-sm">Alumnos</p>
             </button>
-            <button
-              onClick={() => navigate('/pagos')}
-              className="bg-white rounded-xl shadow p-5 text-center hover:shadow-md transition border border-transparent hover:border-purple-200"
-            >
-              <div className="text-3xl mb-2">💰</div>
-              <p className="font-medium text-gray-800 text-sm">Pagos</p>
-              {(stats.total_activos || 0) > 0 && (
-                <span className="text-xs text-red-500 font-medium">
-                  {stats.total_activos || 0} sin pagar
-                </span>
-              )}
-            </button>
+            {usuario.rol !== 'maestra' && (
+              <button
+                onClick={() => navigate('/pagos')}
+                className="bg-white rounded-xl shadow p-5 text-center hover:shadow-md transition border border-transparent hover:border-purple-200"
+              >
+                <div className="text-3xl mb-2">💰</div>
+                <p className="font-medium text-gray-800 text-sm">Pagos</p>
+                {(stats.total_activos || 0) > 0 && (
+                  <span className="text-xs text-red-500 font-medium">
+                    {stats.total_activos || 0} sin pagar
+                  </span>
+                )}
+              </button>
+            )}
             <button
               onClick={() => navigate('/asistencias')}
               className="bg-white rounded-xl shadow p-5 text-center hover:shadow-md transition border border-transparent hover:border-purple-200"
             >
               <div className="text-3xl mb-2">📋</div>
               <p className="font-medium text-gray-800 text-sm">Asistencias</p>
-            </button>
-            <button
-              onClick={() => navigate('/reportes')}
-              className="bg-white rounded-xl shadow p-5 text-center hover:shadow-md transition border border-transparent hover:border-purple-200"
-            >
-              <div className="text-3xl mb-2">📊</div>
-              <p className="font-medium text-gray-800 text-sm">Reportes</p>
             </button>
           </div>
         </>

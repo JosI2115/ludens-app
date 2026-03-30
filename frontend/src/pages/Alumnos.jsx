@@ -216,7 +216,7 @@ export default function Alumnos() {
                     >
                       Editar
                     </button>
-                    {(usuario.rol === 'directora' || usuario.rol === 'encargada') && (
+                    {(usuario.rol === 'directora' || usuario.rol === 'encargada' || usuario.rol === 'recepcionista') && (
                       <button
                         onClick={async (e) => {
                           e.stopPropagation()

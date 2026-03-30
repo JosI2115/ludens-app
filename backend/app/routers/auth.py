@@ -399,11 +399,20 @@ def get_ingresos_bajas(
         Alumno.fecha_ingreso < ultimo_dia
     ).order_by(Alumno.fecha_ingreso).all()
 
-    alumnos_baja = query_base.filter(
+    from sqlalchemy import or_
+    query_bajas = db.query(Alumno).filter(
         Alumno.situacion == 'baja',
-        Alumno.fecha_baja >= primer_dia,
-        Alumno.fecha_baja < ultimo_dia
-    ).order_by(Alumno.fecha_baja).all()
+        or_(
+            Alumno.fecha_baja == None,
+            Alumno.fecha_baja.between(primer_dia, ultimo_dia)
+        )
+    )
+    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        query_bajas = query_bajas.filter(Alumno.sucursal_id == current_user.sucursal_id)
+    elif sucursal_id:
+        query_bajas = query_bajas.filter(Alumno.sucursal_id == sucursal_id)
+
+    alumnos_baja = query_bajas.order_by(Alumno.fecha_baja).all()
 
     from app.models.sucursal import Sucursal
     def get_sucursal_nombre(alumno):
@@ -478,12 +487,17 @@ def eliminar_aviso(
     current_user: Usuario = Depends(get_current_user)
 ):
     from app.models.aviso import Aviso
-    if current_user.rol not in ["directora", "recepcionista", "encargada"]:
-        raise HTTPException(status_code=403, detail="Sin permisos")
     aviso = db.query(Aviso).filter(Aviso.id == aviso_id).first()
-    if aviso:
-        aviso.activo = False
-        db.commit()
+    if not aviso:
+        raise HTTPException(status_code=404, detail="Aviso no encontrado")
+
+    # Solo directora puede eliminar cualquier aviso
+    # Otros roles solo pueden eliminar sus propios avisos
+    if current_user.rol != "directora" and aviso.autor != current_user.nombre:
+        raise HTTPException(status_code=403, detail="Solo puedes eliminar tus propios avisos")
+
+    aviso.activo = False
+    db.commit()
     return {"mensaje": "Aviso eliminado"}
 
 @router.post("/admin/migrate")

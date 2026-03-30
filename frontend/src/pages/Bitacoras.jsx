@@ -57,8 +57,15 @@ export default function Bitacoras() {
 
   const cargarMaestras = async () => {
     try {
-      const res = await usuariosService.getAll()
-      setMaestras(res.data.filter(u => u.rol === 'maestra' || u.rol === 'encargada'))
+      const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
+      let res
+      if (usuario.rol === 'directora' || usuario.rol === 'contadora') {
+        res = await usuariosService.getAll()
+        setMaestras(res.data.filter(u => u.rol === 'maestra' || u.rol === 'encargada'))
+      } else {
+        res = await maestrasService.getPorSucursal(usuario.sucursal_id)
+        setMaestras(res.data)
+      }
     } catch (err) {
       console.error('Error cargando maestras')
     }

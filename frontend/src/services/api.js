@@ -67,6 +67,8 @@ export const dashboardService = {
 export const usuariosService = {
   getAll: () => api.get('/usuarios/'),
   actualizar: (id, data) => api.put(`/usuarios/${id}`, data),
+  crear: (data) => api.post('/usuarios/', data),
+  eliminar: (id) => api.delete(`/usuarios/${id}`),
 }
 
 export const sucursalesService = {

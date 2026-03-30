@@ -508,6 +508,10 @@ def migrate_db(
         "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programas_matematicas_historial TEXT",
         "ALTER TABLE pagos ADD COLUMN IF NOT EXISTS fecha_recepcion DATE",
         "CREATE TABLE IF NOT EXISTS reportes_mensuales (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), alumno_id UUID REFERENCES alumnos(id), mes INTEGER NOT NULL, anio INTEGER NOT NULL, url_cloudinary TEXT NOT NULL, public_id_cloudinary VARCHAR(200), subido_por UUID REFERENCES usuarios(id), created_at TIMESTAMPTZ DEFAULT NOW())",
+        "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS color VARCHAR(20)",
+        "CREATE TABLE IF NOT EXISTS confirmaciones_asistencia (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), alumno_id UUID, fecha DATE NOT NULL, confirmo BOOLEAN, registrado_por UUID, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ)",
+        "CREATE TABLE IF NOT EXISTS clases_recuperacion (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), alumno_id UUID, fecha_original DATE NOT NULL, fecha_recuperacion DATE NOT NULL, hora_inicio VARCHAR(10), hora_fin VARCHAR(10), registrado_por UUID, created_at TIMESTAMPTZ DEFAULT NOW())",
+        "CREATE TABLE IF NOT EXISTS avisos (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), mensaje TEXT NOT NULL, autor VARCHAR(100), activo BOOLEAN DEFAULT TRUE, created_at TIMESTAMPTZ DEFAULT NOW())",
     ]
 
     resultados = []

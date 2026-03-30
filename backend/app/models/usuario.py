@@ -15,6 +15,7 @@ class Usuario(Base):
     rol = Column(String(30), nullable=False)
     sucursal_id = Column(UUID(as_uuid=True), ForeignKey("sucursales.id"))
     activo = Column(Boolean, default=True)
+    color = Column(String(20), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     sucursal = relationship("Sucursal", back_populates="usuarios")

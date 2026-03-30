@@ -230,3 +230,87 @@ def eliminar_recuperacion(
         db.delete(recup)
         db.commit()
     return {"mensaje": "Recuperación eliminada"}
+
+@router.get("/maestras")
+def get_calendario_maestras(
+    fecha_inicio: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from datetime import datetime
+    from app.models.usuario import Usuario as UsuarioModel
+
+    hoy = date.today()
+    if fecha_inicio:
+        inicio_semana = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+    else:
+        dias_para_lunes = hoy.weekday()
+        inicio_semana = hoy - timedelta(days=dias_para_lunes)
+
+    fechas_semana = [inicio_semana + timedelta(days=i) for i in range(6)]
+
+    maestras = db.query(UsuarioModel).filter(
+        UsuarioModel.rol.in_(['maestra', 'encargada']),
+        UsuarioModel.activo == True
+    ).all()
+
+    query = db.query(Alumno).filter(
+        Alumno.activo == True,
+        Alumno.situacion.in_(['activo', 'inscripcion', 'becado', 'pendiente'])
+    )
+    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+
+    alumnos = query.all()
+
+    maestras_map = {str(m.id): m for m in maestras}
+
+    calendario = {}
+    for hora in HORAS:
+        calendario[hora] = {i: [] for i in range(6)}
+
+    for alumno in alumnos:
+        if not alumno.maestra_id:
+            continue
+
+        maestra = maestras_map.get(str(alumno.maestra_id))
+        if not maestra:
+            continue
+
+        franjas = parsear_horario(alumno.horario)
+
+        for franja in franjas:
+            dia = franja['dia']
+            hora_inicio = franja['hora_inicio']
+            fecha_dia = fechas_semana[dia] if dia < len(fechas_semana) else hoy
+
+            if alumno.fecha_ingreso and fecha_dia < alumno.fecha_ingreso:
+                continue
+
+            hora_key = None
+            for h in HORAS:
+                if h == hora_inicio or h.split(':')[0] == hora_inicio.split(':')[0]:
+                    hora_key = h
+                    break
+
+            if hora_key is None:
+                continue
+
+            calendario[hora_key][dia].append({
+                "alumno_id": str(alumno.id),
+                "nombre": f"{alumno.nombre} {alumno.apellido}",
+                "maestra_id": str(alumno.maestra_id),
+                "maestra_nombre": maestra.nombre,
+                "color": maestra.color or "#9B59B6",
+                "hora_fin": franja['hora_fin'],
+            })
+
+    return {
+        "semana": [str(f) for f in fechas_semana],
+        "horas": HORAS,
+        "maestras": [{"id": str(m.id), "nombre": m.nombre, "color": m.color or "#9B59B6"} for m in maestras],
+        "calendario": {
+            hora: {str(dia): alumnos for dia, alumnos in dias.items()}
+            for hora, dias in calendario.items()
+        }
+    }

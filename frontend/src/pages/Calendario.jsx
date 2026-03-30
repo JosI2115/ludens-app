@@ -20,10 +20,13 @@ export default function Calendario() {
   const [fechaInicio, setFechaInicio] = useState('')
   const [modalAlumno, setModalAlumno] = useState(null)
   const [modalRecup, setModalRecup] = useState(null)
+  const [vistaActual, setVistaActual] = useState('general')
+  const [datosMaestras, setDatosMaestras] = useState(null)
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
 
   useEffect(() => {
     cargarCalendario()
+    cargarCalendarioMaestras()
   }, [fechaInicio])
 
   const cargarCalendario = async () => {
@@ -36,6 +39,16 @@ export default function Calendario() {
       console.error('Error cargando calendario')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const cargarCalendarioMaestras = async () => {
+    try {
+      const params = fechaInicio ? { fecha_inicio: fechaInicio } : {}
+      const res = await api.get('/calendario/maestras', { params })
+      setDatosMaestras(res.data)
+    } catch (err) {
+      console.error('Error cargando calendario maestras')
     }
   }
 
@@ -81,12 +94,23 @@ export default function Calendario() {
       <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
         <h2 className="text-2xl font-bold text-gray-800">Calendario semanal</h2>
         <div className="flex gap-2 items-center">
+          <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+            <button onClick={() => setVistaActual('general')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${vistaActual === 'general' ? 'bg-white shadow text-purple-700' : 'text-gray-600'}`}>
+              👥 General
+            </button>
+            <button onClick={() => setVistaActual('maestras')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${vistaActual === 'maestras' ? 'bg-white shadow text-purple-700' : 'text-gray-600'}`}>
+              👩‍🏫 Maestras
+            </button>
+          </div>
           <button onClick={semanaAnterior} className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50">← Anterior</button>
           <button onClick={semanaActual} className="px-3 py-1.5 bg-purple-100 text-purple-700 border border-purple-300 rounded-lg text-sm font-medium">Hoy</button>
           <button onClick={semanaSiguiente} className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50">Siguiente →</button>
         </div>
       </div>
 
+      {vistaActual === 'general' && (
       <div className="flex gap-3 mb-4 flex-wrap text-xs">
         {Object.entries(ESTADO_COLORES).map(([key, val]) => (
           <div key={key} className="flex items-center gap-1.5">
@@ -95,8 +119,9 @@ export default function Calendario() {
           </div>
         ))}
       </div>
+      )}
 
-      <div className="overflow-x-auto">
+      {vistaActual === 'general' && <div className="overflow-x-auto">
         <table className="w-full border-collapse" style={{minWidth: '900px'}}>
           <thead>
             <tr>
@@ -150,7 +175,61 @@ export default function Calendario() {
             ))}
           </tbody>
         </table>
-      </div>
+      </div>}
+
+      {vistaActual === 'maestras' && datosMaestras && (
+        <div className="overflow-x-auto">
+          <div className="mb-4 flex gap-3 flex-wrap">
+            {datosMaestras.maestras.map(m => (
+              <div key={m.id} className="flex items-center gap-2 text-xs">
+                <div className="w-3 h-3 rounded-full" style={{backgroundColor: m.color}}></div>
+                <span className="text-gray-600">{m.nombre}</span>
+              </div>
+            ))}
+          </div>
+          <table className="w-full border-collapse" style={{minWidth: '900px'}}>
+            <thead>
+              <tr>
+                <th className="w-24 px-2 py-3 text-left text-xs text-gray-500 font-medium bg-gray-50 border border-gray-200">Hora</th>
+                {DIAS.map((dia, i) => (
+                  <th key={i} className="px-2 py-3 text-center text-xs font-medium bg-gray-50 border border-gray-200">
+                    <p className="text-gray-700">{dia}</p>
+                    <p className="text-gray-400 font-normal">{datosMaestras.semana[i]?.split('-').slice(1).reverse().join('/')}</p>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {datosMaestras.horas.map(hora => (
+                <tr key={hora}>
+                  <td className="px-2 py-2 text-xs text-gray-500 font-medium bg-gray-50 border border-gray-200 align-top">{hora}</td>
+                  {DIAS.map((_, diaIdx) => {
+                    const alumnos = datosMaestras.calendario[hora]?.[String(diaIdx)] || []
+                    return (
+                      <td key={diaIdx} className="px-1 py-1 border border-gray-200 align-top min-w-28 bg-white">
+                        <div className="space-y-0.5">
+                          {alumnos.map((a, ai) => (
+                            <div key={ai}
+                              className="text-xs px-1.5 py-0.5 rounded text-white cursor-pointer hover:opacity-80 transition"
+                              style={{backgroundColor: a.color}}
+                              title={`Maestra: ${a.maestra_nombre}`}
+                            >
+                              {a.nombre}
+                            </div>
+                          ))}
+                        </div>
+                        {alumnos.length > 0 && (
+                          <p className="text-gray-300 text-xs text-right mt-1">{alumnos.length}</p>
+                        )}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {modalAlumno && (
         <ModalAlumno

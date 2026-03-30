@@ -102,20 +102,26 @@ def get_alumnos(
             Asistencia.asistio == True
         ).order_by(Asistencia.fecha.desc()).first()
 
+        # Punto de inicio del conteo: fecha de reactivación o fecha de ingreso
+        punto_inicio = alumno.fecha_reactivacion or alumno.fecha_ingreso
+
         if not ultima:
             continue
 
-        # Si fue reactivado manualmente, respetar esa decisión
-        if alumno.fecha_reactivacion and ultima.fecha <= alumno.fecha_reactivacion:
-            continue
+        # Si fue reactivado, solo contar desde la reactivación
+        if punto_inicio and ultima.fecha <= punto_inicio:
+            # No hay asistencias después de la reactivación — contar desde punto_inicio
+            dias_sin_asistir = (hoy - punto_inicio).days
+        else:
+            dias_sin_asistir = (hoy - ultima.fecha).days
 
-        if ultima.fecha <= hace_30:
+        if dias_sin_asistir >= 30:
             if alumno.situacion != 'baja':
                 alumno.situacion = 'baja'
                 alumno.fecha_baja = hoy
                 alumno.motivo_baja = 'Baja automática por 30 días de inasistencia'
                 actualizado = True
-        elif ultima.fecha <= hace_20:
+        elif dias_sin_asistir >= 20:
             if alumno.situacion not in ['en_riesgo', 'baja']:
                 alumno.situacion = 'en_riesgo'
                 actualizado = True

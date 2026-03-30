@@ -14,6 +14,8 @@ export default function Dashboard() {
   const [avisos, setAvisos] = useState([])
   const [nuevoAviso, setNuevoAviso] = useState('')
   const [mostrarFormAviso, setMostrarFormAviso] = useState(false)
+  const [pendientesPersonales, setPendientesPersonales] = useState([])
+  const [nuevoPendiente, setNuevoPendiente] = useState('')
 
   const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
@@ -21,6 +23,7 @@ export default function Dashboard() {
   useEffect(() => {
     cargarStats()
     cargarAvisos()
+    cargarPendientesPersonales()
   }, [])
 
   const cargarStats = async () => {
@@ -35,6 +38,35 @@ export default function Dashboard() {
       console.error('Error cargando stats')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const cargarPendientesPersonales = async () => {
+    try {
+      const res = await api.get('/auth/pendientes-personales')
+      setPendientesPersonales(res.data)
+    } catch (err) {
+      console.error('Error')
+    }
+  }
+
+  const agregarPendiente = async () => {
+    if (!nuevoPendiente.trim()) return
+    try {
+      await api.post('/auth/pendientes-personales', { texto: nuevoPendiente })
+      setNuevoPendiente('')
+      cargarPendientesPersonales()
+    } catch (err) {
+      console.error('Error')
+    }
+  }
+
+  const completarPendiente = async (id) => {
+    try {
+      await api.delete(`/auth/pendientes-personales/${id}`)
+      cargarPendientesPersonales()
+    } catch (err) {
+      console.error('Error')
     }
   }
 
@@ -171,6 +203,39 @@ export default function Dashboard() {
               ))}
             </div>
           )}
+
+          <div className="mb-6 bg-white rounded-xl shadow p-5">
+            <h3 className="font-bold text-gray-700 mb-3 text-sm uppercase tracking-wide">✅ Mis pendientes</h3>
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={nuevoPendiente}
+                onChange={e => setNuevoPendiente(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && agregarPendiente()}
+                placeholder="Agregar pendiente..."
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+              />
+              <button onClick={agregarPendiente}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                + Agregar
+              </button>
+            </div>
+            {pendientesPersonales.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-2">Sin pendientes</p>
+            ) : (
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {pendientesPersonales.map((p, i) => (
+                  <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                    <span className="text-sm text-gray-700">{p.texto}</span>
+                    <button onClick={() => completarPendiente(p.id)}
+                      className="text-green-500 hover:text-green-700 text-xs font-medium ml-3">
+                      ✓ Listo
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {(usuario.rol === 'directora' || usuario.rol === 'recepcionista' || usuario.rol === 'encargada') && (
             <div className="mb-6">

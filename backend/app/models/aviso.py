@@ -11,3 +11,11 @@ class Aviso(Base):
     autor = Column(String(100))
     activo = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class PendientePersonal(Base):
+    __tablename__ = "pendientes_personales"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    usuario_id = Column(UUID(as_uuid=True), nullable=False)
+    texto = Column(Text, nullable=False)
+    completado = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

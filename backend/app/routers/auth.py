@@ -500,6 +500,49 @@ def eliminar_aviso(
     db.commit()
     return {"mensaje": "Aviso eliminado"}
 
+@router.get("/pendientes-personales")
+def get_pendientes_personales(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.aviso import PendientePersonal
+    items = db.query(PendientePersonal).filter(
+        PendientePersonal.usuario_id == current_user.id,
+        PendientePersonal.completado == False
+    ).order_by(PendientePersonal.created_at.desc()).all()
+    return [{"id": str(p.id), "texto": p.texto, "created_at": str(p.created_at)} for p in items]
+
+@router.post("/pendientes-personales")
+def crear_pendiente_personal(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.aviso import PendientePersonal
+    p = PendientePersonal(
+        usuario_id=current_user.id,
+        texto=data.get("texto")
+    )
+    db.add(p)
+    db.commit()
+    return {"mensaje": "Pendiente creado"}
+
+@router.delete("/pendientes-personales/{pendiente_id}")
+def eliminar_pendiente_personal(
+    pendiente_id: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.aviso import PendientePersonal
+    p = db.query(PendientePersonal).filter(
+        PendientePersonal.id == pendiente_id,
+        PendientePersonal.usuario_id == current_user.id
+    ).first()
+    if p:
+        p.completado = True
+        db.commit()
+    return {"mensaje": "Pendiente completado"}
+
 @router.post("/admin/migrate")
 def migrate_db(
     current_user: Usuario = Depends(get_current_user),

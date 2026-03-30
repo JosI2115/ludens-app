@@ -25,6 +25,9 @@ export default function Calendario() {
   const [sucursales, setSucursales] = useState([])
   const [sucursalFiltro, setSucursalFiltro] = useState('')
   const [nuevosAlumnos, setNuevosAlumnos] = useState([])
+  const [prospectos, setProspectos] = useState([])
+  const [modalProspecto, setModalProspecto] = useState(null)
+  const [modalVerProspecto, setModalVerProspecto] = useState(null)
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
 
   useEffect(() => {
@@ -34,7 +37,31 @@ export default function Calendario() {
     cargarCalendario()
     cargarCalendarioMaestras()
     cargarNuevosAlumnos()
+    cargarProspectos()
   }, [fechaInicio, sucursalFiltro])
+
+  const cargarProspectos = async () => {
+    try {
+      const params = {}
+      if (fechaInicio) params.fecha_inicio = fechaInicio
+      if (sucursalFiltro) params.sucursal_id = sucursalFiltro
+      const res = await api.get('/calendario/prospectos', { params })
+      setProspectos(res.data)
+    } catch (err) {
+      console.error('Error cargando prospectos')
+    }
+  }
+
+  const eliminarProspecto = async (id) => {
+    if (!window.confirm('¿Eliminar este prospecto?')) return
+    try {
+      await api.delete(`/calendario/prospectos/${id}`)
+      cargarProspectos()
+      setModalVerProspecto(null)
+    } catch (err) {
+      console.error('Error')
+    }
+  }
 
   const cargarNuevosAlumnos = async () => {
     try {
@@ -139,6 +166,12 @@ export default function Calendario() {
               ))}
             </select>
           )}
+          <button
+            onClick={() => setModalProspecto(true)}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+          >
+            ＋ Prospecto
+          </button>
           <button onClick={semanaAnterior} className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50">← Anterior</button>
           <button onClick={semanaActual} className="px-3 py-1.5 bg-purple-100 text-purple-700 border border-purple-300 rounded-lg text-sm font-medium">Hoy</button>
           <button onClick={semanaSiguiente} className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50">Siguiente →</button>
@@ -199,6 +232,21 @@ export default function Calendario() {
                             </div>
                           )
                         })}
+                        {prospectos
+                          .filter(p => {
+                            const diaSemana = new Date(p.fecha + 'T12:00:00').getDay()
+                            const diaIdx2 = diaSemana === 0 ? 6 : diaSemana - 1
+                            return diaIdx2 === diaIdx && p.hora === hora
+                          })
+                          .map((p, pi) => (
+                            <div key={pi}
+                              onClick={() => setModalVerProspecto(p)}
+                              className="text-xs px-1.5 py-0.5 rounded cursor-pointer hover:opacity-80 transition border border-dashed border-green-400 bg-green-50 text-green-700"
+                            >
+                              🔍 {p.nombre_nino} {p.grado ? `(${p.grado})` : ''}
+                            </div>
+                          ))
+                        }
                       </div>
                       {alumnos.length > 0 && (
                         <p className="text-gray-300 text-xs text-right mt-1">{alumnos.length}</p>
@@ -287,6 +335,45 @@ export default function Calendario() {
         />
       )}
 
+      {modalProspecto && (
+        <ModalNuevoProspecto
+          horas={datos?.horas || []}
+          semana={datos?.semana || []}
+          onClose={() => setModalProspecto(null)}
+          onGuardar={async (data) => {
+            await api.post('/calendario/prospectos', data)
+            cargarProspectos()
+            setModalProspecto(null)
+          }}
+        />
+      )}
+
+      {modalVerProspecto && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+            <div className="p-5 border-b flex justify-between items-center">
+              <h3 className="font-bold text-gray-800">🔍 Prospecto</h3>
+              <button onClick={() => setModalVerProspecto(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            <div className="p-5 space-y-2 text-sm">
+              <p><span className="text-gray-500">Nombre:</span> <span className="font-medium">{modalVerProspecto.nombre_nino}</span></p>
+              <p><span className="text-gray-500">Grado:</span> <span className="font-medium">{modalVerProspecto.grado || '—'}</span></p>
+              <p><span className="text-gray-500">Edad:</span> <span className="font-medium">{modalVerProspecto.edad || '—'}</span></p>
+              <p><span className="text-gray-500">Tutor:</span> <span className="font-medium">{modalVerProspecto.nombre_tutor || '—'}</span></p>
+              <p><span className="text-gray-500">Teléfono:</span> <span className="font-medium">{modalVerProspecto.telefono_tutor || '—'}</span></p>
+              <p><span className="text-gray-500">Fecha:</span> <span className="font-medium">{modalVerProspecto.fecha}</span></p>
+              <p><span className="text-gray-500">Hora:</span> <span className="font-medium">{modalVerProspecto.hora}</span></p>
+              <div className="pt-3">
+                <button onClick={() => eliminarProspecto(modalVerProspecto.id)}
+                  className="w-full bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-lg text-sm font-medium">
+                  🗑️ Eliminar prospecto
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {nuevosAlumnos.length > 0 && (
         <div className="mt-6">
           <h3 className="font-bold text-gray-700 mb-3">🆕 Nuevos alumnos esta semana ({nuevosAlumnos.length})</h3>
@@ -354,6 +441,81 @@ function ModalAlumno({ alumno, horas, semana, onClose, onConfirmar, onRecuperaci
             <button onClick={() => navigate(`/alumnos/${alumno.alumno_id}`)}
               className="flex-1 bg-purple-100 hover:bg-purple-200 text-purple-700 py-2 rounded-lg text-sm font-medium">
               Ver perfil
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ModalNuevoProspecto({ horas, semana, onClose, onGuardar }) {
+  const [form, setForm] = useState({
+    nombre_nino: '', grado: '', edad: '', nombre_tutor: '',
+    telefono_tutor: '', fecha: '', hora: ''
+  })
+
+  const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }))
+
+  const handleGuardar = async () => {
+    if (!form.nombre_nino || !form.fecha || !form.hora) return
+    await onGuardar({ ...form, edad: form.edad ? parseInt(form.edad) : null })
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+        <div className="p-5 border-b flex justify-between items-center">
+          <h3 className="font-bold text-gray-800">＋ Agendar prospecto</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+        </div>
+        <div className="p-5 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Nombre del niño *</label>
+              <input name="nombre_nino" value={form.nombre_nino} onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Grado</label>
+              <input name="grado" value={form.grado} onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Edad</label>
+              <input name="edad" type="number" value={form.edad} onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Nombre del tutor</label>
+              <input name="nombre_tutor" value={form.nombre_tutor} onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Teléfono tutor</label>
+              <input name="telefono_tutor" value={form.telefono_tutor} onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Fecha *</label>
+              <input name="fecha" type="date" value={form.fecha} onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Hora *</label>
+            <select name="hora" value={form.hora} onChange={handleChange}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400">
+              <option value="">Seleccionar hora</option>
+              {horas.map(h => <option key={h} value={h}>{h} hrs</option>)}
+            </select>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button onClick={onClose}
+              className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg text-sm">Cancelar</button>
+            <button onClick={handleGuardar} disabled={!form.nombre_nino || !form.fecha || !form.hora}
+              className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white py-2 rounded-lg text-sm font-medium">
+              Agendar
             </button>
           </div>
         </div>

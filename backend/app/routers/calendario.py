@@ -358,3 +358,76 @@ def get_nuevos_alumnos(
         "programa_matematicas": a.programa_matematicas,
         "fecha_ingreso": str(a.fecha_ingreso)
     } for a in alumnos]
+
+@router.get("/prospectos")
+def get_prospectos(
+    fecha_inicio: Optional[str] = None,
+    sucursal_id: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from datetime import datetime
+    from app.models.prospecto_calendario import ProspectoCalendario
+    hoy = date.today()
+    if fecha_inicio:
+        inicio = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+    else:
+        inicio = hoy - timedelta(days=hoy.weekday())
+    fin = inicio + timedelta(days=6)
+
+    query = db.query(ProspectoCalendario).filter(
+        ProspectoCalendario.fecha >= inicio,
+        ProspectoCalendario.fecha <= fin
+    )
+    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        query = query.filter(ProspectoCalendario.sucursal_id == current_user.sucursal_id)
+    elif sucursal_id:
+        query = query.filter(ProspectoCalendario.sucursal_id == sucursal_id)
+
+    prospectos = query.all()
+    return [{
+        "id": str(p.id),
+        "nombre_nino": p.nombre_nino,
+        "grado": p.grado,
+        "edad": p.edad,
+        "nombre_tutor": p.nombre_tutor,
+        "telefono_tutor": p.telefono_tutor,
+        "fecha": str(p.fecha),
+        "hora": p.hora,
+    } for p in prospectos]
+
+@router.post("/prospectos")
+def crear_prospecto(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from datetime import datetime
+    from app.models.prospecto_calendario import ProspectoCalendario
+    p = ProspectoCalendario(
+        nombre_nino=data.get("nombre_nino"),
+        grado=data.get("grado"),
+        edad=data.get("edad"),
+        nombre_tutor=data.get("nombre_tutor"),
+        telefono_tutor=data.get("telefono_tutor"),
+        sucursal_id=current_user.sucursal_id,
+        fecha=datetime.strptime(data.get("fecha"), '%Y-%m-%d').date(),
+        hora=data.get("hora"),
+        registrado_por=current_user.id
+    )
+    db.add(p)
+    db.commit()
+    return {"mensaje": "Prospecto agendado", "id": str(p.id)}
+
+@router.delete("/prospectos/{prospecto_id}")
+def eliminar_prospecto(
+    prospecto_id: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.prospecto_calendario import ProspectoCalendario
+    p = db.query(ProspectoCalendario).filter(ProspectoCalendario.id == prospecto_id).first()
+    if p:
+        db.delete(p)
+        db.commit()
+    return {"mensaje": "Prospecto eliminado"}

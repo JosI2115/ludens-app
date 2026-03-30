@@ -97,34 +97,43 @@ def get_alumnos(
 
     actualizado = False
     for alumno in alumnos_check:
-        # Punto de inicio del conteo
         punto_inicio = alumno.fecha_reactivacion or alumno.fecha_ingreso
         if not punto_inicio:
             continue
 
-        # Buscar última asistencia DESPUÉS del punto de inicio
-        ultima = db.query(Asistencia).filter(
+        # Primera asistencia confirmada (asistio=True) desde punto_inicio
+        primera_asistencia = db.query(Asistencia).filter(
             Asistencia.alumno_id == alumno.id,
             Asistencia.asistio == True,
-            Asistencia.fecha > punto_inicio
+            Asistencia.fecha >= punto_inicio
+        ).order_by(Asistencia.fecha.asc()).first()
+
+        if not primera_asistencia:
+            continue
+
+        # Última asistencia confirmada
+        ultima_asistencia = db.query(Asistencia).filter(
+            Asistencia.alumno_id == alumno.id,
+            Asistencia.asistio == True,
+            Asistencia.fecha >= punto_inicio
         ).order_by(Asistencia.fecha.desc()).first()
 
-        if ultima:
-            # Hay asistencias después del punto de inicio
-            dias_sin_asistir = (hoy - ultima.fecha).days
-        else:
-            # No hay asistencias después del punto de inicio
-            dias_sin_asistir = (hoy - punto_inicio).days
+        # Días naturales desde la última asistencia hasta hoy
+        dias_desde_ultima = (hoy - ultima_asistencia.fecha).days
 
-        if dias_sin_asistir >= 30:
+        if dias_desde_ultima >= 30:
             if alumno.situacion != 'baja':
                 alumno.situacion = 'baja'
                 alumno.fecha_baja = hoy
-                alumno.motivo_baja = 'Baja automática por 30 días de inasistencia'
+                alumno.motivo_baja = f'Baja automática por {dias_desde_ultima} días de inasistencia'
                 actualizado = True
-        elif dias_sin_asistir >= 20:
+        elif dias_desde_ultima >= 20:
             if alumno.situacion not in ['en_riesgo', 'baja']:
                 alumno.situacion = 'en_riesgo'
+                actualizado = True
+        else:
+            if alumno.situacion == 'en_riesgo':
+                alumno.situacion = 'activo'
                 actualizado = True
 
     if actualizado:
@@ -256,9 +265,9 @@ def actualizar_alumno(
         nueva_fecha = cambios['fecha_ingreso']
         if isinstance(nueva_fecha, str):
             nueva_fecha = dt.strptime(nueva_fecha, '%Y-%m-%d').date()
-        db.query(Asistencia).filter(
-            Asistencia.alumno_id == alumno.id,
-            Asistencia.fecha < nueva_fecha
+        # Borrar TODAS las asistencias al cambiar fecha de ingreso
+        deleted = db.query(Asistencia).filter(
+            Asistencia.alumno_id == alumno.id
         ).delete()
         cambios['fecha_reactivacion'] = nueva_fecha
 

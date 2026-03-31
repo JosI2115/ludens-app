@@ -289,6 +289,23 @@ def actualizar_alumno(
             db.add(historial)
             setattr(alumno, campo, valor_nuevo)
     
+    # Sincronizar con informes cuando cambia situación
+    if 'situacion' in cambios:
+        from app.models.informe import Informe
+        nueva_situacion = cambios['situacion']
+
+        informe = db.query(Informe).filter(
+            Informe.alumno_id == alumno.id
+        ).first()
+
+        if informe:
+            if nueva_situacion == 'inscripcion':
+                informe.situacion = 'pago_inscripcion'
+                informe.ultimo_contacto = date.today()
+            elif nueva_situacion == 'activo':
+                informe.situacion = 'inscrito'
+                informe.ultimo_contacto = date.today()
+
     db.commit()
     db.refresh(alumno)
     return alumno

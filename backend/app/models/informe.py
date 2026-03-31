@@ -22,9 +22,11 @@ class Informe(Base):
 
     # Datos del niño (se llenan cuando agenda diagnóstico)
     nombre_nino = Column(String(150))
+    apellido_nino = Column(String(150))
     edad_nino = Column(Integer)
     grado_nino = Column(String(50))
     comentarios = Column(Text)
+    contacto_dato = Column(String(200))
 
     # Diagnóstico
     fecha_diagnostico = Column(Date)

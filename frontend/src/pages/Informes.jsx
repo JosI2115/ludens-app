@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { sucursalesService, usuariosService } from '../services/api'
 
@@ -119,6 +120,10 @@ export default function Informes() {
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${vistaActual === 'resumen' ? 'bg-white shadow text-purple-700' : 'text-gray-600'}`}>
               📊 Resumen
             </button>
+            <button onClick={() => setVistaActual('no_contesta')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${vistaActual === 'no_contesta' ? 'bg-white shadow text-red-600' : 'text-gray-600'}`}>
+              ❌ No contesta
+            </button>
           </div>
           <button onClick={() => setModalNuevo(true)}
             className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
@@ -161,7 +166,7 @@ export default function Informes() {
                 <tbody className="divide-y divide-gray-100">
                   {informes.length === 0 ? (
                     <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">Sin informes registrados</td></tr>
-                  ) : informes.map(inf => {
+                  ) : informes.filter(i => i.situacion !== 'no_contesta').map(inf => {
                     const sit = getSituacion(inf.situacion)
                     return (
                       <tr key={inf.id} className="hover:bg-gray-50">
@@ -280,6 +285,54 @@ export default function Informes() {
         </div>
       )}
 
+      {vistaActual === 'no_contesta' && (
+        <div>
+          <p className="text-sm text-gray-500 mb-4">Prospectos que no contestaron o no les interesó</p>
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="text-left px-4 py-3 text-gray-500 font-medium">Contacto</th>
+                  <th className="text-left px-4 py-3 text-gray-500 font-medium">Medio</th>
+                  <th className="text-left px-4 py-3 text-gray-500 font-medium">Sucursal</th>
+                  <th className="text-left px-4 py-3 text-gray-500 font-medium">Fecha</th>
+                  <th className="text-left px-4 py-3 text-gray-500 font-medium">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {informes.filter(i => i.situacion === 'no_contesta').length === 0 ? (
+                  <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">Sin registros</td></tr>
+                ) : informes.filter(i => i.situacion === 'no_contesta').map(inf => (
+                  <tr key={inf.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-gray-800">{inf.nombre_contacto}</p>
+                      {inf.nombre_nino && <p className="text-xs text-gray-400">Niño: {inf.nombre_nino}</p>}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">{inf.medio || '—'}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{inf.sucursal_nombre || '—'}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{inf.fecha_solicitud}</td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => cambiarSituacion(inf.id, 'seguimiento_1')}
+                        className="text-blue-500 hover:text-blue-700 text-xs font-medium mr-2"
+                      >
+                        Retomar
+                      </button>
+                      {(usuario.rol === 'directora' || usuario.rol === 'encargada') && (
+                        <button onClick={() => eliminarInforme(inf.id)}
+                          className="text-red-400 hover:text-red-600 text-xs font-medium">
+                          Eliminar
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {modalNuevo && (
         <ModalInforme
           sucursales={sucursales}
@@ -303,6 +356,7 @@ export default function Informes() {
 }
 
 function ModalInforme({ informe, sucursales, usuarios, onClose, onSuccess }) {
+  const navigate = useNavigate()
   const [form, setForm] = useState({
     nombre_contacto: informe?.nombre_contacto || '',
     medio: informe?.medio || '',
@@ -312,6 +366,8 @@ function ModalInforme({ informe, sucursales, usuarios, onClose, onSuccess }) {
     comision_usuario1_id: informe?.comision_usuario1_id || '',
     comision_usuario2_id: informe?.comision_usuario2_id || '',
     nombre_nino: informe?.nombre_nino || '',
+    apellido_nino: informe?.apellido_nino || '',
+    contacto_dato: informe?.contacto_dato || '',
     edad_nino: informe?.edad_nino || '',
     grado_nino: informe?.grado_nino || '',
     comentarios: informe?.comentarios || '',
@@ -330,6 +386,19 @@ function ModalInforme({ informe, sucursales, usuarios, onClose, onSuccess }) {
     if (!form.nombre_contacto.trim()) {
       setError('El nombre del contacto es obligatorio')
       return
+    }
+    if (form.situacion === 'agendo_diagnostico') {
+      const camposFaltantes = []
+      if (!form.nombre_nino?.trim()) camposFaltantes.push('Nombre del niño')
+      if (!form.apellido_nino?.trim()) camposFaltantes.push('Apellido del niño')
+      if (!form.edad_nino) camposFaltantes.push('Edad')
+      if (!form.grado_nino?.trim()) camposFaltantes.push('Grado')
+      if (!form.fecha_diagnostico) camposFaltantes.push('Fecha diagnóstico')
+      if (!form.hora_diagnostico) camposFaltantes.push('Hora diagnóstico')
+      if (camposFaltantes.length > 0) {
+        setError(`Para agendar diagnóstico debes llenar: ${camposFaltantes.join(', ')}`)
+        return
+      }
     }
     setLoading(true)
     setError('')
@@ -386,6 +455,12 @@ function ModalInforme({ informe, sucursales, usuarios, onClose, onSuccess }) {
               </select>
             </div>
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Datos de contacto</label>
+            <input name="contacto_dato" value={form.contacto_dato || ''} onChange={handleChange}
+              placeholder="Número de WhatsApp, teléfono, etc."
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Fecha solicitud</label>
@@ -431,24 +506,29 @@ function ModalInforme({ informe, sucursales, usuarios, onClose, onSuccess }) {
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Edad</label>
-                    <input name="edad_nino" type="number" value={form.edad_nino} onChange={handleChange}
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Apellido del niño</label>
+                    <input name="apellido_nino" value={form.apellido_nino || ''} onChange={handleChange}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Edad</label>
+                    <input name="edad_nino" type="number" value={form.edad_nino} onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+                  </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Grado</label>
                     <input name="grado_nino" value={form.grado_nino} onChange={handleChange}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
                   </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Fecha diagnóstico</label>
                     <input name="fecha_diagnostico" type="date" value={form.fecha_diagnostico} onChange={handleChange}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Hora diagnóstico</label>
                     <select name="hora_diagnostico" value={form.hora_diagnostico} onChange={handleChange}
@@ -459,17 +539,70 @@ function ModalInforme({ informe, sucursales, usuarios, onClose, onSuccess }) {
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Comentarios</label>
-                    <input name="comentarios" value={form.comentarios} onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
-                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Comentarios</label>
+                  <input name="comentarios" value={form.comentarios} onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
                 </div>
               </div>
             </div>
           )}
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
+
+          {informe && informe.situacion === 'agendo_diagnostico' && (
+            <div className="border-t pt-4">
+              <p className="text-sm font-medium text-gray-700 mb-3">¿Qué pasó con el diagnóstico?</p>
+              <div className="flex gap-2">
+                <button type="button"
+                  onClick={async () => {
+                    await api.put(`/informes/${informe.id}`, {
+                      situacion: 'seguimiento_1',
+                      ultimo_contacto: new Date().toISOString().split('T')[0]
+                    })
+                    onSuccess()
+                  }}
+                  className="flex-1 bg-orange-100 hover:bg-orange-200 text-orange-700 py-2 rounded-lg text-sm font-medium">
+                  ✗ No fue al diagnóstico
+                </button>
+                <button type="button"
+                  onClick={async () => {
+                    const camposFaltantes = []
+                    if (!informe.nombre_nino?.trim()) camposFaltantes.push('Nombre del niño')
+                    if (!informe.apellido_nino?.trim()) camposFaltantes.push('Apellido del niño')
+                    if (!informe.edad_nino) camposFaltantes.push('Edad')
+                    if (!informe.grado_nino?.trim()) camposFaltantes.push('Grado')
+                    if (!informe.fecha_diagnostico) camposFaltantes.push('Fecha diagnóstico')
+                    if (!informe.hora_diagnostico) camposFaltantes.push('Hora diagnóstico')
+                    if (camposFaltantes.length > 0) {
+                      alert(`Para registrar que acudió al diagnóstico debes llenar: ${camposFaltantes.join(', ')}`)
+                      return
+                    }
+                    await api.put(`/informes/${informe.id}`, {
+                      situacion: 'acudio_diagnostico',
+                      ultimo_contacto: new Date().toISOString().split('T')[0]
+                    })
+                    onSuccess()
+                    const params = new URLSearchParams({
+                      informe_id: informe.id,
+                      nombre: informe.nombre_nino || '',
+                      apellido: informe.apellido_nino || '',
+                      fecha_diagnostico: informe.fecha_diagnostico || '',
+                    })
+                    navigate(`/alumnos?nuevo=1&${params.toString()}`)
+                  }}
+                  className="flex-1 bg-green-100 hover:bg-green-200 text-green-700 py-2 rounded-lg text-sm font-medium">
+                  ✓ Sí fue → Crear alumno
+                </button>
+              </div>
+              {informe.situacion === 'acudio_diagnostico' && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Ahora crea el alumno en el módulo de Alumnos y el informe se actualizará automáticamente.
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-3 pt-2">
             <button onClick={onClose}

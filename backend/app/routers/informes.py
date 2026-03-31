@@ -26,9 +26,11 @@ class InformeCreate(BaseModel):
     comision_usuario1_id: Optional[str] = None
     comision_usuario2_id: Optional[str] = None
     nombre_nino: Optional[str] = None
+    apellido_nino: Optional[str] = None
     edad_nino: Optional[int] = None
     grado_nino: Optional[str] = None
     comentarios: Optional[str] = None
+    contacto_dato: Optional[str] = None
     fecha_diagnostico: Optional[str] = None
     hora_diagnostico: Optional[str] = None
 
@@ -40,9 +42,11 @@ class InformeUpdate(BaseModel):
     comision_usuario1_id: Optional[str] = None
     comision_usuario2_id: Optional[str] = None
     nombre_nino: Optional[str] = None
+    apellido_nino: Optional[str] = None
     edad_nino: Optional[int] = None
     grado_nino: Optional[str] = None
     comentarios: Optional[str] = None
+    contacto_dato: Optional[str] = None
     fecha_diagnostico: Optional[str] = None
     hora_diagnostico: Optional[str] = None
     ultimo_contacto: Optional[str] = None
@@ -65,9 +69,11 @@ def informe_to_dict(inf, db):
         "comision_usuario2_id": str(inf.comision_usuario2_id) if inf.comision_usuario2_id else None,
         "comision_usuario2_nombre": u2.nombre if u2 else None,
         "nombre_nino": inf.nombre_nino,
+        "apellido_nino": inf.apellido_nino,
         "edad_nino": inf.edad_nino,
         "grado_nino": inf.grado_nino,
         "comentarios": inf.comentarios,
+        "contacto_dato": inf.contacto_dato,
         "fecha_diagnostico": str(inf.fecha_diagnostico) if inf.fecha_diagnostico else None,
         "hora_diagnostico": inf.hora_diagnostico,
         "ultimo_contacto": str(inf.ultimo_contacto) if inf.ultimo_contacto else None,

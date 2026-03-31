@@ -46,6 +46,14 @@ export default function Alumnos() {
     cargarSucursales()
   }, [filtroSituacion, verBajas])
 
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('nuevo') === '1') {
+      setAlumnoSeleccionado(null)
+      setModalAbierto(true)
+    }
+  }, [])
+
   const cargarSucursales = async () => {
     try {
       const res = await sucursalesService.getAll()
@@ -253,16 +261,18 @@ export default function Alumnos() {
 }
 
 function FormularioAlumno({ alumno, onClose, onSuccess }) {
+  const urlParams = new URLSearchParams(window.location.search)
+  const informeIdParam = urlParams.get('informe_id')
   const [form, setForm] = useState({
-    nombre: alumno?.nombre || '',
-    apellido: alumno?.apellido || '',
+    nombre: alumno?.nombre || urlParams.get('nombre') || '',
+    apellido: alumno?.apellido || urlParams.get('apellido') || '',
     edad: alumno?.edad || '',
-    grado: alumno?.grado || '',
+    grado: alumno?.grado || urlParams.get('grado') || '',
     diagnostico: alumno?.diagnostico || '',
-    nombre_tutor: alumno?.nombre_tutor || '',
-    telefono_tutor: alumno?.telefono_tutor || '',
+    nombre_tutor: alumno?.nombre_tutor || urlParams.get('tutor') || '',
+    telefono_tutor: alumno?.telefono_tutor || urlParams.get('telefono') || '',
     telefono_emergencia: alumno?.telefono_emergencia || '',
-    sucursal_id: alumno?.sucursal_id || '',
+    sucursal_id: alumno?.sucursal_id || urlParams.get('sucursal_id') || '',
     maestra_id: alumno?.maestra_id || '',
     situacion: alumno?.situacion || 'prospecto',
     plan_pago: alumno?.plan_pago || '',
@@ -272,7 +282,7 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
     tiene_descuento_hermano: alumno?.tiene_descuento_hermano || false,
     numero_hermano: alumno?.numero_hermano || 1,
     horario: alumno?.horario || '',
-    fecha_diagnostico: alumno?.fecha_diagnostico || '',
+    fecha_diagnostico: alumno?.fecha_diagnostico || urlParams.get('fecha_diagnostico') || '',
     fecha_ingreso: alumno?.fecha_ingreso || '',
     programa_lectura: alumno?.programa_lectura || '',
     programa_matematicas: alumno?.programa_matematicas || '',
@@ -419,7 +429,19 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
       if (alumno) {
         await alumnosService.actualizar(alumno.id, data)
       } else {
-        await alumnosService.crear(data)
+        const resultado = await alumnosService.crear(data)
+        if (informeIdParam) {
+          try {
+            const { default: apiInstance } = await import('../services/api')
+            await apiInstance.put(`/informes/${informeIdParam}`, {
+              situacion: 'acudio_diagnostico',
+              alumno_id: resultado.data.id,
+              ultimo_contacto: new Date().toISOString().split('T')[0]
+            })
+          } catch (err) {
+            console.error('Error ligando informe')
+          }
+        }
       }
       onSuccess()
     } catch (err) {

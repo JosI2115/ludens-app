@@ -696,6 +696,10 @@ def migrate_db(
         "CREATE TABLE IF NOT EXISTS confirmaciones_asistencia (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), alumno_id UUID, fecha DATE NOT NULL, confirmo BOOLEAN, registrado_por UUID, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ)",
         "CREATE TABLE IF NOT EXISTS clases_recuperacion (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), alumno_id UUID, fecha_original DATE NOT NULL, fecha_recuperacion DATE NOT NULL, hora_inicio VARCHAR(10), hora_fin VARCHAR(10), registrado_por UUID, created_at TIMESTAMPTZ DEFAULT NOW())",
         "CREATE TABLE IF NOT EXISTS avisos (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), mensaje TEXT NOT NULL, autor VARCHAR(100), activo BOOLEAN DEFAULT TRUE, created_at TIMESTAMPTZ DEFAULT NOW())",
+        "ALTER TABLE informes ADD COLUMN IF NOT EXISTS apellido_nino VARCHAR(150)",
+        "ALTER TABLE informes ADD COLUMN IF NOT EXISTS contacto_dato VARCHAR(200)",
+        "ALTER TABLE informes ADD COLUMN IF NOT EXISTS fecha_inscripcion DATE",
+        "ALTER TABLE reportes_mensuales ADD COLUMN IF NOT EXISTS fecha_entrega DATE",
     ]
 
     resultados = []

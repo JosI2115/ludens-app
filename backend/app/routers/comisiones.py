@@ -28,6 +28,7 @@ def get_metas(sucursal_nombre: str):
 def calcular_comisiones(
     mes: Optional[int] = None,
     anio: Optional[int] = None,
+    sucursal_id: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
@@ -43,6 +44,8 @@ def calcular_comisiones(
     ultimo_dia = date(anio, mes, calendar.monthrange(anio, mes)[1])
 
     sucursales = db.query(Sucursal).all()
+    if sucursal_id:
+        sucursales = [s for s in sucursales if str(s.id) == sucursal_id]
     resultado = []
 
     for suc in sucursales:
@@ -88,11 +91,16 @@ def calcular_comisiones(
         for uid, monto in comisiones_individuales.items():
             u = db.query(Usuario).filter(Usuario.id == uid).first()
             if u:
+                ninos = ', '.join([
+                    i.nombre_nino or i.nombre_contacto
+                    for i in inscritos_mes
+                    if str(i.comision_usuario1_id) == uid or str(i.comision_usuario2_id) == uid
+                ])
                 comisiones_sucursal.append({
                     "tipo": "inscrito",
                     "usuario": u.nombre,
                     "monto": monto,
-                    "descripcion": f"${monto} por {monto//100} inscrito(s)"
+                    "descripcion": f"${monto} por {monto//100} inscrito(s): {ninos}"
                 })
 
         # Bono tabulador por sucursal

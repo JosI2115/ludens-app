@@ -26,12 +26,20 @@ export default function Dashboard() {
     cargarPendientesPersonales()
   }, [])
 
+  const cargarPendientes = async () => {
+    try {
+      const res = await api.get('/auth/dashboard/pendientes')
+      setPendientes(res.data)
+    } catch (err) {
+      console.error('Error pendientes')
+    }
+  }
+
   const cargarStats = async () => {
     try {
       const res = await dashboardService.stats()
       setStats(res.data)
-      const pendientesRes = await dashboardService.pendientes()
-      setPendientes(pendientesRes.data)
+      cargarPendientes()
       const cumpleRes = await dashboardService.cumpleanos(new Date().getMonth() + 1)
       setCumpleanos(cumpleRes.data.alumnos)
     } catch (err) {
@@ -281,6 +289,24 @@ export default function Dashboard() {
                         }`}>
                           {item.urgente && <span className="text-red-500 flex-shrink-0">⚠️</span>}
                           <span className="flex-1">{item.mensaje}</span>
+                          {item.tipo === 'seguimiento_informe' && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await api.put(`/informes/${item.informe_id}`, {
+                                    situacion: item.nueva_etapa,
+                                    ultimo_contacto: new Date().toISOString().split('T')[0]
+                                  })
+                                  cargarPendientes()
+                                } catch (err) {
+                                  console.error('Error')
+                                }
+                              }}
+                              className="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded font-medium flex-shrink-0"
+                            >
+                              ✓ Listo
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>

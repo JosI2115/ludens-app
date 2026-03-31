@@ -369,18 +369,9 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
     e.preventDefault()
     // Validaciones
     const errores = []
-    if (!form.nombre.trim()) errores.push('El nombre es obligatorio')
-    if (!form.apellido.trim()) errores.push('El apellido es obligatorio')
+    if (!form.nombre.trim()) errores.push('El nombre del alumno es obligatorio')
     if (!form.nombre_tutor.trim()) errores.push('El nombre del tutor es obligatorio')
     if (!form.telefono_tutor.trim()) errores.push('El teléfono del tutor es obligatorio')
-    if (!form.sucursal_id) errores.push('Debes seleccionar una sucursal')
-    if (!form.plan_pago) errores.push('Debes seleccionar un plan de pago')
-    if (!form.dia_pago) errores.push('El día de pago es obligatorio')
-    if (!form.fecha_ingreso) errores.push('La fecha de ingreso es obligatoria')
-    if (form.telefono_tutor && !/^\d{7,15}$/.test(form.telefono_tutor.replace(/\s/g, ''))) {
-      errores.push('El teléfono del tutor debe tener entre 7 y 15 dígitos')
-    }
-
     if (errores.length > 0) {
       setError(errores.join(' · '))
       return

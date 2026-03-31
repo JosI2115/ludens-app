@@ -284,26 +284,50 @@ def dashboard_pendientes(
 
     ayer = hoy - timedelta(days=1)
 
-    informes_pendientes = db.query(Informe).filter(
-        Informe.situacion == 'informes',
+    SIGUIENTE_ETAPA = {
+        'informes': ('seguimiento_1', 'Mandar Seguimiento 1'),
+        'seguimiento_1': ('seguimiento_2', 'Mandar Seguimiento 2'),
+        'seguimiento_2': ('seguimiento_3', 'Mandar Seguimiento 3'),
+    }
+
+    query_inf = db.query(Informe).filter(
+        Informe.situacion.in_(['informes', 'seguimiento_1', 'seguimiento_2']),
         Informe.ultimo_contacto <= ayer
-    ).all()
+    )
+    if current_user.rol in ["encargada", "recepcionista"] and not current_user.es_encargada_general:
+        query_inf = query_inf.filter(Informe.sucursal_id == current_user.sucursal_id)
 
-    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
-        informes_pendientes = [i for i in informes_pendientes if str(i.sucursal_id) == str(current_user.sucursal_id)]
+    informes_pendientes = query_inf.all()
 
-    items_seguimiento = [{
-        "tipo": "seguimiento",
-        "mensaje": f"Mandar Seguimiento 1 a {inf.nombre_contacto}",
-        "urgente": False,
-        "alumno_id": None
-    } for inf in informes_pendientes]
+    items_seguimiento = []
+    for inf in informes_pendientes:
+        siguiente = SIGUIENTE_ETAPA.get(inf.situacion)
+        if siguiente:
+            nueva_etapa, mensaje = siguiente
+            items_seguimiento.append({
+                "tipo": "seguimiento_informe",
+                "mensaje": f"{mensaje} a {inf.nombre_contacto}",
+                "urgente": False,
+                "informe_id": str(inf.id),
+                "nueva_etapa": nueva_etapa
+            })
 
     if items_seguimiento:
         pendientes.append({
             "categoria": "📞 Seguimientos pendientes",
-            "items": items_seguimiento[:5]
+            "items": items_seguimiento[:10]
         })
+
+    # Auto-cambiar Seguimiento 3 → No contesta si pasó 1 día
+    informes_seg3 = db.query(Informe).filter(
+        Informe.situacion == 'seguimiento_3',
+        Informe.ultimo_contacto <= ayer
+    ).all()
+    for inf in informes_seg3:
+        inf.situacion = 'no_contesta'
+        inf.ultimo_contacto = hoy
+    if informes_seg3:
+        db.commit()
 
     return pendientes
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import api from '../services/api'
+import api, { sucursalesService } from '../services/api'
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 
@@ -20,15 +20,18 @@ export default function Comisiones() {
   const [loading, setLoading] = useState(true)
   const [mes, setMes] = useState(new Date().getMonth() + 1)
   const [anio, setAnio] = useState(new Date().getFullYear())
+  const [sucursales, setSucursales] = useState([])
+  const [filtroSucursal, setFiltroSucursal] = useState('')
 
   useEffect(() => {
+    sucursalesService.getAll().then(r => setSucursales(r.data)).catch(() => {})
     cargarComisiones()
-  }, [mes, anio])
+  }, [mes, anio, filtroSucursal])
 
   const cargarComisiones = async () => {
     setLoading(true)
     try {
-      const res = await api.get('/comisiones/calcular', { params: { mes, anio } })
+      const res = await api.get('/comisiones/calcular', { params: { mes, anio, sucursal_id: filtroSucursal || undefined } })
       setDatos(res.data)
     } catch (err) {
       console.error('Error cargando comisiones')
@@ -44,6 +47,11 @@ export default function Comisiones() {
       <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
         <h2 className="text-2xl font-bold text-gray-800">Comisiones</h2>
         <div className="flex gap-3">
+          <select value={filtroSucursal} onChange={e => setFiltroSucursal(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+            <option value="">Todas las sucursales</option>
+            {sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+          </select>
           <select value={mes} onChange={e => setMes(parseInt(e.target.value))}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
             {MESES.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}

@@ -14,3 +14,4 @@ from app.models.prospecto_calendario import ProspectoCalendario
 from app.models.actividad_docente import ActividadDocente
 from app.models.informe import Informe
 from app.models.resumen_semanal import ResumenSemanal
+from app.models.comision import Comision

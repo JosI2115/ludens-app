@@ -10,6 +10,7 @@ const menuItems = [
   { path: '/expedientes', icon: '📁', label: 'Expedientes', roles: ['directora', 'encargada', 'maestra', 'recepcionista'] },
   { path: '/ingresos-bajas', icon: '📊', label: 'Ingresos y Bajas', roles: ['directora', 'encargada', 'contadora'] },
   { path: '/informes', icon: '📞', label: 'Informes', roles: ['directora', 'encargada', 'recepcionista', 'contadora'] },
+  { path: '/comisiones', icon: '💰', label: 'Comisiones', roles: ['directora', 'encargada', 'contadora'] },
   { path: '/docentes', icon: '👩‍🏫', label: 'Actividad Docente', roles: ['directora', 'encargada', 'maestra'] },
   { path: '/usuarios', icon: '👥', label: 'Usuarios', roles: ['directora'] },
 ]

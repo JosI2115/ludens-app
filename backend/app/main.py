@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from app.routers import auth, alumnos, sucursales, pagos, asistencias, usuarios, bitacoras, reportes, calendario, docentes, informes
+from app.routers import auth, alumnos, sucursales, pagos, asistencias, usuarios, bitacoras, reportes, calendario, docentes, informes, comisiones
 
 load_dotenv()
 
@@ -30,6 +30,7 @@ app.include_router(reportes.router)
 app.include_router(calendario.router)
 app.include_router(docentes.router)
 app.include_router(informes.router)
+app.include_router(comisiones.router)
 
 def actualizar_situaciones_por_inasistencia():
     from app.database import SessionLocal
@@ -95,6 +96,7 @@ def startup():
             "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS es_encargada_general BOOLEAN DEFAULT FALSE",
             "CREATE TABLE IF NOT EXISTS informes (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), nombre_contacto VARCHAR(150) NOT NULL, medio VARCHAR(50), situacion VARCHAR(50) DEFAULT 'informes', fecha_solicitud DATE NOT NULL, sucursal_id UUID REFERENCES sucursales(id), comision_usuario1_id UUID REFERENCES usuarios(id), comision_usuario2_id UUID REFERENCES usuarios(id), nombre_nino VARCHAR(150), edad_nino INTEGER, grado_nino VARCHAR(50), comentarios TEXT, fecha_diagnostico DATE, hora_diagnostico VARCHAR(10), ultimo_contacto DATE, registrado_por UUID REFERENCES usuarios(id), alumno_id UUID REFERENCES alumnos(id), created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ)",
             "CREATE TABLE IF NOT EXISTS resumenes_semanales (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), sucursal_id UUID NOT NULL, sucursal_nombre VARCHAR(100), semana_inicio DATE NOT NULL, semana_fin DATE NOT NULL, mes INTEGER, anio INTEGER, numero_semana INTEGER, alumnos_totales INTEGER DEFAULT 0, nuevos_ingresos INTEGER DEFAULT 0, diagnosticos INTEGER DEFAULT 0, bajas INTEGER DEFAULT 0, inf_whatsapp INTEGER DEFAULT 0, inf_llamadas INTEGER DEFAULT 0, inf_sucursal INTEGER DEFAULT 0, inf_redes INTEGER DEFAULT 0, inf_extras INTEGER DEFAULT 0, created_at TIMESTAMPTZ DEFAULT NOW())",
+            "CREATE TABLE IF NOT EXISTS comisiones (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), usuario_id UUID NOT NULL, sucursal_id UUID NOT NULL, mes INTEGER NOT NULL, anio INTEGER NOT NULL, tipo VARCHAR(50), monto FLOAT DEFAULT 0, descripcion VARCHAR(200), informe_id UUID, created_at TIMESTAMPTZ DEFAULT NOW())",
         ]
         for sql in migraciones_auto:
             try:

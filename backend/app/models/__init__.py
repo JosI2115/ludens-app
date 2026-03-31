@@ -11,3 +11,4 @@ from app.models.aviso import Aviso
 from app.models.confirmacion_asistencia import ConfirmacionAsistencia
 from app.models.recuperacion import ClaseRecuperacion
 from app.models.prospecto_calendario import ProspectoCalendario
+from app.models.actividad_docente import ActividadDocente

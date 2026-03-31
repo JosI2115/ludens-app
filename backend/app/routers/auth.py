@@ -258,6 +258,26 @@ def dashboard_pendientes(
             "items": en_riesgo_inasistencia[:5]
         })
 
+    # Bitácora docente sin llenar hoy
+    from app.models.actividad_docente import ActividadDocente
+
+    if current_user.rol in ['maestra', 'encargada']:
+        actividad_hoy = db.query(ActividadDocente).filter(
+            ActividadDocente.usuario_id == current_user.id,
+            ActividadDocente.fecha == hoy
+        ).first()
+
+        if not actividad_hoy or (not actividad_hoy.actividad and not actividad_hoy.incidencia):
+            pendientes.append({
+                "categoria": "📝 Bitácora docente",
+                "items": [{
+                    "tipo": "bitacora_docente",
+                    "mensaje": f"Pendiente llenar la bitácora docente de hoy ({hoy.strftime('%d/%m/%Y')})",
+                    "urgente": False,
+                    "alumno_id": None
+                }]
+            })
+
     return pendientes
 
 @router.get("/dashboard/cumpleanos")

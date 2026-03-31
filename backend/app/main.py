@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from app.routers import auth, alumnos, sucursales, pagos, asistencias, usuarios, bitacoras, reportes, calendario
+from app.routers import auth, alumnos, sucursales, pagos, asistencias, usuarios, bitacoras, reportes, calendario, docentes
 
 load_dotenv()
 
@@ -28,6 +28,7 @@ app.include_router(usuarios.router)
 app.include_router(bitacoras.router)
 app.include_router(reportes.router)
 app.include_router(calendario.router)
+app.include_router(docentes.router)
 
 def actualizar_situaciones_por_inasistencia():
     from app.database import SessionLocal
@@ -90,6 +91,7 @@ def startup():
         migraciones_auto = [
             "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS color VARCHAR(20)",
             "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS fecha_reactivacion DATE",
+            "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS es_encargada_general BOOLEAN DEFAULT FALSE",
         ]
         for sql in migraciones_auto:
             try:

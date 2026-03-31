@@ -31,6 +31,7 @@ class Informe(Base):
     # Diagnóstico
     fecha_diagnostico = Column(Date)
     hora_diagnostico = Column(String(10))
+    fecha_inscripcion = Column(Date, nullable=True)
 
     # Seguimiento
     ultimo_contacto = Column(Date)

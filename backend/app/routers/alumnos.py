@@ -304,6 +304,7 @@ def actualizar_alumno(
                 informe.ultimo_contacto = date.today()
             elif nueva_situacion == 'activo':
                 informe.situacion = 'inscrito'
+                informe.fecha_inscripcion = date.today()
                 informe.ultimo_contacto = date.today()
 
     db.commit()

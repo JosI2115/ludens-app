@@ -52,10 +52,14 @@ def calcular_comisiones(
         metas = get_metas(suc.nombre)
 
         # Inscritos del mes (pagaron inscripcion o ya inscritos)
+        from sqlalchemy import or_
         inscritos_mes = db.query(Informe).filter(
             Informe.sucursal_id == suc.id,
             Informe.situacion.in_(['pago_inscripcion', 'inscrito']),
-            Informe.fecha_solicitud.between(primer_dia, ultimo_dia)
+            or_(
+                Informe.fecha_inscripcion.between(primer_dia, ultimo_dia),
+                Informe.fecha_solicitud.between(primer_dia, ultimo_dia)
+            )
         ).all()
 
         # Bajas del mes

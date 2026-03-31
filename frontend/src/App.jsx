@@ -12,6 +12,7 @@ import Expedientes from './pages/Expedientes'
 import IngresosBajas from './pages/IngresosBajas'
 import Calendario from './pages/Calendario'
 import ActividadDocente from './pages/ActividadDocente'
+import Informes from './pages/Informes'
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('token')
@@ -38,6 +39,7 @@ function App() {
         <Route path="/ingresos-bajas" element={<PrivateRoute><IngresosBajas /></PrivateRoute>} />
         <Route path="/calendario" element={<PrivateRoute><Calendario /></PrivateRoute>} />
         <Route path="/docentes" element={<PrivateRoute><ActividadDocente /></PrivateRoute>} />
+        <Route path="/informes" element={<PrivateRoute><Informes /></PrivateRoute>} />
       </Routes>
     </BrowserRouter>
   )

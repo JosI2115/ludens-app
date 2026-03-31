@@ -278,6 +278,33 @@ def dashboard_pendientes(
                 }]
             })
 
+    # Informes pendientes de seguimiento
+    from app.models.informe import Informe
+    from datetime import timedelta
+
+    ayer = hoy - timedelta(days=1)
+
+    informes_pendientes = db.query(Informe).filter(
+        Informe.situacion == 'informes',
+        Informe.ultimo_contacto <= ayer
+    ).all()
+
+    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        informes_pendientes = [i for i in informes_pendientes if str(i.sucursal_id) == str(current_user.sucursal_id)]
+
+    items_seguimiento = [{
+        "tipo": "seguimiento",
+        "mensaje": f"Mandar Seguimiento 1 a {inf.nombre_contacto}",
+        "urgente": False,
+        "alumno_id": None
+    } for inf in informes_pendientes]
+
+    if items_seguimiento:
+        pendientes.append({
+            "categoria": "📞 Seguimientos pendientes",
+            "items": items_seguimiento[:5]
+        })
+
     return pendientes
 
 @router.get("/dashboard/cumpleanos")

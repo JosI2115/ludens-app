@@ -99,7 +99,7 @@ def actualizar_usuario(
         usuario.activo = data.activo
     if data.password:
         usuario.password_hash = hashear_password(data.password)
-    if data.color is not None:
+    if 'color' in data.dict(exclude_unset=True):
         usuario.color = data.color
 
     db.commit()

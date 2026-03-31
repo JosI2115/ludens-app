@@ -15,11 +15,16 @@ export default function IngresosBajas() {
   const [anio, setAnio] = useState(hoy.getFullYear())
   const [datos, setDatos] = useState(null)
   const [cargando, setCargando] = useState(false)
+  const [sucursales, setSucursales] = useState([])
+  const [sucursalFiltro, setSucursalFiltro] = useState('')
+  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
 
   const cargar = async () => {
     setCargando(true)
     try {
-      const res = await api.get('/auth/ingresos-bajas', { params: { mes, anio } })
+      const params = { mes, anio }
+      if (sucursalFiltro) params.sucursal_id = sucursalFiltro
+      const res = await api.get('/auth/ingresos-bajas', { params })
       setDatos(res.data)
     } catch (e) {
       console.error(e)
@@ -28,7 +33,13 @@ export default function IngresosBajas() {
     }
   }
 
-  useEffect(() => { cargar() }, [mes, anio])
+  useEffect(() => {
+    if (usuario.rol === 'directora' || usuario.rol === 'contadora') {
+      api.get('/sucursales/').then(res => setSucursales(res.data))
+    }
+  }, [])
+
+  useEffect(() => { cargar() }, [mes, anio, sucursalFiltro])
 
   const anios = []
   for (let y = hoy.getFullYear(); y >= hoy.getFullYear() - 3; y--) anios.push(y)
@@ -41,6 +52,18 @@ export default function IngresosBajas() {
           <p className="text-sm text-gray-500 mt-0.5">Alumnos que ingresaron o se dieron de baja en el mes</p>
         </div>
         <div className="flex gap-2">
+          {(usuario.rol === 'directora' || usuario.rol === 'contadora') && sucursales.length > 0 && (
+            <select
+              value={sucursalFiltro}
+              onChange={e => setSucursalFiltro(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
+            >
+              <option value="">Todas las sucursales</option>
+              {sucursales.map(s => (
+                <option key={s.id} value={s.id}>{s.nombre}</option>
+              ))}
+            </select>
+          )}
           <select
             value={mes}
             onChange={e => setMes(Number(e.target.value))}

@@ -439,7 +439,7 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess }) {
             </button>
             <button onClick={handlePagar} disabled={loading}
               className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white py-2 rounded-lg text-sm font-medium transition">
-              {loading ? 'Guardando...' : `Confirmar $${montoTotal.toLocaleString()}`}
+              {loading ? 'Guardando...' : 'Confirmar pago'}
             </button>
           </div>
         </div>

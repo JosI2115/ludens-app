@@ -350,13 +350,16 @@ def get_nuevos_alumnos(
 
     alumnos = query.order_by(Alumno.fecha_ingreso).all()
 
+    from app.models.usuario import Usuario as UsuarioModel
+
     return [{
         "nombre": f"{a.nombre} {a.apellido}",
         "alumno_id": str(a.id),
         "materias": a.materias,
         "programa_lectura": a.programa_lectura,
         "programa_matematicas": a.programa_matematicas,
-        "fecha_ingreso": str(a.fecha_ingreso)
+        "fecha_ingreso": str(a.fecha_ingreso),
+        "maestra_nombre": db.query(UsuarioModel).filter(UsuarioModel.id == a.maestra_id).first().nombre if a.maestra_id else None
     } for a in alumnos]
 
 @router.get("/prospectos")

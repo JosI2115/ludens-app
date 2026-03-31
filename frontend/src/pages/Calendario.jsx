@@ -386,6 +386,7 @@ export default function Calendario() {
                   <th className="text-left px-4 py-3 text-gray-500 font-medium">Prog. Lectura</th>
                   <th className="text-left px-4 py-3 text-gray-500 font-medium">Prog. Matemáticas</th>
                   <th className="text-left px-4 py-3 text-gray-500 font-medium">Fecha ingreso</th>
+                  <th className="text-left px-4 py-3 text-gray-500 font-medium">Maestra</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -396,6 +397,7 @@ export default function Calendario() {
                     <td className="px-4 py-3 font-mono text-blue-600 text-xs">{a.programa_lectura || '—'}</td>
                     <td className="px-4 py-3 font-mono text-red-600 text-xs">{a.programa_matematicas || '—'}</td>
                     <td className="px-4 py-3 text-gray-500">{a.fecha_ingreso}</td>
+                    <td className="px-4 py-3 text-gray-500">{a.maestra_nombre || '—'}</td>
                   </tr>
                 ))}
               </tbody>

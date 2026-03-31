@@ -224,9 +224,14 @@ function ModalEditarUsuario({ usuario, sucursales, onClose, onSuccess }) {
             <label className="text-sm text-gray-700">Usuario activo</label>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Color (para calendario)</label>
-            <div className="flex gap-2 flex-wrap">
-              {['#378ADD','#D4537E','#639922','#BA7517','#9B59B6','#E74C3C','#1ABC9C','#F39C12','#2C3E50','#E91E63'].map(c => (
+            <label className="block text-sm font-medium text-gray-700 mb-2">Color para calendario</label>
+            <div className="flex gap-2 flex-wrap mb-2">
+              <button type="button"
+                onClick={() => setForm(f => ({...f, color: ''}))}
+                className={`w-8 h-8 rounded-full border-4 transition flex items-center justify-center bg-gray-100 ${!form.color ? 'border-gray-800' : 'border-transparent'}`}>
+                <span className="text-gray-400 text-xs">✕</span>
+              </button>
+              {['#378ADD','#D4537E','#639922','#BA7517','#9B59B6','#E74C3C','#1ABC9C','#F39C12','#2C3E50','#E91E63','#00BCD4','#FF5722','#607D8B','#8BC34A','#FF9800','#673AB7','#009688','#F44336','#3F51B5','#CDDC39'].map(c => (
                 <button key={c} type="button"
                   onClick={() => setForm(f => ({...f, color: c}))}
                   className={`w-8 h-8 rounded-full border-4 transition ${form.color === c ? 'border-gray-800 scale-110' : 'border-transparent'}`}
@@ -234,7 +239,13 @@ function ModalEditarUsuario({ usuario, sucursales, onClose, onSuccess }) {
                 />
               ))}
             </div>
-            {form.color && <p className="text-xs text-gray-500 mt-1">Color seleccionado: {form.color}</p>}
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500">Color personalizado:</label>
+              <input type="color" value={form.color || '#ffffff'}
+                onChange={e => setForm(f => ({...f, color: e.target.value}))}
+                className="w-8 h-8 rounded cursor-pointer border border-gray-300" />
+              {form.color && <span className="text-xs text-gray-500">{form.color}</span>}
+            </div>
           </div>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -333,14 +344,26 @@ function ModalNuevoUsuario({ sucursales, onClose, onSuccess }) {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Color para calendario</label>
-            <div className="flex gap-2 flex-wrap">
-              {['#378ADD','#D4537E','#639922','#BA7517','#9B59B6','#E74C3C','#1ABC9C','#F39C12','#2C3E50','#E91E63'].map(c => (
+            <div className="flex gap-2 flex-wrap mb-2">
+              <button type="button"
+                onClick={() => setForm(f => ({...f, color: ''}))}
+                className={`w-8 h-8 rounded-full border-4 transition flex items-center justify-center bg-gray-100 ${!form.color ? 'border-gray-800' : 'border-transparent'}`}>
+                <span className="text-gray-400 text-xs">✕</span>
+              </button>
+              {['#378ADD','#D4537E','#639922','#BA7517','#9B59B6','#E74C3C','#1ABC9C','#F39C12','#2C3E50','#E91E63','#00BCD4','#FF5722','#607D8B','#8BC34A','#FF9800','#673AB7','#009688','#F44336','#3F51B5','#CDDC39'].map(c => (
                 <button key={c} type="button"
                   onClick={() => setForm(f => ({...f, color: c}))}
                   className={`w-8 h-8 rounded-full border-4 transition ${form.color === c ? 'border-gray-800 scale-110' : 'border-transparent'}`}
                   style={{backgroundColor: c}}
                 />
               ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500">Color personalizado:</label>
+              <input type="color" value={form.color || '#ffffff'}
+                onChange={e => setForm(f => ({...f, color: e.target.value}))}
+                className="w-8 h-8 rounded cursor-pointer border border-gray-300" />
+              {form.color && <span className="text-xs text-gray-500">{form.color}</span>}
             </div>
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}

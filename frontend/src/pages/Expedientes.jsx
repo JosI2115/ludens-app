@@ -28,6 +28,7 @@ export default function Expedientes() {
   const [loadingPerfil, setLoadingPerfil] = useState(false)
   const [reportes, setReportes] = useState([])
   const [subiendoReporte, setSubiendoReporte] = useState(false)
+  const [fechaEntregaReporte, setFechaEntregaReporte] = useState(new Date().toISOString().split('T')[0])
   const [mesReporte, setMesReporte] = useState(new Date().getMonth() + 1)
   const [anioReporte, setAnioReporte] = useState(new Date().getFullYear())
 
@@ -99,6 +100,7 @@ export default function Expedientes() {
       formData.append('alumno_id', alumnoSeleccionado.id)
       formData.append('mes', mesReporte)
       formData.append('anio', anioReporte)
+      formData.append('fecha_entrega', fechaEntregaReporte)
       formData.append('archivo', archivo)
       await reportesService.subir(formData)
       cargarReportes(alumnoSeleccionado.id)
@@ -439,10 +441,21 @@ export default function Expedientes() {
                     <option key={a} value={a}>{a}</option>
                   ))}
                 </select>
-                <label className={`cursor-pointer bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition ${subiendoReporte ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                  {subiendoReporte ? 'Subiendo...' : '⬆️ Subir PDF'}
-                  <input type="file" accept=".pdf" onChange={subirReporte} disabled={subiendoReporte} className="hidden" />
-                </label>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <label className="text-xs text-gray-500 flex-shrink-0">Fecha de entrega:</label>
+                    <input
+                      type="date"
+                      value={fechaEntregaReporte}
+                      onChange={e => setFechaEntregaReporte(e.target.value)}
+                      className="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    />
+                  </div>
+                  <label className={`cursor-pointer bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition ${subiendoReporte ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    {subiendoReporte ? 'Subiendo...' : '⬆️ Subir PDF'}
+                    <input type="file" accept=".pdf" onChange={subirReporte} disabled={subiendoReporte} className="hidden" />
+                  </label>
+                </div>
               </div>
 
               {reportes.length === 0 ? (
@@ -457,6 +470,7 @@ export default function Expedientes() {
                           <p className="text-sm font-medium text-gray-800">
                             {['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][r.mes-1]} {r.anio}
                           </p>
+                          <p className="text-xs text-gray-400">Entregado: {r.fecha_entrega || 'Sin fecha'}</p>
                           <p className="text-xs text-gray-400">Subido el {r.created_at?.split('T')[0]}</p>
                         </div>
                       </div>

@@ -329,6 +329,62 @@ def dashboard_pendientes(
     if informes_seg3:
         db.commit()
 
+    # Alertas de reporte mensual
+    from app.models.reporte import ReporteMensual
+    from app.models.bitacora import Bitacora
+
+    alumnos_maestra = db.query(Alumno).filter(
+        Alumno.activo == True,
+        Alumno.situacion.in_(['activo', 'becado']),
+        Alumno.maestra_id == current_user.id
+    ).all() if current_user.rol == 'maestra' else []
+
+    alertas_reporte = []
+    for alumno in alumnos_maestra:
+        ultimo_reporte = db.query(ReporteMensual).filter(
+            ReporteMensual.alumno_id == alumno.id
+        ).order_by(ReporteMensual.created_at.desc()).first()
+
+        fecha_base = ultimo_reporte.fecha_entrega if ultimo_reporte and ultimo_reporte.fecha_entrega else alumno.fecha_ingreso
+        if not fecha_base:
+            continue
+
+        dias_desde_reporte = (hoy - fecha_base).days
+
+        if dias_desde_reporte >= 25:
+            alertas_reporte.append({
+                "tipo": "reporte_tiempo",
+                "mensaje": f"Reporte mensual de {alumno.nombre} {alumno.apellido} — {dias_desde_reporte} días desde último reporte",
+                "urgente": dias_desde_reporte >= 30,
+                "alumno_id": str(alumno.id)
+            })
+            continue
+
+        meta_actividades = 64 if alumno.horas_semana and alumno.horas_semana >= 4 else 32
+
+        actividades_logradas = db.query(Bitacora).filter(
+            Bitacora.alumno_id == alumno.id,
+            Bitacora.estado == 'Logrado',
+            Bitacora.updated_at >= fecha_base
+        ).count() if ultimo_reporte else db.query(Bitacora).filter(
+            Bitacora.alumno_id == alumno.id,
+            Bitacora.estado == 'Logrado'
+        ).count()
+
+        if actividades_logradas >= meta_actividades:
+            alertas_reporte.append({
+                "tipo": "reporte_actividades",
+                "mensaje": f"Reporte mensual de {alumno.nombre} {alumno.apellido} — completó {actividades_logradas} actividades logradas",
+                "urgente": False,
+                "alumno_id": str(alumno.id)
+            })
+
+    if alertas_reporte:
+        pendientes.append({
+            "categoria": "📋 Reportes mensuales pendientes",
+            "items": alertas_reporte[:5]
+        })
+
     return pendientes
 
 @router.get("/dashboard/cumpleanos")

@@ -14,5 +14,6 @@ class ReporteMensual(Base):
     url_cloudinary = Column(Text, nullable=False)
     public_id_cloudinary = Column(String(200))
     subido_por = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"))
+    fecha_entrega = Column(Date, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     alumno = relationship("Alumno", backref="reportes")

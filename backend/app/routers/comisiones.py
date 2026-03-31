@@ -138,7 +138,7 @@ def calcular_comisiones(
                         "tipo": "permanencia",
                         "usuario": maestra.nombre,
                         "monto": 100,
-                        "descripcion": f"Comisión permanencia — {alumnos_maestra} alumnos activos"
+                        "descripcion": f"Comisión permanencia — {alumnos_maestra} alumnos activos (meta: {metas['meta_permanencia']})"
                     })
         else:
             # Otras sucursales: si no hubo bajas en el mes

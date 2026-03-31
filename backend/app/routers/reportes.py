@@ -21,6 +21,7 @@ async def subir_reporte(
     alumno_id: str = Form(...),
     mes: int = Form(...),
     anio: int = Form(...),
+    fecha_entrega: Optional[str] = Form(None),
     archivo: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
@@ -50,10 +51,14 @@ async def subir_reporte(
         ReporteMensual.anio == anio
     ).first()
 
+    from datetime import datetime as dt, date
+    fecha_entrega_date = dt.strptime(fecha_entrega, '%Y-%m-%d').date() if fecha_entrega else date.today()
+
     if reporte_existente:
         reporte_existente.url_cloudinary = url_visualizar
         reporte_existente.public_id_cloudinary = resultado["public_id"]
         reporte_existente.subido_por = current_user.id
+        reporte_existente.fecha_entrega = fecha_entrega_date
     else:
         reporte = ReporteMensual(
             alumno_id=alumno_id,
@@ -61,7 +66,8 @@ async def subir_reporte(
             anio=anio,
             url_cloudinary=url_visualizar,
             public_id_cloudinary=resultado["public_id"],
-            subido_por=current_user.id
+            subido_por=current_user.id,
+            fecha_entrega=fecha_entrega_date
         )
         db.add(reporte)
 
@@ -83,6 +89,7 @@ def get_reportes_alumno(
         "mes": r.mes,
         "anio": r.anio,
         "url": r.url_cloudinary,
+        "fecha_entrega": str(r.fecha_entrega) if r.fecha_entrega else None,
         "created_at": str(r.created_at)
     } for r in reportes]
 

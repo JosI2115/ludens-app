@@ -97,37 +97,32 @@ def get_alumnos(
 
     actualizado = False
     for alumno in alumnos_check:
-        punto_inicio = alumno.fecha_reactivacion or alumno.fecha_ingreso
-        if not punto_inicio:
-            continue
-
-        # Primera asistencia confirmada (asistio=True) desde punto_inicio
+        # Buscar la primera asistencia confirmada del alumno
         primera_asistencia = db.query(Asistencia).filter(
             Asistencia.alumno_id == alumno.id,
-            Asistencia.asistio == True,
-            Asistencia.fecha >= punto_inicio
+            Asistencia.asistio == True
         ).order_by(Asistencia.fecha.asc()).first()
 
         if not primera_asistencia:
+            # Sin ninguna asistencia confirmada aún — no aplicar reglas
             continue
 
-        # Última asistencia confirmada
+        # Buscar la última asistencia confirmada
         ultima_asistencia = db.query(Asistencia).filter(
             Asistencia.alumno_id == alumno.id,
-            Asistencia.asistio == True,
-            Asistencia.fecha >= punto_inicio
+            Asistencia.asistio == True
         ).order_by(Asistencia.fecha.desc()).first()
 
         # Días naturales desde la última asistencia hasta hoy
-        dias_desde_ultima = (hoy - ultima_asistencia.fecha).days
+        dias_sin_asistir = (hoy - ultima_asistencia.fecha).days
 
-        if dias_desde_ultima >= 30:
+        if dias_sin_asistir >= 30:
             if alumno.situacion != 'baja':
                 alumno.situacion = 'baja'
                 alumno.fecha_baja = hoy
-                alumno.motivo_baja = f'Baja automática por {dias_desde_ultima} días de inasistencia'
+                alumno.motivo_baja = f'Baja automática por {dias_sin_asistir} días sin asistir'
                 actualizado = True
-        elif dias_desde_ultima >= 20:
+        elif dias_sin_asistir >= 20:
             if alumno.situacion not in ['en_riesgo', 'baja']:
                 alumno.situacion = 'en_riesgo'
                 actualizado = True
@@ -269,7 +264,10 @@ def actualizar_alumno(
         deleted = db.query(Asistencia).filter(
             Asistencia.alumno_id == alumno.id
         ).delete()
-        cambios['fecha_reactivacion'] = nueva_fecha
+        cambios['situacion'] = 'activo'
+        cambios['fecha_baja'] = None
+        cambios['motivo_baja'] = None
+        cambios['fecha_reactivacion'] = None
 
     if 'situacion' in cambios and cambios['situacion'] != 'baja' and alumno.situacion == 'baja':
         from datetime import date as date_type

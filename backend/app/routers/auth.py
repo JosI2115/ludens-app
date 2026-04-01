@@ -680,6 +680,7 @@ def migrate_db(
 
     from sqlalchemy import text
     migraciones = [
+        "ALTER TABLE reportes_mensuales ADD COLUMN IF NOT EXISTS fecha_entrega DATE",
         "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS domicilio TEXT",
         "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS escuela_procedencia VARCHAR(200)",
         "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS condicion_medica TEXT",

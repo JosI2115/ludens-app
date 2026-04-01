@@ -714,3 +714,33 @@ def migrate_db(
                 resultados.append(f"ERROR: {str(e)[:60]}")
 
     return {"resultados": resultados}
+
+@router.post("/admin/migrate-informes")
+def migrate_informes(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    if current_user.rol != "directora":
+        raise HTTPException(status_code=403, detail="Solo directora")
+
+    from sqlalchemy import text
+    migraciones = [
+        "ALTER TABLE informes ADD COLUMN IF NOT EXISTS apellido_nino VARCHAR(150)",
+        "ALTER TABLE informes ADD COLUMN IF NOT EXISTS contacto_dato VARCHAR(200)",
+        "ALTER TABLE informes ADD COLUMN IF NOT EXISTS fecha_inscripcion DATE",
+        "ALTER TABLE reportes_mensuales ADD COLUMN IF NOT EXISTS fecha_entrega DATE",
+        "ALTER TABLE resumenes_semanales ADD COLUMN IF NOT EXISTS inf_extras INTEGER DEFAULT 0",
+        "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS es_encargada_general BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS color VARCHAR(20)",
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS fecha_reactivacion DATE",
+    ]
+    resultados = []
+    with db.bind.connect() as conn:
+        for sql in migraciones:
+            try:
+                conn.execute(text(sql))
+                conn.commit()
+                resultados.append(f"OK: {sql[:60]}")
+            except Exception as e:
+                resultados.append(f"ERROR: {str(e)[:60]}")
+    return {"resultados": resultados}

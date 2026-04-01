@@ -100,12 +100,15 @@ def eliminar_reporte(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    if current_user.rol not in ["directora", "encargada"]:
-        raise HTTPException(status_code=403, detail="Sin permisos")
-
     reporte = db.query(ReporteMensual).filter(ReporteMensual.id == reporte_id).first()
     if not reporte:
-        raise HTTPException(status_code=404, detail="Reporte no encontrado")
+        raise HTTPException(status_code=404, detail="No encontrado")
+
+    es_quien_subio = str(reporte.subido_por) == str(current_user.id)
+    es_encargada_general = current_user.es_encargada_general
+
+    if current_user.rol not in ["directora"] and not es_quien_subio and not es_encargada_general:
+        raise HTTPException(status_code=403, detail="Sin permisos")
 
     if reporte.public_id_cloudinary:
         cloudinary.uploader.destroy(reporte.public_id_cloudinary, resource_type="raw")

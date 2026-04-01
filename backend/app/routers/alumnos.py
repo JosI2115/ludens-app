@@ -41,6 +41,9 @@ class AlumnoCreate(BaseModel):
     condicion_medica: Optional[str] = None
     permiso_fotos: Optional[bool] = False
     objetivos: Optional[str] = None
+    maestra_lectura_id: Optional[str] = None
+    maestra_matematicas_id: Optional[str] = None
+    horario_json: Optional[str] = None
 
     class Config:
         anystr_strip_whitespace = True
@@ -206,8 +209,12 @@ def crear_alumno(
         else:
             datos['sucursal_id'] = None
 
-    if not datos.get('maestra_id') or datos['maestra_id'] == '':
-        datos['maestra_id'] = None
+    for campo in ['maestra_id', 'maestra_lectura_id', 'maestra_matematicas_id']:
+        if datos.get(campo) == '' or datos.get(campo) is None:
+            datos[campo] = None
+
+    if not datos.get('horario_json'):
+        datos['horario_json'] = None
 
     # Limpiar campos vacíos
     for campo in ['grado', 'diagnostico', 'telefono_emergencia', 'horario', 'materias',

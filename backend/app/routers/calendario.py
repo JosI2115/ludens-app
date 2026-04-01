@@ -115,7 +115,7 @@ def get_calendario_semana(
 
     query = db.query(Alumno).filter(
         Alumno.activo == True,
-        Alumno.situacion.in_(['activo', 'inscripcion', 'becado', 'pendiente', 'prospecto'])
+        Alumno.situacion.in_(['activo', 'inscripcion', 'becado', 'pendiente'])
     )
     if current_user.rol in ["maestra", "encargada", "recepcionista"]:
         query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)

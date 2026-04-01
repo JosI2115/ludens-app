@@ -271,6 +271,7 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
     nombre: alumno?.nombre || urlParams.get('nombre') || '',
     apellido: alumno?.apellido || urlParams.get('apellido') || '',
     edad: alumno?.edad || '',
+    fecha_nacimiento: alumno?.fecha_nacimiento || '',
     grado: alumno?.grado || urlParams.get('grado') || '',
     diagnostico: alumno?.diagnostico || '',
     nombre_tutor: alumno?.nombre_tutor || urlParams.get('tutor') || '',
@@ -402,6 +403,7 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
       if (!data.edad) delete data.edad
       if (!data.dia_pago) delete data.dia_pago
       if (!data.horas_semana) delete data.horas_semana
+      if (!data.fecha_nacimiento) delete data.fecha_nacimiento
       if (!data.fecha_diagnostico) delete data.fecha_diagnostico
       if (!data.fecha_ingreso) delete data.fecha_ingreso
       if (!data.sucursal_id) delete data.sucursal_id
@@ -494,6 +496,9 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
               <input name="apellido" value={form.apellido} onChange={handleChange} required
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de nacimiento</label>
               <input name="fecha_nacimiento" type="date" value={form.fecha_nacimiento} onChange={(e) => {
@@ -532,12 +537,6 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
                 <option>Secundaria 3</option>
               </select>
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Diagnóstico</label>
-            <textarea name="diagnostico" value={form.diagnostico} onChange={handleChange} rows={2}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -585,26 +584,6 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
                 ))}
               </select>
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Maestra de Lectura</label>
-              <select name="maestra_lectura_id" value={form.maestra_lectura_id || ''} onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
-                <option value="">Sin asignar</option>
-                {maestras.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-              </select>
-            </div>
-            {(form.plan_pago === '1200' || form.plan_pago === '1500' || parseInt(form.plan_pago) >= 1200) && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Maestra de Matemáticas</label>
-              <select name="maestra_matematicas_id" value={form.maestra_matematicas_id || ''} onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
-                <option value="">Sin asignar</option>
-                {maestras.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-              </select>
-            </div>
-            )}
           </div>
 
           <div className="grid grid-cols-3 gap-4">
@@ -689,6 +668,27 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Maestra 1</label>
+              <select name="maestra_lectura_id" value={form.maestra_lectura_id || ''} onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                <option value="">Sin asignar</option>
+                {maestras.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+              </select>
+            </div>
+            {(form.plan_pago === '1200' || form.plan_pago === '1500' || parseInt(form.plan_pago) >= 1200) && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Maestra 2</label>
+              <select name="maestra_matematicas_id" value={form.maestra_matematicas_id || ''} onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                <option value="">Sin asignar</option>
+                {maestras.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+              </select>
+            </div>
+            )}
+          </div>
+
           <EditorHorario
             franjas={form.horario_json || []}
             onChange={(nuevas) => setForm(f => ({ ...f, horario_json: nuevas }))}
@@ -698,6 +698,11 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
             planPago={form.plan_pago}
           />
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Diagnóstico</label>
+            <textarea name="diagnostico" value={form.diagnostico} onChange={handleChange} rows={2}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>

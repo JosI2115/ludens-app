@@ -112,8 +112,9 @@ def get_maestras_sucursal(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    return db.query(Usuario).filter(
-        Usuario.sucursal_id == sucursal_id,
-        Usuario.rol.in_(["maestra", "encargada"]),
+    maestras = db.query(Usuario).filter(
+        Usuario.rol.in_(['maestra', 'encargada']),
         Usuario.activo == True
-    ).order_by(Usuario.nombre).all()
+    ).all()
+
+    return maestras

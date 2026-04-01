@@ -123,18 +123,25 @@ export default function Calendario() {
   }
 
   const semanaAnterior = () => {
-    const base = fechaInicio ? new Date(fechaInicio + 'T12:00:00') : new Date()
-    base.setDate(base.getDate() - 7)
-    setFechaInicio(base.toISOString().split('T')[0])
+    const base = fechaInicio ? new Date(fechaInicio + 'T00:00:00') : new Date()
+    const lunes = new Date(base)
+    lunes.setDate(lunes.getDate() - lunes.getDay() + (lunes.getDay() === 0 ? -6 : 1) - 7)
+    setFechaInicio(lunes.toISOString().split('T')[0])
   }
 
   const semanaSiguiente = () => {
-    const base = fechaInicio ? new Date(fechaInicio + 'T12:00:00') : new Date()
-    base.setDate(base.getDate() + 7)
-    setFechaInicio(base.toISOString().split('T')[0])
+    const base = fechaInicio ? new Date(fechaInicio + 'T00:00:00') : new Date()
+    const lunes = new Date(base)
+    lunes.setDate(lunes.getDate() - lunes.getDay() + (lunes.getDay() === 0 ? -6 : 1) + 7)
+    setFechaInicio(lunes.toISOString().split('T')[0])
   }
 
-  const semanaActual = () => setFechaInicio('')
+  const semanaActual = () => {
+    const hoy = new Date()
+    const lunes = new Date(hoy)
+    lunes.setDate(hoy.getDate() - hoy.getDay() + (hoy.getDay() === 0 ? -6 : 1))
+    setFechaInicio(lunes.toISOString().split('T')[0])
+  }
 
   if (loading) return <div className="p-6 text-gray-400 text-center py-12">Cargando calendario...</div>
   if (!datos) return null

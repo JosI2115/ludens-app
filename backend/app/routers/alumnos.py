@@ -64,7 +64,10 @@ class AlumnoUpdate(BaseModel):
     tiene_descuento_hermano: Optional[bool] = None
     fecha_ingreso: Optional[date] = None
     horario: Optional[str] = None
+    horario_json: Optional[str] = None
     motivo_baja: Optional[str] = None
+    maestra_lectura_id: Optional[str] = None
+    maestra_matematicas_id: Optional[str] = None
     numero_hermano: Optional[int] = None
     programa_lectura: Optional[str] = None
     programa_matematicas: Optional[str] = None
@@ -149,10 +152,19 @@ def get_alumnos(
     
     from sqlalchemy.orm import joinedload
     alumnos = query.options(joinedload(Alumno.maestra)).order_by(Alumno.nombre).all()
-    return [{
-        **{c.name: getattr(a, c.name) for c in a.__table__.columns},
-        "maestra_nombre": a.maestra.nombre if a.maestra else None
-    } for a in alumnos]
+    result = []
+    for a in alumnos:
+        maestra_lec = db.query(Usuario).filter(Usuario.id == a.maestra_lectura_id).first() if a.maestra_lectura_id else None
+        maestra_mat = db.query(Usuario).filter(Usuario.id == a.maestra_matematicas_id).first() if a.maestra_matematicas_id else None
+        result.append({
+            **{c.name: getattr(a, c.name) for c in a.__table__.columns},
+            "maestra_nombre": a.maestra.nombre if a.maestra else None,
+            "maestra_lectura_id": str(a.maestra_lectura_id) if a.maestra_lectura_id else None,
+            "maestra_lectura_nombre": maestra_lec.nombre if maestra_lec else None,
+            "maestra_matematicas_id": str(a.maestra_matematicas_id) if a.maestra_matematicas_id else None,
+            "maestra_matematicas_nombre": maestra_mat.nombre if maestra_mat else None,
+        })
+    return result
 
 @router.get("/{alumno_id}")
 def get_alumno(
@@ -221,10 +233,13 @@ def actualizar_alumno(
     alumno = db.query(Alumno).filter(Alumno.id == alumno_id).first()
     if not alumno:
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
-    
+
     cambios = data.dict(exclude_unset=True)
     for campo in ['programa_lectura', 'programa_matematicas', 'grado', 'diagnostico',
                   'horario', 'domicilio', 'escuela_procedencia', 'condicion_medica', 'objetivos']:
+        if campo in cambios and cambios[campo] == '':
+            cambios[campo] = None
+    for campo in ['maestra_id', 'maestra_lectura_id', 'maestra_matematicas_id']:
         if campo in cambios and cambios[campo] == '':
             cambios[campo] = None
 
@@ -380,6 +395,9 @@ def get_perfil_alumno(
     if not alumno:
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
 
+    maestra_lec = db.query(Usuario).filter(Usuario.id == alumno.maestra_lectura_id).first() if alumno.maestra_lectura_id else None
+    maestra_mat = db.query(Usuario).filter(Usuario.id == alumno.maestra_matematicas_id).first() if alumno.maestra_matematicas_id else None
+
     pagos = db.query(Pago).filter(
         Pago.alumno_id == alumno.id
     ).order_by(Pago.anio.desc(), Pago.mes.desc()).all()
@@ -421,6 +439,10 @@ def get_perfil_alumno(
             "escuela_procedencia": alumno.escuela_procedencia,
             "permiso_fotos": alumno.permiso_fotos,
             "maestra_nombre": alumno.maestra.nombre if alumno.maestra else None,
+            "maestra_lectura_id": str(alumno.maestra_lectura_id) if alumno.maestra_lectura_id else None,
+            "maestra_lectura_nombre": maestra_lec.nombre if maestra_lec else None,
+            "maestra_matematicas_id": str(alumno.maestra_matematicas_id) if alumno.maestra_matematicas_id else None,
+            "maestra_matematicas_nombre": maestra_mat.nombre if maestra_mat else None,
             "programa_lectura": alumno.programa_lectura,
             "programa_matematicas": alumno.programa_matematicas,
             "objetivos": alumno.objetivos,

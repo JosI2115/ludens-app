@@ -347,7 +347,12 @@ export default function Expedientes() {
                   <div><p className="text-gray-500">Grado escolar</p><p className="font-medium">{perfil.alumno.grado || '—'}</p></div>
                   <div><p className="text-gray-500">Materias</p><p className="font-medium">{perfil.alumno.materias || '—'}</p></div>
                   <div><p className="text-gray-500">Horario</p><p className="font-medium">{perfil.alumno.horario || '—'}</p></div>
-                  <div><p className="text-gray-500">Maestra asignada</p><p className="font-medium">{perfil.alumno.maestra_nombre || '—'}</p></div>
+                  <div>
+                    <p className="text-gray-500">Maestras</p>
+                    {perfil.alumno.maestra_lectura_nombre && <p className="font-medium">L: {perfil.alumno.maestra_lectura_nombre}</p>}
+                    {perfil.alumno.maestra_matematicas_nombre && <p className="font-medium">M: {perfil.alumno.maestra_matematicas_nombre}</p>}
+                    {!perfil.alumno.maestra_lectura_nombre && !perfil.alumno.maestra_matematicas_nombre && <p className="font-medium">—</p>}
+                  </div>
                   <div><p className="text-gray-500">Nombre del tutor</p><p className="font-medium">{perfil.alumno.nombre_tutor}</p></div>
                   <div><p className="text-gray-500">Tel. emergencia</p><p className="font-medium">{perfil.alumno.telefono_emergencia || '—'}</p></div>
                   <div><p className="text-gray-500">Permiso fotos</p><p className="font-medium">{perfil.alumno.permiso_fotos ? '✓ Autorizado' : '✗ No autorizado'}</p></div>

@@ -48,6 +48,43 @@ def parsear_horario(horario: str):
 
     return resultado
 
+def parsear_horario_json(horario_json_str, alumno):
+    import json
+    if not horario_json_str:
+        return []
+    try:
+        franjas = json.loads(horario_json_str)
+    except:
+        return []
+
+    DIAS_MAP_JSON = {
+        'Lunes': 0, 'Martes': 1, 'Miércoles': 2, 'Miercoles': 2,
+        'Jueves': 3, 'Viernes': 4, 'Sábado': 5, 'Sabado': 5
+    }
+
+    resultado = []
+    for franja in franjas:
+        dia_nombre = franja.get('dia', '')
+        dia_num = DIAS_MAP_JSON.get(dia_nombre)
+        if dia_num is None:
+            continue
+        hora_inicio = franja.get('hora_inicio', '')
+        hora_fin = franja.get('hora_fin', '')
+        materia = franja.get('materia', 'lectura')
+        maestra_id = franja.get('maestra_id') or (
+            str(alumno.maestra_lectura_id) if materia == 'lectura' and alumno.maestra_lectura_id
+            else str(alumno.maestra_matematicas_id) if materia == 'matematicas' and alumno.maestra_matematicas_id
+            else str(alumno.maestra_id) if alumno.maestra_id else None
+        )
+        resultado.append({
+            'dia': dia_num,
+            'hora_inicio': hora_inicio,
+            'hora_fin': hora_fin,
+            'materia': materia,
+            'maestra_id': maestra_id
+        })
+    return resultado
+
 def es_nuevo_ingreso(alumno, fecha_dia):
     if not alumno.fecha_ingreso:
         return False
@@ -101,7 +138,10 @@ def get_calendario_semana(
         calendario[hora] = {i: [] for i in range(6)}
 
     for alumno in alumnos:
-        franjas = parsear_horario(alumno.horario)
+        if alumno.horario_json:
+            franjas = parsear_horario_json(alumno.horario_json, alumno)
+        else:
+            franjas = parsear_horario(alumno.horario)
 
         for franja in franjas:
             dia = franja['dia']
@@ -141,7 +181,7 @@ def get_calendario_semana(
                 "nombre": f"{alumno.nombre} {alumno.apellido}",
                 "hora_fin": franja['hora_fin'],
                 "estado": estado,
-                "maestra_id": str(alumno.maestra_id) if alumno.maestra_id else None,
+                "maestra_id": franja.get('maestra_id') or (str(alumno.maestra_id) if alumno.maestra_id else None),
             })
 
     for recup in recuperaciones:
@@ -276,14 +316,13 @@ def get_calendario_maestras(
         calendario[hora] = {i: [] for i in range(6)}
 
     for alumno in alumnos:
-        if not alumno.maestra_id:
-            continue
+        if alumno.horario_json:
+            franjas = parsear_horario_json(alumno.horario_json, alumno)
+        else:
+            franjas = parsear_horario(alumno.horario)
 
-        maestra = maestras_map.get(str(alumno.maestra_id))
-        if not maestra:
+        if not franjas:
             continue
-
-        franjas = parsear_horario(alumno.horario)
 
         for franja in franjas:
             dia = franja['dia']
@@ -302,10 +341,15 @@ def get_calendario_maestras(
             if hora_key is None:
                 continue
 
+            maestra_id_franja = franja.get('maestra_id') or (str(alumno.maestra_id) if alumno.maestra_id else None)
+            maestra = maestras_map.get(maestra_id_franja) if maestra_id_franja else None
+            if not maestra:
+                continue
+
             calendario[hora_key][dia].append({
                 "alumno_id": str(alumno.id),
                 "nombre": f"{alumno.nombre} {alumno.apellido}",
-                "maestra_id": str(alumno.maestra_id),
+                "maestra_id": maestra_id_franja,
                 "maestra_nombre": maestra.nombre,
                 "color": maestra.color or "#9B59B6",
                 "hora_fin": franja['hora_fin'],

@@ -20,4 +20,4 @@ class Usuario(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     sucursal = relationship("Sucursal", back_populates="usuarios")
-    alumnos = relationship("Alumno", back_populates="maestra")
+    alumnos = relationship("Alumno", foreign_keys="[Alumno.maestra_id]", back_populates="maestra")

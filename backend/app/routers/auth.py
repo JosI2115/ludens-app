@@ -754,6 +754,11 @@ def migrate_informes(
         "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS es_encargada_general BOOLEAN DEFAULT FALSE",
         "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS color VARCHAR(20)",
         "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS fecha_reactivacion DATE",
+        "ALTER TABLE avisos ADD COLUMN IF NOT EXISTS autor_id UUID",
+        "ALTER TABLE avisos ADD COLUMN IF NOT EXISTS autor_sucursal_id UUID",
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS maestra_lectura_id UUID REFERENCES usuarios(id)",
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS maestra_matematicas_id UUID REFERENCES usuarios(id)",
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS horario_json TEXT",
     ]
     resultados = []
     with db.bind.connect() as conn:

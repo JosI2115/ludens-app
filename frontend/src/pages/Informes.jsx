@@ -70,10 +70,16 @@ export default function Informes() {
       const params = {}
       if (filtroSucursal) params.sucursal_id = filtroSucursal
       if (filtroSituacion) params.situacion = filtroSituacion
+      let usrPromise
+      if (usuario.rol === 'directora' || usuario.es_encargada_general) {
+        usrPromise = usuariosService.getAll()
+      } else {
+        usrPromise = api.get(`/usuarios/sucursal/${usuario.sucursal_id}/maestras`)
+      }
       const [infRes, sucRes, usrRes] = await Promise.all([
         api.get('/informes/', { params }),
         sucursalesService.getAll(),
-        usuariosService.getAll(),
+        usrPromise,
       ])
       setInformes(infRes.data)
       setSucursales(sucRes.data)
@@ -357,12 +363,13 @@ export default function Informes() {
 
 function ModalInforme({ informe, sucursales, usuarios, onClose, onSuccess }) {
   const navigate = useNavigate()
+  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
   const [form, setForm] = useState({
     nombre_contacto: informe?.nombre_contacto || '',
     medio: informe?.medio || '',
     situacion: informe?.situacion || 'informes',
     fecha_solicitud: informe?.fecha_solicitud || new Date().toISOString().split('T')[0],
-    sucursal_id: informe?.sucursal_id || '',
+    sucursal_id: informe?.sucursal_id || usuario.sucursal_id || '',
     comision_usuario1_id: informe?.comision_usuario1_id || '',
     comision_usuario2_id: informe?.comision_usuario2_id || '',
     nombre_nino: informe?.nombre_nino || '',

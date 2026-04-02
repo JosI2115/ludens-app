@@ -89,7 +89,9 @@ def get_informes(
     current_user: Usuario = Depends(get_current_user)
 ):
     query = db.query(Informe)
-    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
+    if current_user.rol in ["encargada", "recepcionista"] and not current_user.es_encargada_general:
+        query = query.filter(Informe.sucursal_id == current_user.sucursal_id)
+    elif current_user.rol == "maestra":
         query = query.filter(Informe.sucursal_id == current_user.sucursal_id)
     elif sucursal_id:
         query = query.filter(Informe.sucursal_id == sucursal_id)
@@ -115,9 +117,11 @@ def crear_informe(
         comision_usuario1_id=data.comision_usuario1_id,
         comision_usuario2_id=data.comision_usuario2_id,
         nombre_nino=data.nombre_nino,
+        apellido_nino=data.apellido_nino,
         edad_nino=data.edad_nino,
         grado_nino=data.grado_nino,
         comentarios=data.comentarios,
+        contacto_dato=data.contacto_dato,
         fecha_diagnostico=datetime.strptime(data.fecha_diagnostico, '%Y-%m-%d').date() if data.fecha_diagnostico else None,
         hora_diagnostico=data.hora_diagnostico,
         ultimo_contacto=fecha,

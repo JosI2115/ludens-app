@@ -17,14 +17,12 @@ const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto'
 export default function Expedientes() {
   const navigate = useNavigate()
   const [alumnos, setAlumnos] = useState([])
-  const [bajas, setBajas] = useState([])
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
   const [filtroMaestra, setFiltroMaestra] = useState('')
   const [maestras, setMaestras] = useState([])
   const [sucursales, setSucursales] = useState([])
   const [filtroSucursal, setFiltroSucursal] = useState('')
-  const [tab, setTab] = useState('activos')
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null)
   const [perfil, setPerfil] = useState(null)
   const [loadingPerfil, setLoadingPerfil] = useState(false)
@@ -64,12 +62,8 @@ export default function Expedientes() {
     try {
       const params = {}
       if (filtroSucursal) params.sucursal_id = filtroSucursal
-      const [activosRes, bajasRes] = await Promise.all([
-        alumnosService.getAll({ situacion: 'activo', ...params }),
-        alumnosService.getAll({ situacion: 'baja', ...params }),
-      ])
-      setAlumnos(activosRes.data)
-      setBajas(bajasRes.data)
+      const res = await alumnosService.getAll({ situacion: 'activo', ...params })
+      setAlumnos(res.data)
     } catch (err) {
       console.error('Error cargando alumnos')
     } finally {
@@ -242,8 +236,7 @@ export default function Expedientes() {
     ventana.onafterprint = () => ventana.close()
   }
 
-  const lista = tab === 'activos' ? alumnos : bajas
-  const filtrados = lista.filter(a =>
+  const filtrados = alumnos.filter(a =>
     `${a.nombre} ${a.apellido}`.toLowerCase().includes(busqueda.toLowerCase()) &&
     (filtroMaestra === '' || a.maestra_id === filtroMaestra)
   )
@@ -283,14 +276,9 @@ export default function Expedientes() {
             ))}
           </select>
           <div className="flex gap-1">
-            <button onClick={() => setTab('activos')}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition ${tab === 'activos' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+            <div className="flex-1 py-1.5 rounded-lg text-xs font-medium text-center bg-purple-600 text-white">
               Activos ({alumnos.length})
-            </button>
-            <button onClick={() => setTab('bajas')}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition ${tab === 'bajas' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
-              Bajas ({bajas.length})
-            </button>
+            </div>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-2">

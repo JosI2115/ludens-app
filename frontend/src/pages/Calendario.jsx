@@ -330,6 +330,7 @@ export default function Calendario() {
           onConfirmar={confirmarAsistencia}
           onRecuperacion={(data) => { setModalRecup(data); setModalAlumno(null) }}
           navigate={navigate}
+          cargarCalendario={cargarCalendario}
         />
       )}
 
@@ -404,7 +405,11 @@ export default function Calendario() {
                     <td className="px-4 py-3 font-mono text-blue-600 text-xs">{a.programa_lectura || '—'}</td>
                     <td className="px-4 py-3 font-mono text-red-600 text-xs">{a.programa_matematicas || '—'}</td>
                     <td className="px-4 py-3 text-gray-500">{a.fecha_ingreso}</td>
-                    <td className="px-4 py-3 text-gray-500">{a.maestra_nombre || '—'}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {a.maestra_nombre && <p>{a.maestra_nombre}</p>}
+                      {a.maestra_matematicas_nombre && <p>{a.maestra_matematicas_nombre}</p>}
+                      {!a.maestra_nombre && !a.maestra_matematicas_nombre && '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -416,7 +421,7 @@ export default function Calendario() {
   )
 }
 
-function ModalAlumno({ alumno, horas, semana, onClose, onConfirmar, onRecuperacion, navigate }) {
+function ModalAlumno({ alumno, horas, semana, onClose, onConfirmar, onRecuperacion, navigate, cargarCalendario }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
@@ -452,6 +457,16 @@ function ModalAlumno({ alumno, horas, semana, onClose, onConfirmar, onRecuperaci
               Ver perfil
             </button>
           </div>
+          {alumno.recuperacion_id && (
+            <button onClick={async () => {
+              if (!window.confirm('¿Eliminar esta clase de recuperación?')) return
+              await api.delete(`/calendario/recuperacion/${alumno.recuperacion_id}`)
+              cargarCalendario()
+              onClose()
+            }} className="w-full bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-lg text-sm font-medium mt-2">
+              🗑️ Eliminar recuperación
+            </button>
+          )}
         </div>
       </div>
     </div>

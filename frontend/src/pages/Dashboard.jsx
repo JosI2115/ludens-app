@@ -181,7 +181,7 @@ export default function Dashboard() {
               )}
             </div>
 
-            {usuario.rol !== 'maestra' && stats.por_sucursal && stats.por_sucursal.length > 0 && (
+            {(usuario.rol === 'directora' || usuario.es_encargada_general || usuario.rol === 'contadora') && stats.por_sucursal && stats.por_sucursal.length > 0 && (
               <div className="bg-white rounded-xl shadow p-5 mb-8">
                 <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4">Alumnos por sucursal</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -369,11 +369,6 @@ export default function Dashboard() {
               >
                 <div className="text-3xl mb-2">💰</div>
                 <p className="font-medium text-gray-800 text-sm">Pagos</p>
-                {(stats.total_activos || 0) > 0 && (
-                  <span className="text-xs text-red-500 font-medium">
-                    {stats.total_activos || 0} sin pagar
-                  </span>
-                )}
               </button>
             )}
             <button

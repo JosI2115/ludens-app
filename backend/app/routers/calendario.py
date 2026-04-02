@@ -422,6 +422,13 @@ def get_nuevos_alumnos(
                 return m.nombre
         return None
 
+    def get_maestra_matematicas_nombre(a):
+        if a.maestra_matematicas_id:
+            m = db.query(UsuarioModel).filter(UsuarioModel.id == a.maestra_matematicas_id).first()
+            if m:
+                return m.nombre
+        return None
+
     return [{
         "nombre": f"{a.nombre} {a.apellido}",
         "alumno_id": str(a.id),
@@ -429,7 +436,8 @@ def get_nuevos_alumnos(
         "programa_lectura": a.programa_lectura,
         "programa_matematicas": a.programa_matematicas,
         "fecha_ingreso": str(a.fecha_ingreso),
-        "maestra_nombre": get_maestra_nombre(a)
+        "maestra_nombre": get_maestra_nombre(a),
+        "maestra_matematicas_nombre": get_maestra_matematicas_nombre(a)
     } for a in alumnos]
 
 @router.get("/prospectos")

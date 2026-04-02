@@ -200,16 +200,31 @@ def dashboard_pendientes(
         })
 
     # Actividades por imprimir
-    bitacoras_imprimir_q = db.query(Bitacora).join(
+    bitacoras_imprimir = db.query(Bitacora).join(
         Alumno, Bitacora.alumno_id == Alumno.id
     ).filter(
         Bitacora.estado == 'Imprimir'
     )
-    if current_user.rol not in ['directora'] and not current_user.es_encargada_general:
-        bitacoras_imprimir_q = bitacoras_imprimir_q.filter(
+    if current_user.rol == 'maestra':
+        bitacoras_imprimir = bitacoras_imprimir.filter(
+            Alumno.maestra_id == current_user.id
+        ).union(
+            db.query(Bitacora).join(Alumno, Bitacora.alumno_id == Alumno.id).filter(
+                Bitacora.estado == 'Imprimir',
+                Alumno.maestra_lectura_id == current_user.id
+            )
+        ).union(
+            db.query(Bitacora).join(Alumno, Bitacora.alumno_id == Alumno.id).filter(
+                Bitacora.estado == 'Imprimir',
+                Alumno.maestra_matematicas_id == current_user.id
+            )
+        )
+    elif current_user.rol not in ['directora'] and not current_user.es_encargada_general:
+        bitacoras_imprimir = bitacoras_imprimir.filter(
             Alumno.sucursal_id == current_user.sucursal_id
         )
-    bitacoras_imprimir = bitacoras_imprimir_q.all()
+
+    bitacoras_imprimir = bitacoras_imprimir.all()
 
     alumnos_imprimir = {}
     for b in bitacoras_imprimir:

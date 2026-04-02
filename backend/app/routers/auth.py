@@ -785,3 +785,37 @@ def migrate_informes(
             except Exception as e:
                 resultados.append(f"ERROR: {str(e)[:60]}")
     return {"resultados": resultados}
+
+@router.post("/admin/fix-columnas")
+def fix_columnas(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    if current_user.rol != "directora":
+        raise HTTPException(status_code=403, detail="Solo directora")
+
+    from sqlalchemy import text
+    columnas = [
+        "ALTER TABLE informes ADD COLUMN IF NOT EXISTS apellido_nino VARCHAR(150)",
+        "ALTER TABLE informes ADD COLUMN IF NOT EXISTS contacto_dato VARCHAR(200)",
+        "ALTER TABLE informes ADD COLUMN IF NOT EXISTS fecha_inscripcion DATE",
+        "ALTER TABLE avisos ADD COLUMN IF NOT EXISTS autor_id UUID",
+        "ALTER TABLE avisos ADD COLUMN IF NOT EXISTS autor_sucursal_id UUID",
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS maestra_lectura_id UUID",
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS maestra_matematicas_id UUID",
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS horario_json TEXT",
+        "ALTER TABLE reportes_mensuales ADD COLUMN IF NOT EXISTS fecha_entrega DATE",
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS fecha_reactivacion DATE",
+        "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS color VARCHAR(20)",
+        "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS es_encargada_general BOOLEAN DEFAULT FALSE",
+    ]
+    resultados = []
+    with db.bind.connect() as conn:
+        for sql in columnas:
+            try:
+                conn.execute(text(sql))
+                conn.commit()
+                resultados.append(f"OK")
+            except Exception as e:
+                resultados.append(f"SKIP: {str(e)[:40]}")
+    return {"ok": len([r for r in resultados if r == "OK"]), "total": len(columnas)}

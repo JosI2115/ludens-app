@@ -9,6 +9,8 @@ class Aviso(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     mensaje = Column(Text, nullable=False)
     autor = Column(String(100))
+    autor_id = Column(UUID(as_uuid=True), nullable=True)
+    autor_sucursal_id = Column(UUID(as_uuid=True), nullable=True)
     activo = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

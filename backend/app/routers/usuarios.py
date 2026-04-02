@@ -112,9 +112,14 @@ def get_maestras_sucursal(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
+    from sqlalchemy import or_
     maestras = db.query(Usuario).filter(
         Usuario.rol.in_(['maestra', 'encargada']),
-        Usuario.activo == True
+        Usuario.activo == True,
+        or_(
+            Usuario.sucursal_id == sucursal_id,
+            Usuario.sucursal_id == None
+        )
     ).all()
 
     return maestras

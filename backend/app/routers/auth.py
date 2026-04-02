@@ -200,9 +200,16 @@ def dashboard_pendientes(
         })
 
     # Actividades por imprimir
-    bitacoras_imprimir = db.query(Bitacora).filter(
-        Bitacora.estado == "Imprimir"
-    ).all()
+    bitacoras_imprimir_q = db.query(Bitacora).join(
+        Alumno, Bitacora.alumno_id == Alumno.id
+    ).filter(
+        Bitacora.estado == 'Imprimir'
+    )
+    if current_user.rol not in ['directora'] and not current_user.es_encargada_general:
+        bitacoras_imprimir_q = bitacoras_imprimir_q.filter(
+            Alumno.sucursal_id == current_user.sucursal_id
+        )
+    bitacoras_imprimir = bitacoras_imprimir_q.all()
 
     alumnos_imprimir = {}
     for b in bitacoras_imprimir:
@@ -579,9 +586,19 @@ def get_avisos(
     current_user: Usuario = Depends(get_current_user)
 ):
     from app.models.aviso import Aviso
-    avisos = db.query(Aviso).filter(
-        Aviso.activo == True
-    ).order_by(Aviso.created_at.desc()).limit(5).all()
+    from sqlalchemy import or_
+    if current_user.rol not in ["directora"] and not current_user.es_encargada_general:
+        avisos = db.query(Aviso).filter(
+            Aviso.activo == True,
+            or_(
+                Aviso.autor_sucursal_id == current_user.sucursal_id,
+                Aviso.autor_sucursal_id == None
+            )
+        ).order_by(Aviso.created_at.desc()).limit(5).all()
+    else:
+        avisos = db.query(Aviso).filter(
+            Aviso.activo == True
+        ).order_by(Aviso.created_at.desc()).limit(5).all()
     return [{
         "id": str(a.id),
         "mensaje": a.mensaje,
@@ -601,6 +618,8 @@ def crear_aviso(
     aviso = Aviso(
         mensaje=data.get("mensaje"),
         autor=current_user.nombre,
+        autor_id=current_user.id,
+        autor_sucursal_id=current_user.sucursal_id,
         activo=True
     )
     db.add(aviso)
@@ -701,6 +720,8 @@ def migrate_db(
         "ALTER TABLE informes ADD COLUMN IF NOT EXISTS contacto_dato VARCHAR(200)",
         "ALTER TABLE informes ADD COLUMN IF NOT EXISTS fecha_inscripcion DATE",
         "ALTER TABLE reportes_mensuales ADD COLUMN IF NOT EXISTS fecha_entrega DATE",
+        "ALTER TABLE avisos ADD COLUMN IF NOT EXISTS autor_id UUID",
+        "ALTER TABLE avisos ADD COLUMN IF NOT EXISTS autor_sucursal_id UUID",
     ]
 
     resultados = []

@@ -283,6 +283,7 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
     maestra_matematicas_id: alumno?.maestra_matematicas_id || '',
     situacion: alumno?.situacion || 'prospecto',
     plan_pago: alumno?.plan_pago || '',
+    monto_personalizado: '',
     materias: alumno?.materias || '',
     horas_semana: alumno?.horas_semana || '',
     dia_pago: alumno?.dia_pago || '',
@@ -408,6 +409,10 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
       if (!data.fecha_ingreso) delete data.fecha_ingreso
       if (!data.sucursal_id) delete data.sucursal_id
       if (!data.maestra_id) delete data.maestra_id
+      if (data.plan_pago === 'personalizado' && data.monto_personalizado) {
+        data.plan_pago = data.monto_personalizado.toString()
+      }
+      delete data.monto_personalizado
       if (!data.plan_pago) delete data.plan_pago
       if (!data.materias) delete data.materias
       if (!data.grado) delete data.grado
@@ -420,19 +425,21 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
         const fin = parseInt(franja.hora_fin.split(':')[0])
         return total + (fin - inicio)
       }, 0)
-      const horasPermitidasPlan = parseInt(form.plan_pago) >= 1500 ? 4 : 2
-      if (horasTotalesHorario > horasPermitidasPlan) {
-        setError(`El horario tiene ${horasTotalesHorario} horas pero el plan solo permite ${horasPermitidasPlan} horas`)
-        return
-      }
+      if (form.plan_pago !== 'personalizado') {
+        const horasPermitidasPlan = parseInt(form.plan_pago) >= 1500 ? 4 : 2
+        if (horasTotalesHorario > horasPermitidasPlan) {
+          setError(`El horario tiene ${horasTotalesHorario} horas pero el plan solo permite ${horasPermitidasPlan} horas`)
+          return
+        }
 
-      // Validar que no haya dos franjas el mismo día y hora
-      const franjas = form.horario_json || []
-      const combinaciones = franjas.map(f => `${f.dia}_${f.hora_inicio}`)
-      const duplicados = combinaciones.filter((c, i) => combinaciones.indexOf(c) !== i)
-      if (duplicados.length > 0) {
-        setError('No puede haber dos clases el mismo día a la misma hora')
-        return
+        // Validar que no haya dos franjas el mismo día y hora
+        const franjas = form.horario_json || []
+        const combinaciones = franjas.map(f => `${f.dia}_${f.hora_inicio}`)
+        const duplicados = combinaciones.filter((c, i) => combinaciones.indexOf(c) !== i)
+        if (duplicados.length > 0) {
+          setError('No puede haber dos clases el mismo día a la misma hora')
+          return
+        }
       }
 
       if (!data.maestra_lectura_id) data.maestra_lectura_id = null
@@ -618,7 +625,22 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
                 <option value="900">$900 — 2hrs/sem · 1 materia</option>
                 <option value="1200">$1,200 — 2hrs/sem · 2 materias</option>
                 <option value="1500">$1,500 — 4hrs/sem · 2 materias</option>
+                <option value="personalizado">Personalizado</option>
               </select>
+            )}
+            {form.plan_pago === 'personalizado' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Monto personalizado</label>
+                <input
+                  name="monto_personalizado"
+                  type="number"
+                  value={form.monto_personalizado || ''}
+                  onChange={handleChange}
+                  placeholder="Ej: 450, 750, 630..."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                />
+                <p className="text-xs text-gray-400 mt-1">Este monto se usará como plan de pago mensual</p>
+              </div>
             )}
           </div>
             <div>
@@ -677,7 +699,7 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
                 {maestras.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
               </select>
             </div>
-            {(form.plan_pago === '1200' || form.plan_pago === '1500' || parseInt(form.plan_pago) >= 1200) && (
+            {(form.plan_pago === '1200' || form.plan_pago === '1500' || parseInt(form.plan_pago) >= 1200 || (form.plan_pago === 'personalizado' && form.materias && form.materias.includes('y'))) && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Maestra 2</label>
               <select name="maestra_matematicas_id" value={form.maestra_matematicas_id || ''} onChange={handleChange}
@@ -696,6 +718,7 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
             maestraMatematicasId={form.maestra_matematicas_id}
             maestras={maestras}
             planPago={form.plan_pago}
+            horasSemana={parseInt(form.horas_semana) || 2}
           />
 
           <div>
@@ -886,10 +909,10 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
   )
 }
 
-function EditorHorario({ franjas, onChange, maestraLecturaId, maestraMatematicasId, maestras, planPago }) {
+function EditorHorario({ franjas, onChange, maestraLecturaId, maestraMatematicasId, maestras, planPago, horasSemana }) {
   const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
   const HORAS = ['9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00']
-  const tiene2Materias = parseInt(planPago) >= 1200
+  const tiene2Materias = parseInt(planPago) >= 1200 || planPago === 'personalizado'
 
   const calcularHorasTotales = () => {
     return franjas.reduce((total, franja) => {
@@ -899,7 +922,7 @@ function EditorHorario({ franjas, onChange, maestraLecturaId, maestraMatematicas
     }, 0)
   }
 
-  const horasPermitidas = parseInt(planPago) >= 1500 ? 4 : 2
+  const horasPermitidas = planPago === 'personalizado' ? (horasSemana || 4) : (parseInt(planPago) >= 1500 ? 4 : 2)
   const horasTotales = calcularHorasTotales()
   const horasOk = horasTotales === horasPermitidas
   const horasExcedidas = horasTotales > horasPermitidas
@@ -971,7 +994,7 @@ function EditorHorario({ franjas, onChange, maestraLecturaId, maestraMatematicas
           </div>
         ))}
       </div>
-      {franjas.length > 0 && (
+      {franjas.length > 0 && planPago !== 'personalizado' && (
         <div className={`mt-2 text-xs px-3 py-2 rounded-lg flex items-center gap-2 ${
           horasExcedidas ? 'bg-red-50 text-red-700 border border-red-200' :
           horasOk ? 'bg-green-50 text-green-700 border border-green-200' :
@@ -986,7 +1009,7 @@ function EditorHorario({ franjas, onChange, maestraLecturaId, maestraMatematicas
           </span>
         </div>
       )}
-      {hayDuplicados() && (
+      {hayDuplicados() && planPago !== 'personalizado' && (
         <div className="mt-1 text-xs px-3 py-2 rounded-lg bg-red-50 text-red-700 border border-red-200">
           ⚠️ Hay dos clases programadas el mismo día y hora — esto no está permitido
         </div>

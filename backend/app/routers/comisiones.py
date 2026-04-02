@@ -51,16 +51,21 @@ def calcular_comisiones(
     for suc in sucursales:
         metas = get_metas(suc.nombre)
 
-        # Inscritos del mes (pagaron inscripcion o ya inscritos)
-        from sqlalchemy import or_
-        inscritos_mes = db.query(Informe).filter(
-            Informe.sucursal_id == suc.id,
-            Informe.situacion.in_(['pago_inscripcion', 'inscrito']),
-            or_(
-                Informe.fecha_inscripcion.between(primer_dia, ultimo_dia),
-                Informe.fecha_solicitud.between(primer_dia, ultimo_dia)
-            )
+        # Alumnos inscritos (activos) en ese mes según su fecha de ingreso
+        alumnos_inscritos = db.query(Alumno).filter(
+            Alumno.sucursal_id == suc.id,
+            Alumno.activo == True,
+            Alumno.situacion.in_(['activo', 'becado']),
+            Alumno.fecha_ingreso.between(primer_dia, ultimo_dia)
         ).all()
+
+        alumnos_inscritos_ids = [str(a.id) for a in alumnos_inscritos]
+
+        inscritos_mes = db.query(Informe).filter(
+            Informe.alumno_id.in_(alumnos_inscritos_ids)
+        ).all() if alumnos_inscritos_ids else []
+
+        num_inscritos = len(alumnos_inscritos)
 
         # Bajas del mes
         bajas_mes = db.query(Alumno).filter(
@@ -68,8 +73,6 @@ def calcular_comisiones(
             Alumno.situacion == 'baja',
             Alumno.fecha_baja.between(primer_dia, ultimo_dia)
         ).count()
-
-        num_inscritos = len(inscritos_mes)
 
         # Condición de bajas < 50% de inscritos para tabulador
         aplica_tabulador = bajas_mes < (num_inscritos * 0.5) if num_inscritos > 0 else False

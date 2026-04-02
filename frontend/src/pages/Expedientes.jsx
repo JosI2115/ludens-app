@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { alumnosService, usuariosService, reportesService, maestrasService } from '../services/api'
+import { alumnosService, usuariosService, reportesService, maestrasService, sucursalesService } from '../services/api'
 
 const SITUACION_COLORES = {
   prospecto:   'bg-gray-100 text-gray-600',
@@ -22,6 +22,8 @@ export default function Expedientes() {
   const [busqueda, setBusqueda] = useState('')
   const [filtroMaestra, setFiltroMaestra] = useState('')
   const [maestras, setMaestras] = useState([])
+  const [sucursales, setSucursales] = useState([])
+  const [filtroSucursal, setFiltroSucursal] = useState('')
   const [tab, setTab] = useState('activos')
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null)
   const [perfil, setPerfil] = useState(null)
@@ -32,10 +34,15 @@ export default function Expedientes() {
   const [mesReporte, setMesReporte] = useState(new Date().getMonth() + 1)
   const [anioReporte, setAnioReporte] = useState(new Date().getFullYear())
 
+  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
+
   useEffect(() => {
     cargarAlumnos()
     cargarMaestras()
-  }, [])
+    if (usuario.rol === 'directora' || usuario.rol === 'contadora') {
+      sucursalesService.getAll().then(r => setSucursales(r.data)).catch(() => {})
+    }
+  }, [filtroSucursal])
 
   const cargarMaestras = async () => {
     try {
@@ -55,9 +62,11 @@ export default function Expedientes() {
 
   const cargarAlumnos = async () => {
     try {
+      const params = {}
+      if (filtroSucursal) params.sucursal_id = filtroSucursal
       const [activosRes, bajasRes] = await Promise.all([
-        alumnosService.getAll({ situacion: 'activo' }),
-        alumnosService.getAll({ situacion: 'baja' }),
+        alumnosService.getAll({ situacion: 'activo', ...params }),
+        alumnosService.getAll({ situacion: 'baja', ...params }),
       ])
       setAlumnos(activosRes.data)
       setBajas(bajasRes.data)
@@ -251,6 +260,18 @@ export default function Expedientes() {
             onChange={e => setBusqueda(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 mb-3"
           />
+          {(usuario.rol === 'directora' || usuario.rol === 'contadora') && (
+            <select
+              value={filtroSucursal}
+              onChange={e => setFiltroSucursal(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 mb-3"
+            >
+              <option value="">Todas las sucursales</option>
+              {sucursales.map(s => (
+                <option key={s.id} value={s.id}>{s.nombre}</option>
+              ))}
+            </select>
+          )}
           <select
             value={filtroMaestra}
             onChange={e => setFiltroMaestra(e.target.value)}

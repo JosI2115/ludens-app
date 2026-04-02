@@ -129,8 +129,10 @@ def get_calendario_semana(
     ).all()
     conf_map = {(str(c.alumno_id), str(c.fecha)): c.confirmo for c in confirmaciones}
 
+    alumnos_ids = [str(a.id) for a in alumnos]
     recuperaciones = db.query(ClaseRecuperacion).filter(
-        ClaseRecuperacion.fecha_recuperacion.in_(fechas_semana)
+        ClaseRecuperacion.fecha_recuperacion.in_(fechas_semana),
+        ClaseRecuperacion.alumno_id.in_(alumnos_ids)
     ).all()
 
     calendario = {}
@@ -293,10 +295,23 @@ def get_calendario_maestras(
 
     fechas_semana = [inicio_semana + timedelta(days=i) for i in range(6)]
 
-    maestras = db.query(UsuarioModel).filter(
-        UsuarioModel.rol.in_(['maestra', 'encargada']),
-        UsuarioModel.activo == True
-    ).all()
+    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
+        maestras = db.query(UsuarioModel).filter(
+            UsuarioModel.rol.in_(['maestra', 'encargada']),
+            UsuarioModel.activo == True,
+            UsuarioModel.sucursal_id == current_user.sucursal_id
+        ).all()
+    elif sucursal_id:
+        maestras = db.query(UsuarioModel).filter(
+            UsuarioModel.rol.in_(['maestra', 'encargada']),
+            UsuarioModel.activo == True,
+            UsuarioModel.sucursal_id == sucursal_id
+        ).all()
+    else:
+        maestras = db.query(UsuarioModel).filter(
+            UsuarioModel.rol.in_(['maestra', 'encargada']),
+            UsuarioModel.activo == True
+        ).all()
 
     query = db.query(Alumno).filter(
         Alumno.activo == True,
@@ -396,6 +411,17 @@ def get_nuevos_alumnos(
 
     from app.models.usuario import Usuario as UsuarioModel
 
+    def get_maestra_nombre(a):
+        if a.maestra_lectura_id:
+            m = db.query(UsuarioModel).filter(UsuarioModel.id == a.maestra_lectura_id).first()
+            if m:
+                return m.nombre
+        if a.maestra_id:
+            m = db.query(UsuarioModel).filter(UsuarioModel.id == a.maestra_id).first()
+            if m:
+                return m.nombre
+        return None
+
     return [{
         "nombre": f"{a.nombre} {a.apellido}",
         "alumno_id": str(a.id),
@@ -403,7 +429,7 @@ def get_nuevos_alumnos(
         "programa_lectura": a.programa_lectura,
         "programa_matematicas": a.programa_matematicas,
         "fecha_ingreso": str(a.fecha_ingreso),
-        "maestra_nombre": db.query(UsuarioModel).filter(UsuarioModel.id == a.maestra_id).first().nombre if a.maestra_id else None
+        "maestra_nombre": get_maestra_nombre(a)
     } for a in alumnos]
 
 @router.get("/prospectos")

@@ -200,31 +200,25 @@ def dashboard_pendientes(
         })
 
     # Actividades por imprimir
-    bitacoras_imprimir = db.query(Bitacora).join(
+    from sqlalchemy import or_
+    bitacoras_query = db.query(Bitacora).join(
         Alumno, Bitacora.alumno_id == Alumno.id
-    ).filter(
-        Bitacora.estado == 'Imprimir'
-    )
+    ).filter(Bitacora.estado == 'Imprimir')
+
     if current_user.rol == 'maestra':
-        bitacoras_imprimir = bitacoras_imprimir.filter(
-            Alumno.maestra_id == current_user.id
-        ).union(
-            db.query(Bitacora).join(Alumno, Bitacora.alumno_id == Alumno.id).filter(
-                Bitacora.estado == 'Imprimir',
-                Alumno.maestra_lectura_id == current_user.id
-            )
-        ).union(
-            db.query(Bitacora).join(Alumno, Bitacora.alumno_id == Alumno.id).filter(
-                Bitacora.estado == 'Imprimir',
+        bitacoras_query = bitacoras_query.filter(
+            or_(
+                Alumno.maestra_id == current_user.id,
+                Alumno.maestra_lectura_id == current_user.id,
                 Alumno.maestra_matematicas_id == current_user.id
             )
         )
     elif current_user.rol not in ['directora'] and not current_user.es_encargada_general:
-        bitacoras_imprimir = bitacoras_imprimir.filter(
+        bitacoras_query = bitacoras_query.filter(
             Alumno.sucursal_id == current_user.sucursal_id
         )
 
-    bitacoras_imprimir = bitacoras_imprimir.all()
+    bitacoras_imprimir = bitacoras_query.all()
 
     alumnos_imprimir = {}
     for b in bitacoras_imprimir:
@@ -316,8 +310,16 @@ def dashboard_pendientes(
         Informe.situacion.in_(['informes', 'seguimiento_1', 'seguimiento_2']),
         Informe.ultimo_contacto <= ayer
     )
-    if current_user.rol in ["encargada", "recepcionista"] and not current_user.es_encargada_general:
-        query_inf = query_inf.filter(Informe.sucursal_id == current_user.sucursal_id)
+    if current_user.rol == 'maestra':
+        query_inf = query_inf.filter(Informe.registrado_por == current_user.id)
+    elif current_user.rol in ["encargada", "recepcionista"] and not current_user.es_encargada_general:
+        from sqlalchemy import or_ as or_inf
+        query_inf = query_inf.filter(
+            or_inf(
+                Informe.sucursal_id == current_user.sucursal_id,
+                Informe.registrado_por == current_user.id
+            )
+        )
 
     informes_pendientes = query_inf.all()
 
@@ -602,17 +604,16 @@ def get_avisos(
 ):
     from app.models.aviso import Aviso
     from sqlalchemy import or_
-    if current_user.rol not in ["directora"] and not current_user.es_encargada_general:
+    if current_user.rol == 'directora' or current_user.es_encargada_general:
+        avisos = db.query(Aviso).filter(Aviso.activo == True).order_by(Aviso.created_at.desc()).limit(5).all()
+    else:
+        directoras_ids = [str(u.id) for u in db.query(Usuario).filter(Usuario.rol == 'directora').all()]
         avisos = db.query(Aviso).filter(
             Aviso.activo == True,
             or_(
                 Aviso.autor_sucursal_id == current_user.sucursal_id,
-                Aviso.autor_sucursal_id == None
+                Aviso.autor_id.in_(directoras_ids)
             )
-        ).order_by(Aviso.created_at.desc()).limit(5).all()
-    else:
-        avisos = db.query(Aviso).filter(
-            Aviso.activo == True
         ).order_by(Aviso.created_at.desc()).limit(5).all()
     return [{
         "id": str(a.id),

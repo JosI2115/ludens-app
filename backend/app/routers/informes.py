@@ -89,9 +89,15 @@ def get_informes(
     current_user: Usuario = Depends(get_current_user)
 ):
     query = db.query(Informe)
-    if current_user.rol in ["encargada", "recepcionista"] and not current_user.es_encargada_general:
-        query = query.filter(Informe.sucursal_id == current_user.sucursal_id)
-    elif current_user.rol == "maestra":
+    if current_user.rol == 'encargada' and not current_user.es_encargada_general:
+        from sqlalchemy import or_
+        query = query.filter(
+            or_(
+                Informe.sucursal_id == current_user.sucursal_id,
+                Informe.registrado_por == current_user.id
+            )
+        )
+    elif current_user.rol in ["recepcionista", "maestra"]:
         query = query.filter(Informe.sucursal_id == current_user.sucursal_id)
     elif sucursal_id:
         query = query.filter(Informe.sucursal_id == sucursal_id)

@@ -273,18 +273,41 @@ def get_pendientes_impresion(
     current_user: Usuario = Depends(get_current_user)
 ):
     from app.models.alumno import Alumno
+    from sqlalchemy import or_
 
-    query = db.query(Bitacora).filter(
-        Bitacora.estado == "Imprimir"
-    ).all()
+    if current_user.rol == 'maestra':
+        try:
+            alumnos_ids = db.query(Alumno.id).filter(
+                or_(
+                    Alumno.maestra_id == current_user.id,
+                    Alumno.maestra_lectura_id == current_user.id,
+                    Alumno.maestra_matematicas_id == current_user.id
+                )
+            ).all()
+        except:
+            alumnos_ids = db.query(Alumno.id).filter(
+                Alumno.maestra_id == current_user.id
+            ).all()
+        alumnos_ids = [a.id for a in alumnos_ids]
+        bitacoras = db.query(Bitacora).filter(
+            Bitacora.estado == 'Imprimir',
+            Bitacora.alumno_id.in_(alumnos_ids)
+        ).all()
+    elif current_user.rol not in ['directora'] and not current_user.es_encargada_general:
+        alumnos_ids = [a.id for a in db.query(Alumno.id).filter(
+            Alumno.sucursal_id == current_user.sucursal_id
+        ).all()]
+        bitacoras = db.query(Bitacora).filter(
+            Bitacora.estado == 'Imprimir',
+            Bitacora.alumno_id.in_(alumnos_ids)
+        ).all()
+    else:
+        bitacoras = db.query(Bitacora).filter(Bitacora.estado == 'Imprimir').all()
 
     resultado = {}
-    for reg in query:
+    for reg in bitacoras:
         alumno = db.query(Alumno).filter(Alumno.id == reg.alumno_id).first()
         if not alumno:
-            continue
-
-        if current_user.rol in ["maestra", "encargada"] and alumno.sucursal_id != current_user.sucursal_id:
             continue
 
         maestra_nombre = reg.registrado_por_nombre or "Sin asignar"

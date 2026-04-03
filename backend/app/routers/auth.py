@@ -201,24 +201,34 @@ def dashboard_pendientes(
 
     # Actividades por imprimir
     from sqlalchemy import or_
-    bitacoras_query = db.query(Bitacora).join(
-        Alumno, Bitacora.alumno_id == Alumno.id
-    ).filter(Bitacora.estado == 'Imprimir')
-
     if current_user.rol == 'maestra':
-        bitacoras_query = bitacoras_query.filter(
-            or_(
-                Alumno.maestra_id == current_user.id,
-                Alumno.maestra_lectura_id == current_user.id,
-                Alumno.maestra_matematicas_id == current_user.id
-            )
-        )
+        try:
+            alumnos_impr_ids = db.query(Alumno.id).filter(
+                or_(
+                    Alumno.maestra_id == current_user.id,
+                    Alumno.maestra_lectura_id == current_user.id,
+                    Alumno.maestra_matematicas_id == current_user.id
+                )
+            ).all()
+        except:
+            alumnos_impr_ids = db.query(Alumno.id).filter(
+                Alumno.maestra_id == current_user.id
+            ).all()
+        alumnos_impr_ids = [a.id for a in alumnos_impr_ids]
+        bitacoras_imprimir = db.query(Bitacora).filter(
+            Bitacora.estado == 'Imprimir',
+            Bitacora.alumno_id.in_(alumnos_impr_ids)
+        ).all()
     elif current_user.rol not in ['directora'] and not current_user.es_encargada_general:
-        bitacoras_query = bitacoras_query.filter(
+        alumnos_impr_ids = [a.id for a in db.query(Alumno.id).filter(
             Alumno.sucursal_id == current_user.sucursal_id
-        )
-
-    bitacoras_imprimir = bitacoras_query.all()
+        ).all()]
+        bitacoras_imprimir = db.query(Bitacora).filter(
+            Bitacora.estado == 'Imprimir',
+            Bitacora.alumno_id.in_(alumnos_impr_ids)
+        ).all()
+    else:
+        bitacoras_imprimir = db.query(Bitacora).filter(Bitacora.estado == 'Imprimir').all()
 
     alumnos_imprimir = {}
     for b in bitacoras_imprimir:

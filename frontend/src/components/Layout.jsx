@@ -33,9 +33,13 @@ export default function Layout({ children }) {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <aside className="w-56 bg-white border-r border-gray-200 flex flex-col fixed h-full z-10">
-        <div className="p-5 border-b border-gray-100">
-          <h1 className="text-xl font-bold text-purple-600">LUDENS</h1>
-          <p className="text-gray-400 text-xs mt-0.5">Clases de Regularización</p>
+        <div className="border-b border-gray-100 flex flex-col items-center py-2">
+          <img
+            src="https://res.cloudinary.com/dymwq2vwg/image/upload/v1775242873/LUDENS_glhzny.jpg"
+            alt="LUDENS"
+            className="h-50 w-auto object-contain"
+          />
+          <p className="text-xs text-purple-300 mt-1">Sistema Administrativo</p>
         </div>
 
         <nav className="flex-1 p-3 space-y-1">

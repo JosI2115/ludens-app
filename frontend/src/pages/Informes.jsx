@@ -44,6 +44,14 @@ export default function Informes() {
 
   const cargarHistorico = async () => {
     try {
+      const hoy = new Date()
+      if (hoy.getDay() === 1) {
+        try {
+          await api.post('/informes/resumen/auto-snapshot')
+        } catch (e) {
+          // Si falla no interrumpir
+        }
+      }
       const res = await api.get('/informes/resumen/historico', { params: { mes: mesResumen, anio: anioResumen } })
       setHistoricoSemanas(res.data.semanas || [])
     } catch (err) {
@@ -364,6 +372,20 @@ export default function Informes() {
 function ModalInforme({ informe, sucursales, usuarios, onClose, onSuccess }) {
   const navigate = useNavigate()
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
+
+  const getLunesDomingo = () => {
+    const hoy = new Date()
+    const dia = hoy.getDay()
+    const lunes = new Date(hoy)
+    lunes.setDate(hoy.getDate() - (dia === 0 ? 6 : dia - 1))
+    const domingo = new Date(lunes)
+    domingo.setDate(lunes.getDate() + 6)
+    return {
+      min: lunes.toISOString().split('T')[0],
+      max: domingo.toISOString().split('T')[0]
+    }
+  }
+  const { min: fechaMin, max: fechaMax } = getLunesDomingo()
   const [form, setForm] = useState({
     nombre_contacto: informe?.nombre_contacto || '',
     medio: informe?.medio || '',
@@ -472,6 +494,8 @@ function ModalInforme({ informe, sucursales, usuarios, onClose, onSuccess }) {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Fecha solicitud</label>
               <input name="fecha_solicitud" type="date" value={form.fecha_solicitud} onChange={handleChange}
+                min={fechaMin}
+                max={fechaMax}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
             </div>
             <div>

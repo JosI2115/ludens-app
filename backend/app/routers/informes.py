@@ -112,6 +112,8 @@ def crear_informe(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
+    if current_user.rol == 'contadora':
+        raise HTTPException(status_code=403, detail="Sin permisos")
     from datetime import datetime
     fecha = datetime.strptime(data.fecha_solicitud, '%Y-%m-%d').date() if data.fecha_solicitud else date.today()
     inf = Informe(
@@ -157,6 +159,7 @@ def actualizar_informe(
         setattr(inf, campo, valor)
 
     # Si agenda diagnóstico, agregar al calendario
+    print(f"DEBUG prospecto: situacion={inf.situacion}, fecha={inf.fecha_diagnostico}, hora={inf.hora_diagnostico}, nombre={inf.nombre_nino}, sucursal={inf.sucursal_id}")
     if inf.situacion == 'agendo_diagnostico' and inf.fecha_diagnostico and inf.hora_diagnostico and inf.nombre_nino:
         from app.models.prospecto_calendario import ProspectoCalendario
         prospecto_existe = db.query(ProspectoCalendario).filter(

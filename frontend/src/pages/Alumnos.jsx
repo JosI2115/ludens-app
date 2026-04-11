@@ -83,7 +83,11 @@ export default function Alumnos() {
     const coincideBusqueda = filtroPor === 'nombre'
       ? `${a.nombre} ${a.apellido}`.toLowerCase().includes(termino)
       : filtroPor === 'maestra'
-      ? (a.maestra_nombre || '').toLowerCase().includes(termino)
+      ? (
+          (a.maestra_nombre || '').toLowerCase().includes(termino) ||
+          (a.maestra_lectura_nombre || '').toLowerCase().includes(termino) ||
+          (a.maestra_matematicas_nombre || '').toLowerCase().includes(termino)
+        )
       : filtroPor === 'grado'
       ? (a.grado || '').toLowerCase().includes(termino)
       : true

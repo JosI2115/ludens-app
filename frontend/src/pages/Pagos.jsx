@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { pagosService } from '../services/api'
+import { pagosService, sucursalesService } from '../services/api'
 
 const COLORES = {
   verde:    { bg: 'bg-green-100',  text: 'text-green-700',  label: 'Pagado' },
@@ -17,6 +17,7 @@ const MESES = [
 
 export default function Pagos() {
   const hoy = new Date()
+  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
   const [mes, setMes] = useState(hoy.getMonth() + 1)
   const [anio, setAnio] = useState(hoy.getFullYear())
   const [pagos, setPagos] = useState([])
@@ -27,11 +28,22 @@ export default function Pagos() {
   const [tablero, setTablero] = useState({ por_vencer: [], con_recargo: [], bloqueados: [] })
   const [vistaTablero, setVistaTablero] = useState(false)
   const [filtroSituacionPago, setFiltroSituacionPago] = useState('')
+  const [ultimoPago, setUltimoPago] = useState(null)
+  const [sucursales, setSucursales] = useState([])
+  const [filtroSucursal, setFiltroSucursal] = useState('')
+
+  const puedeVerSucursales = usuario.rol === 'directora' || usuario.rol === 'contadora'
+
+  useEffect(() => {
+    if (puedeVerSucursales) {
+      sucursalesService.getAll().then(res => setSucursales(res.data)).catch(() => {})
+    }
+  }, [])
 
   useEffect(() => {
     cargarDatos()
     cargarTablero()
-  }, [mes, anio])
+  }, [mes, anio, filtroSucursal])
 
   const cargarTablero = async () => {
     try {
@@ -46,7 +58,7 @@ export default function Pagos() {
     try {
       setLoading(true)
       const [pagosRes, resumenRes] = await Promise.all([
-        pagosService.getAll({ mes, anio }),
+        pagosService.getAll({ mes, anio, sucursal_id: filtroSucursal || undefined }),
         pagosService.resumen({ mes, anio }),
       ])
       setPagos(pagosRes.data)
@@ -76,6 +88,15 @@ export default function Pagos() {
           >
             {vistaTablero ? '← Vista normal' : '📊 Tablero de pagos'}
           </button>
+          {puedeVerSucursales && (
+            <select value={filtroSucursal} onChange={e => setFiltroSucursal(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+              <option value="">Todas las sucursales</option>
+              {sucursales.map(s => (
+                <option key={s.id} value={s.id}>{s.nombre}</option>
+              ))}
+            </select>
+          )}
           <select value={mes} onChange={e => setMes(Number(e.target.value))}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
             {MESES.map((m, i) => (
@@ -316,18 +337,21 @@ export default function Pagos() {
           anio={anio}
           onClose={() => setModalPago(null)}
           onSuccess={() => { setModalPago(null); cargarDatos() }}
+          onPagoRegistrado={setUltimoPago}
         />
       )}
+      {ultimoPago && <TicketPago pago={ultimoPago} onClose={() => setUltimoPago(null)} />}
     </div>
   )
 }
 
-function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess }) {
+function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess, onPagoRegistrado }) {
   const [comentarios, setComentarios] = useState('')
   const [fechaRecepcion, setFechaRecepcion] = useState('')
   const [montoPersonalizado, setMontoPersonalizado] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const usuarioLocal = JSON.parse(localStorage.getItem('usuario') || '{}')
 
   const conPenalizacion = alumno.dias_retraso > 5
   const monto = Number(alumno.plan_pago) || 0
@@ -347,6 +371,17 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess }) {
         comentarios,
         fecha_recepcion: fechaRecepcion || null,
         monto_recibido: montoPersonalizado ? parseFloat(montoPersonalizado) : undefined,
+      })
+      onPagoRegistrado && onPagoRegistrado({
+        nombre: alumno.nombre,
+        monto: montoPersonalizado || alumno.plan_pago,
+        mes,
+        anio,
+        fecha_recepcion: fechaRecepcion,
+        registrado_por: usuarioLocal.nombre,
+        comentarios,
+        con_penalizacion: conPenalizacion,
+        monto_penalizacion: conPenalizacion ? 50 : 0,
       })
       onSuccess()
     } catch (err) {
@@ -442,6 +477,84 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess }) {
               {loading ? 'Guardando...' : 'Confirmar pago'}
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TicketPago({ pago, onClose }) {
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+
+  const imprimirTicket = () => {
+    const ventana = window.open('', '_blank', 'width=300,height=500')
+    ventana.document.write(`
+      <html>
+      <head>
+        <title>Ticket de Pago</title>
+        <style>
+          body { font-family: monospace; font-size: 12px; width: 280px; margin: 0; padding: 10px; }
+          .center { text-align: center; }
+          .bold { font-weight: bold; }
+          .line { border-top: 1px dashed #000; margin: 8px 0; }
+          .row { display: flex; justify-content: space-between; margin: 3px 0; }
+          h2 { margin: 5px 0; font-size: 16px; }
+          h3 { margin: 3px 0; font-size: 13px; }
+        </style>
+      </head>
+      <body>
+        <div class="center">
+          <h2>LUDENS</h2>
+          <h3>Centro Educativo</h3>
+          <p>RECIBO DE PAGO</p>
+        </div>
+        <div class="line"></div>
+        <div class="row"><span>Alumno:</span><span class="bold">${pago.nombre}</span></div>
+        <div class="row"><span>Mes:</span><span>${MESES[(pago.mes||1)-1]} ${pago.anio}</span></div>
+        <div class="row"><span>Fecha recepción:</span><span>${pago.fecha_recepcion || '—'}</span></div>
+        <div class="line"></div>
+        <div class="row"><span>Monto:</span><span class="bold">$${pago.monto}</span></div>
+        ${pago.con_penalizacion ? `<div class="row"><span>Penalización:</span><span>$${pago.monto_penalizacion}</span></div>` : ''}
+        ${pago.con_penalizacion ? `<div class="row"><span>Total:</span><span class="bold">$${parseFloat(pago.monto) + parseFloat(pago.monto_penalizacion || 0)}</span></div>` : ''}
+        ${pago.comentarios ? `<div class="row"><span>Comentarios:</span><span>${pago.comentarios}</span></div>` : ''}
+        <div class="line"></div>
+        <div class="row"><span>Atendió:</span><span>${pago.registrado_por}</span></div>
+        <div class="center" style="margin-top:10px">
+          <p>¡Gracias por su pago!</p>
+        </div>
+      </body>
+      </html>
+    `)
+    ventana.document.close()
+    ventana.focus()
+    ventana.print()
+    ventana.close()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+        <div className="p-5 border-b flex justify-between items-center">
+          <h3 className="font-bold text-gray-800">🧾 Pago registrado</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+        </div>
+        <div className="p-5 space-y-2 text-sm">
+          <p><span className="text-gray-500">Alumno:</span> <span className="font-medium">{pago.nombre}</span></p>
+          <p><span className="text-gray-500">Monto:</span> <span className="font-bold text-green-600">${pago.monto}</span></p>
+          {pago.con_penalizacion && <p><span className="text-gray-500">Penalización:</span> ${pago.monto_penalizacion}</p>}
+          <p><span className="text-gray-500">Fecha recepción:</span> {pago.fecha_recepcion}</p>
+          <p><span className="text-gray-500">Atendió:</span> {pago.registrado_por}</p>
+          {pago.comentarios && <p><span className="text-gray-500">Comentarios:</span> {pago.comentarios}</p>}
+        </div>
+        <div className="p-5 pt-0 flex gap-3">
+          <button onClick={onClose}
+            className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg text-sm">
+            Cerrar
+          </button>
+          <button onClick={imprimirTicket}
+            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg text-sm font-medium">
+            🖨️ Imprimir ticket
+          </button>
         </div>
       </div>
     </div>

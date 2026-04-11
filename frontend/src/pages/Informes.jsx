@@ -78,24 +78,31 @@ export default function Informes() {
       const params = {}
       if (filtroSucursal) params.sucursal_id = filtroSucursal
       if (filtroSituacion) params.situacion = filtroSituacion
-      let usrPromise
-      if (usuario.rol === 'directora' || usuario.es_encargada_general) {
-        usrPromise = usuariosService.getAll()
-      } else {
-        usrPromise = api.get(`/usuarios/sucursal/${usuario.sucursal_id}/maestras`)
-      }
-      const [infRes, sucRes, usrRes] = await Promise.all([
-        api.get('/informes/', { params }),
-        sucursalesService.getAll(),
-        usrPromise,
-      ])
+      const infRes = await api.get('/informes/', { params })
       setInformes(infRes.data)
-      setSucursales(sucRes.data)
-      setUsuarios(usrRes.data)
     } catch (err) {
       console.error('Error cargando informes')
     } finally {
       setLoading(false)
+    }
+
+    try {
+      const sucRes = await sucursalesService.getAll()
+      setSucursales(sucRes.data)
+    } catch (err) {
+      console.error('Error cargando sucursales')
+    }
+
+    try {
+      let usrRes
+      if (usuario.rol === 'directora' || usuario.es_encargada_general) {
+        usrRes = await usuariosService.getAll()
+      } else {
+        usrRes = await api.get('/usuarios/lista-basica')
+      }
+      if (usrRes) setUsuarios(usrRes.data)
+    } catch (err) {
+      console.error('Error cargando usuarios')
     }
   }
 
@@ -139,10 +146,12 @@ export default function Informes() {
               ❌ No contesta
             </button>
           </div>
-          <button onClick={() => setModalNuevo(true)}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
-            + Nuevo informe
-          </button>
+          {usuario.rol !== 'contadora' && (
+            <button onClick={() => setModalNuevo(true)}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+              + Nuevo informe
+            </button>
+          )}
         </div>
       </div>
 
@@ -211,11 +220,13 @@ export default function Informes() {
                           {!inf.comision_usuario1_nombre && '—'}
                         </td>
                         <td className="px-4 py-3">
-                          <button onClick={() => setModalEditar(inf)}
-                            className="text-purple-600 hover:text-purple-800 text-xs font-medium mr-2">
-                            Editar
-                          </button>
-                          {(usuario.rol === 'directora' || usuario.rol === 'encargada') && (
+                          {usuario.rol !== 'contadora' && (
+                            <button onClick={() => setModalEditar(inf)}
+                              className="text-purple-600 hover:text-purple-800 text-xs font-medium mr-2">
+                              Editar
+                            </button>
+                          )}
+                          {usuario.rol !== 'contadora' && (usuario.rol === 'directora' || usuario.rol === 'encargada') && (
                             <button onClick={() => eliminarInforme(inf.id)}
                               className="text-red-400 hover:text-red-600 text-xs font-medium">
                               Eliminar

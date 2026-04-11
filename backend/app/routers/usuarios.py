@@ -71,6 +71,16 @@ def eliminar_usuario(
     db.commit()
     return {"mensaje": "Usuario eliminado"}
 
+@router.get("/lista-basica")
+def get_usuarios_basica(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    usuarios = db.query(Usuario).filter(
+        Usuario.activo == True
+    ).order_by(Usuario.nombre).all()
+    return [{"id": str(u.id), "nombre": u.nombre, "rol": u.rol} for u in usuarios]
+
 @router.get("/")
 def get_usuarios(
     db: Session = Depends(get_db),

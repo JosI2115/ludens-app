@@ -371,13 +371,15 @@ export default function Dashboard() {
                 <p className="font-medium text-gray-800 text-sm">Pagos</p>
               </button>
             )}
-            <button
-              onClick={() => navigate('/asistencias')}
-              className="bg-white rounded-xl shadow p-5 text-center hover:shadow-md transition border border-transparent hover:border-purple-200"
-            >
-              <div className="text-3xl mb-2">📋</div>
-              <p className="font-medium text-gray-800 text-sm">Asistencias</p>
-            </button>
+            {usuario.rol !== 'contadora' && (
+              <button
+                onClick={() => navigate('/asistencias')}
+                className="bg-white rounded-xl shadow p-5 text-center hover:shadow-md transition border border-transparent hover:border-purple-200"
+              >
+                <div className="text-3xl mb-2">📋</div>
+                <p className="font-medium text-gray-800 text-sm">Asistencias</p>
+              </button>
+            )}
           </div>
         </>
       )}

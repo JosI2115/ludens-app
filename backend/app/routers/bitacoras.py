@@ -195,6 +195,8 @@ def get_vista_maestra(
             "programa_lectura": alumno.programa_lectura,
             "programa_matematicas": alumno.programa_matematicas,
             "maestra_id": str(alumno.maestra_id) if alumno.maestra_id else None,
+            "maestra_lectura_id": str(alumno.maestra_lectura_id) if alumno.maestra_lectura_id else None,
+            "maestra_matematicas_id": str(alumno.maestra_matematicas_id) if alumno.maestra_matematicas_id else None,
             "grado": alumno.grado,
         })
 

@@ -254,7 +254,7 @@ export default function Bitacoras() {
 
   const alumnosFiltrados = alumnos.filter(a =>
     a.nombre.toLowerCase().includes(busqueda.toLowerCase()) &&
-    (filtraMaestra === '' || a.maestra_id === filtraMaestra)
+    (filtraMaestra === '' || a.maestra_id === filtraMaestra || a.maestra_lectura_id === filtraMaestra || a.maestra_matematicas_id === filtraMaestra)
   )
 
   const sinPrograma = alumnosFiltrados.filter(a => !a.programa_lectura && !a.programa_matematicas)

@@ -203,7 +203,8 @@ export default function Expedientes() {
             <div class="field"><label>Nombre del tutor</label><p>${a.nombre_tutor}</p></div>
             <div class="field"><label>Teléfono</label><p>${a.telefono_tutor}</p></div>
             <div class="field"><label>Tel. emergencia</label><p>${a.telefono_emergencia || '—'}</p></div>
-            <div class="field"><label>Maestra asignada</label><p>${a.maestra_nombre || '—'}</p></div>
+            ${a.maestra_lectura_nombre || a.maestra_nombre ? `<div class="field"><label>Maestra 1</label><p>${a.maestra_lectura_nombre || a.maestra_nombre || '—'}</p></div>` : ''}
+            ${a.maestra_matematicas_nombre ? `<div class="field"><label>Maestra 2</label><p>${a.maestra_matematicas_nombre}</p></div>` : ''}
             <div class="field"><label>Permiso fotos</label><p>${a.permiso_fotos ? '✓ Autorizado' : '✗ No autorizado'}</p></div>
           </div>
         </div>

@@ -409,7 +409,11 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
       if (!data.fecha_ingreso) delete data.fecha_ingreso
       if (!data.sucursal_id) delete data.sucursal_id
       if (!data.maestra_id) delete data.maestra_id
-      if (data.plan_pago === 'personalizado' && data.monto_personalizado) {
+      if (data.plan_pago === 'personalizado') {
+        if (!data.monto_personalizado || isNaN(parseInt(data.monto_personalizado))) {
+          setError('Debes ingresar un monto personalizado válido')
+          return
+        }
         data.plan_pago = data.monto_personalizado.toString()
       }
       delete data.monto_personalizado
@@ -911,7 +915,7 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
 
 function EditorHorario({ franjas, onChange, maestraLecturaId, maestraMatematicasId, maestras, planPago, horasSemana }) {
   const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
-  const HORAS = ['9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00']
+  const HORAS = ['9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00']
   const tiene2Materias = parseInt(planPago) >= 1200 || planPago === 'personalizado'
 
   const calcularHorasTotales = () => {
@@ -944,7 +948,11 @@ function EditorHorario({ franjas, onChange, maestraLecturaId, maestraMatematicas
     const nuevas = [...franjas]
     nuevas[i] = { ...nuevas[i], [campo]: valor }
     if (campo === 'materia') {
-      nuevas[i].maestra_id = valor === 'lectura' ? (maestraLecturaId || '') : (maestraMatematicasId || '')
+      if (valor === 'lectura') {
+        nuevas[i].maestra_id = maestraLecturaId || maestraMatematicasId || ''
+      } else {
+        nuevas[i].maestra_id = maestraMatematicasId || maestraLecturaId || ''
+      }
     }
     onChange(nuevas)
   }

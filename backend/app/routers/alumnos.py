@@ -376,6 +376,7 @@ def eliminar_alumno_completo(
     db.execute(text("DELETE FROM confirmaciones_asistencia WHERE alumno_id = :id"), {"id": alumno_id})
     db.execute(text("DELETE FROM clases_recuperacion WHERE alumno_id = :id"), {"id": alumno_id})
     db.execute(text("DELETE FROM reportes_mensuales WHERE alumno_id = :id"), {"id": alumno_id})
+    db.execute(text("DELETE FROM informes WHERE alumno_id = :id"), {"id": alumno_id})
     db.query(Bitacora).filter(Bitacora.alumno_id == alumno_id).delete()
     db.query(HistorialCambio).filter(HistorialCambio.alumno_id == alumno_id).delete()
     db.query(Asistencia).filter(Asistencia.alumno_id == alumno_id).delete()

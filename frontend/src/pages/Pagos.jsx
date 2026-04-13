@@ -287,9 +287,26 @@ export default function Pagos() {
                     <td className="px-4 py-3 text-gray-500 text-sm">{p.comentarios || '—'}</td>
                     <td className="px-4 py-3">
                       {p.pagado ? (
-                        <span className="text-green-600 text-xs font-medium">
+                        <span className="text-green-600 text-xs font-medium flex items-center gap-1">
                           ✓ Pagado {p.fecha_pago ? `el ${p.fecha_pago}` : ''}
                           {p.con_penalizacion && ' + $50'}
+                          {p.pago_id && (
+                            <button
+                              onClick={() => setUltimoPago({
+                                nombre: p.nombre,
+                                monto: p.monto_pagado || p.plan_pago,
+                                mes,
+                                anio,
+                                fecha_recepcion: p.fecha_recepcion,
+                                registrado_por: usuario.nombre,
+                                comentarios: p.comentarios,
+                                con_penalizacion: p.con_penalizacion,
+                                monto_penalizacion: p.monto_penalizacion,
+                              })}
+                              className="text-purple-600 hover:text-purple-800 text-xs font-medium ml-1"
+                              title="Imprimir ticket"
+                            >🖨️</button>
+                          )}
                         </span>
                       ) : (
                         <button
@@ -349,6 +366,7 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess, onPagoRegis
   const [comentarios, setComentarios] = useState('')
   const [fechaRecepcion, setFechaRecepcion] = useState('')
   const [montoPersonalizado, setMontoPersonalizado] = useState('')
+  const [sinRecargo, setSinRecargo] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const usuarioLocal = JSON.parse(localStorage.getItem('usuario') || '{}')
@@ -371,6 +389,7 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess, onPagoRegis
         comentarios,
         fecha_recepcion: fechaRecepcion || null,
         monto_recibido: montoPersonalizado ? parseFloat(montoPersonalizado) : undefined,
+        sin_recargo: sinRecargo,
       })
       onPagoRegistrado && onPagoRegistrado({
         nombre: alumno.nombre,
@@ -380,8 +399,8 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess, onPagoRegis
         fecha_recepcion: fechaRecepcion,
         registrado_por: usuarioLocal.nombre,
         comentarios,
-        con_penalizacion: conPenalizacion,
-        monto_penalizacion: conPenalizacion ? 50 : 0,
+        con_penalizacion: sinRecargo ? false : conPenalizacion,
+        monto_penalizacion: sinRecargo ? 0 : (conPenalizacion ? 50 : 0),
       })
       onSuccess()
     } catch (err) {
@@ -464,6 +483,14 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess, onPagoRegis
             />
             <p className="text-xs text-gray-400 mt-1">Solo si el monto recibido es diferente al plan. No modifica el plan mensual.</p>
           </div>
+
+          {conPenalizacion && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={sinRecargo} onChange={e => setSinRecargo(e.target.checked)}
+                className="w-4 h-4 text-purple-600 rounded" />
+              <span className="text-sm text-gray-700">Sin recargo (exentar penalización)</span>
+            </label>
+          )}
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
 

@@ -285,6 +285,8 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
     maestra_id: alumno?.maestra_id || '',
     maestra_lectura_id: alumno?.maestra_lectura_id || '',
     maestra_matematicas_id: alumno?.maestra_matematicas_id || '',
+    materia_maestra1: alumno?.materia_maestra1 || 'lectura',
+    materia_maestra2: alumno?.materia_maestra2 || 'matematicas',
     situacion: alumno?.situacion || 'prospecto',
     plan_pago: alumno?.plan_pago || '',
     monto_personalizado: '',
@@ -299,6 +301,8 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
     fecha_ingreso: alumno?.fecha_ingreso || '',
     programa_lectura: alumno?.programa_lectura || '',
     programa_matematicas: alumno?.programa_matematicas || '',
+    programa_personalizado_lectura: alumno?.programa_personalizado_lectura || false,
+    programa_personalizado_matematicas: alumno?.programa_personalizado_matematicas || false,
     domicilio: alumno?.domicilio || '',
     escuela_procedencia: alumno?.escuela_procedencia || '',
     condicion_medica: alumno?.condicion_medica || '',
@@ -385,7 +389,50 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
+    if (name === 'sucursal_id') {
+      setForm(f => ({ ...f, sucursal_id: value, maestra_lectura_id: '', maestra_matematicas_id: '', plan_pago: '' }))
+      cargarMaestras(value)
+      return
+    }
+    if (name === 'plan_pago') {
+      const sucursal = sucursales.find(s => s.id === form.sucursal_id)
+      const esValleReal = sucursal && sucursal.nombre.toLowerCase().includes('valle')
+      let materias = form.materias
+      if (esValleReal) {
+        if (value === '1650' || value === '2300') {
+          materias = 'Lectura y Matematicas'
+        } else if (value === '1200') {
+          materias = ''
+        }
+      } else {
+        if (value === '1200' || value === '1500') {
+          materias = 'Lectura y Matematicas'
+        } else if (value === '900') {
+          materias = ''
+        }
+      }
+      setForm(f => ({ ...f, [name]: value, materias }))
+      return
+    }
     setForm(f => ({ ...f, [name]: type === 'checkbox' ? checked : value }))
+  }
+
+  const getPlanesPago = (sucursalId) => {
+    const sucursal = sucursales.find(s => s.id === sucursalId)
+    if (sucursal && sucursal.nombre.toLowerCase().includes('valle')) {
+      return [
+        { value: '1200', label: '$1,200 — 1 materia, 2 hrs/sem' },
+        { value: '1650', label: '$1,650 — 2 materias, 2 hrs/sem' },
+        { value: '2300', label: '$2,300 — 2 materias, 4 hrs/sem' },
+        { value: 'personalizado', label: 'Personalizado' },
+      ]
+    }
+    return [
+      { value: '900', label: '$900 — 1 materia, 2 hrs/sem' },
+      { value: '1200', label: '$1,200 — 2 materias, 2 hrs/sem' },
+      { value: '1500', label: '$1,500 — 2 materias, 4 hrs/sem' },
+      { value: 'personalizado', label: 'Personalizado' },
+    ]
   }
 
   const handleSubmit = async (e) => {
@@ -586,12 +633,8 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Sucursal *</label>
-              <select name="sucursal_id" value={form.sucursal_id} onChange={(e) => {
-                const val = e.target.value
-                setForm(f => ({ ...f, sucursal_id: val, maestra_id: '' }))
-                cargarMaestras(val)
-              }} required
-                disabled={usuario.rol !== 'directora' && usuario.rol !== 'contadora'}
+              <select name="sucursal_id" value={form.sucursal_id} onChange={handleChange} required
+                disabled={false}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 disabled:bg-gray-100">
                 <option value="">Seleccionar sucursal</option>
                 {sucursales.map(s => (
@@ -630,10 +673,9 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
               }}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
                 <option value="">Seleccionar plan</option>
-                <option value="900">$900 — 2hrs/sem · 1 materia</option>
-                <option value="1200">$1,200 — 2hrs/sem · 2 materias</option>
-                <option value="1500">$1,500 — 4hrs/sem · 2 materias</option>
-                <option value="personalizado">Personalizado</option>
+                {getPlanesPago(form.sucursal_id).map(plan => (
+                  <option key={plan.value} value={plan.value}>{plan.label}</option>
+                ))}
               </select>
             )}
             {form.plan_pago === 'personalizado' && (
@@ -653,16 +695,20 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
           </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Materias</label>
-              <select name="materias" value={form.materias} onChange={handleChange}
-                disabled={(form.plan_pago === '1200' || form.plan_pago === '1500') && form.situacion !== 'becado'}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 disabled:bg-gray-100">
-                <option value="">Seleccionar</option>
-                <option value="Lectura">Lectura</option>
-                <option value="Matematicas">Matemáticas</option>
-                {form.plan_pago !== '900' && (
-                  <option value="Lectura y Matematicas">Lectura y Matemáticas</option>
-                )}
-              </select>
+              {(() => {
+                const esValleReal = sucursales.find(s => s.id === form.sucursal_id)?.nombre?.toLowerCase().includes('valle')
+                const planDos = esValleReal ? ['1650','2300'].includes(form.plan_pago) : ['1200','1500'].includes(form.plan_pago)
+                const es1Materia = esValleReal ? form.plan_pago === '1200' : form.plan_pago === '900'
+                return (
+                  <select name="materias" value={form.materias} onChange={handleChange} disabled={planDos}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 disabled:bg-gray-100">
+                    <option value="">Seleccionar</option>
+                    <option value="Lectura">Lectura</option>
+                    <option value="Matematicas">Matemáticas</option>
+                    {!es1Materia && <option value="Lectura y Matematicas">Lectura y Matemáticas</option>}
+                  </select>
+                )
+              })()}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Día de pago</label>
@@ -708,14 +754,14 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
               </select>
             </div>
             {(form.plan_pago === '1200' || form.plan_pago === '1500' || parseInt(form.plan_pago) >= 1200 || (form.plan_pago === 'personalizado' && form.materias && form.materias.includes('y'))) && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Maestra 2</label>
-              <select name="maestra_matematicas_id" value={form.maestra_matematicas_id || ''} onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
-                <option value="">Sin asignar</option>
-                {maestras.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-              </select>
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Maestra 2</label>
+                <select name="maestra_matematicas_id" value={form.maestra_matematicas_id || ''} onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                  <option value="">Sin asignar</option>
+                  {maestras.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                </select>
+              </div>
             )}
           </div>
 
@@ -739,8 +785,9 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Programa de Lectura</label>
               <select name="programa_lectura" value={form.programa_lectura || ''} onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
-                <option value="">Sin programa</option>
+                disabled={form.programa_personalizado_lectura}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 disabled:bg-gray-100">
+                <option value="">{form.programa_personalizado_lectura ? 'Programa personalizado activado' : 'Sin programa'}</option>
                 <optgroup label="Preescolar">
                   <option value="LPREEA">LPREEA</option>
                   <option value="LPREEB">LPREEB</option>
@@ -778,12 +825,25 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
                   ⚠️ Cambiando de {alumno.programa_lectura} → {form.programa_lectura}. El anterior quedará en historial.
                 </p>
               )}
+              <div className="flex items-center gap-2 mt-1">
+                <input type="checkbox"
+                  checked={form.programa_personalizado_lectura || false}
+                  onChange={e => setForm(f => ({
+                    ...f,
+                    programa_personalizado_lectura: e.target.checked,
+                    programa_lectura: e.target.checked ? '' : f.programa_lectura
+                  }))}
+                  className="w-4 h-4 text-purple-600 rounded"
+                />
+                <label className="text-xs text-gray-500">Agregar programa personalizado de lectura</label>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Programa de Matemáticas</label>
               <select name="programa_matematicas" value={form.programa_matematicas || ''} onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
-                <option value="">Sin programa</option>
+                disabled={form.programa_personalizado_matematicas}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 disabled:bg-gray-100">
+                <option value="">{form.programa_personalizado_matematicas ? 'Programa personalizado activado' : 'Sin programa'}</option>
                 <optgroup label="Preescolar">
                   <option value="MATPREEA">MATPREEA</option>
                   <option value="MATPREEB">MATPREEB</option>
@@ -833,6 +893,18 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
                   ⚠️ Cambiando de {alumno.programa_matematicas} → {form.programa_matematicas}. El anterior quedará en historial.
                 </p>
               )}
+              <div className="flex items-center gap-2 mt-1">
+                <input type="checkbox"
+                  checked={form.programa_personalizado_matematicas || false}
+                  onChange={e => setForm(f => ({
+                    ...f,
+                    programa_personalizado_matematicas: e.target.checked,
+                    programa_matematicas: e.target.checked ? '' : f.programa_matematicas
+                  }))}
+                  className="w-4 h-4 text-purple-600 rounded"
+                />
+                <label className="text-xs text-gray-500">Agregar programa personalizado de matemáticas</label>
+              </div>
             </div>
           </div>
 

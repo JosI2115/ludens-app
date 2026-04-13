@@ -22,6 +22,8 @@ class Alumno(Base):
     maestra_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"))
     maestra_lectura_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True)
     maestra_matematicas_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True)
+    materia_maestra1 = Column(String(50), nullable=True)
+    materia_maestra2 = Column(String(50), nullable=True)
     situacion = Column(String(30), default="prospecto")
     plan_pago = Column(String(10))
     materias = Column(String(50))
@@ -45,6 +47,8 @@ class Alumno(Base):
     activo = Column(Boolean, default=True)
     programa_lectura = Column(String(20), nullable=True)
     programa_matematicas = Column(String(20), nullable=True)
+    programa_personalizado_lectura = Column(Boolean, default=False)
+    programa_personalizado_matematicas = Column(Boolean, default=False)
     programas_lectura_historial = Column(Text)  # JSON array de programas anteriores
     programas_matematicas_historial = Column(Text)  # JSON array de programas anteriores
     created_at = Column(DateTime(timezone=True), server_default=func.now())

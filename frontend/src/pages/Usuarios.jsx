@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { usuariosService, sucursalesService } from '../services/api'
+import api, { usuariosService, sucursalesService } from '../services/api'
 
 const ROL_COLORES = {
   directora:    'bg-purple-100 text-purple-700',
@@ -144,17 +144,27 @@ export default function Usuarios() {
   )
 }
 
-function ModalEditarUsuario({ usuario, sucursales, onClose, onSuccess }) {
+function ModalEditarUsuario({ usuario: u, sucursales, onClose, onSuccess }) {
   const [form, setForm] = useState({
-    nombre: usuario.nombre,
-    rol: usuario.rol,
-    sucursal_id: usuario.sucursal_id || '',
-    activo: usuario.activo,
+    nombre: u.nombre,
+    rol: u.rol,
+    sucursal_id: u.sucursal_id || '',
+    activo: u.activo,
     password: '',
-    color: usuario.color || '',
+    color: u.color || '',
+    es_global: u.es_global || false,
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [sucursalesUsuario, setSucursalesUsuario] = useState([])
+
+  useEffect(() => {
+    if (u?.id && u?.rol === 'maestra') {
+      api.get(`/usuarios/${u.id}/sucursales`)
+        .then(res => setSucursalesUsuario(res.data.map(s => s.id)))
+        .catch(() => {})
+    }
+  }, [u?.id])
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -169,7 +179,10 @@ function ModalEditarUsuario({ usuario, sucursales, onClose, onSuccess }) {
       if (!data.password) delete data.password
       if (!data.sucursal_id) data.sucursal_id = null
       if (!data.color) data.color = null
-      await usuariosService.actualizar(usuario.id, data)
+      await usuariosService.actualizar(u.id, data)
+      if (form.rol === 'maestra') {
+        await api.put(`/usuarios/${u.id}/sucursales`, { sucursal_ids: sucursalesUsuario })
+      }
       onSuccess()
     } catch (err) {
       setError(err.response?.data?.detail || 'Error al guardar')
@@ -202,16 +215,61 @@ function ModalEditarUsuario({ usuario, sucursales, onClose, onSuccess }) {
               <option value="contadora">Contadora</option>
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sucursal</label>
-            <select name="sucursal_id" value={form.sucursal_id} onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
-              <option value="">Sin sucursal (global)</option>
-              {sucursales.map(s => (
-                <option key={s.id} value={s.id}>{s.nombre}</option>
-              ))}
-            </select>
-          </div>
+          {form.rol !== 'maestra' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sucursal</label>
+              <select name="sucursal_id" value={form.sucursal_id} onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                <option value="">Sin sucursal (global)</option>
+                {sucursales.map(s => (
+                  <option key={s.id} value={s.id}>{s.nombre}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {form.rol === 'maestra' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Sucursales donde trabaja</label>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sucursalesUsuario.length === 0}
+                    onChange={() => setSucursalesUsuario([])}
+                    className="w-4 h-4 text-purple-600 rounded"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Todas las sucursales (global)</span>
+                </label>
+                <div className="border-t pt-2">
+                  {sucursales.map(s => (
+                    <label key={s.id} className="flex items-center gap-2 cursor-pointer mb-2">
+                      <input
+                        type="checkbox"
+                        checked={sucursalesUsuario.includes(s.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSucursalesUsuario(prev => [...prev, s.id])
+                          } else {
+                            setSucursalesUsuario(prev => prev.filter(id => id !== s.id))
+                          }
+                        }}
+                        className="w-4 h-4 text-purple-600 rounded"
+                      />
+                      <span className="text-sm text-gray-700">{s.nombre}</span>
+                    </label>
+                  ))}
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer mt-2 pt-2 border-t">
+                  <input type="checkbox"
+                    checked={form.es_global || false}
+                    onChange={e => setForm(f => ({...f, es_global: e.target.checked}))}
+                    className="w-4 h-4 text-purple-600 rounded"
+                  />
+                  <span className="text-sm text-gray-700">Maestra global (aparece en todas las sucursales)</span>
+                </label>
+              </div>
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nueva contraseña (opcional)</label>
             <input name="password" type="password" value={form.password} onChange={handleChange}
@@ -269,10 +327,11 @@ function ModalEditarUsuario({ usuario, sucursales, onClose, onSuccess }) {
 function ModalNuevoUsuario({ sucursales, onClose, onSuccess }) {
   const [form, setForm] = useState({
     nombre: '', email: '', password: '', rol: 'maestra',
-    sucursal_id: '', color: '',
+    sucursal_id: '', color: '', es_global: false,
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [sucursalesUsuario, setSucursalesUsuario] = useState([])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -290,7 +349,10 @@ function ModalNuevoUsuario({ sucursales, onClose, onSuccess }) {
       const data = { ...form }
       if (!data.sucursal_id) data.sucursal_id = null
       if (!data.color) data.color = null
-      await usuariosService.crear(data)
+      const resultado = await usuariosService.crear(data)
+      if (form.rol === 'maestra' && sucursalesUsuario.length > 0 && resultado.data.id) {
+        await api.put(`/usuarios/${resultado.data.id}/sucursales`, { sucursal_ids: sucursalesUsuario })
+      }
       onSuccess()
     } catch (err) {
       setError(err.response?.data?.detail || 'Error al crear usuario')
@@ -332,16 +394,61 @@ function ModalNuevoUsuario({ sucursales, onClose, onSuccess }) {
               <option value="contadora">Contadora</option>
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sucursal</label>
-            <select name="sucursal_id" value={form.sucursal_id} onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
-              <option value="">Sin sucursal (global)</option>
-              {sucursales.map(s => (
-                <option key={s.id} value={s.id}>{s.nombre}</option>
-              ))}
-            </select>
-          </div>
+          {form.rol !== 'maestra' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sucursal</label>
+              <select name="sucursal_id" value={form.sucursal_id} onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                <option value="">Sin sucursal (global)</option>
+                {sucursales.map(s => (
+                  <option key={s.id} value={s.id}>{s.nombre}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {form.rol === 'maestra' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Sucursales donde trabaja</label>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sucursalesUsuario.length === 0}
+                    onChange={() => setSucursalesUsuario([])}
+                    className="w-4 h-4 text-purple-600 rounded"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Todas las sucursales (global)</span>
+                </label>
+                <div className="border-t pt-2">
+                  {sucursales.map(s => (
+                    <label key={s.id} className="flex items-center gap-2 cursor-pointer mb-2">
+                      <input
+                        type="checkbox"
+                        checked={sucursalesUsuario.includes(s.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSucursalesUsuario(prev => [...prev, s.id])
+                          } else {
+                            setSucursalesUsuario(prev => prev.filter(id => id !== s.id))
+                          }
+                        }}
+                        className="w-4 h-4 text-purple-600 rounded"
+                      />
+                      <span className="text-sm text-gray-700">{s.nombre}</span>
+                    </label>
+                  ))}
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer mt-2 pt-2 border-t">
+                  <input type="checkbox"
+                    checked={form.es_global || false}
+                    onChange={e => setForm(f => ({...f, es_global: e.target.checked}))}
+                    className="w-4 h-4 text-purple-600 rounded"
+                  />
+                  <span className="text-sm text-gray-700">Maestra global (aparece en todas las sucursales)</span>
+                </label>
+              </div>
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Color para calendario</label>
             <div className="flex gap-2 flex-wrap mb-2">

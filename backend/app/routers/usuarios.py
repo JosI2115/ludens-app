@@ -71,6 +71,35 @@ def eliminar_usuario(
     db.commit()
     return {"mensaje": "Usuario eliminado"}
 
+@router.get("/{usuario_id}/sucursales")
+def get_sucursales_usuario(
+    usuario_id: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.usuario_sucursal import UsuarioSucursal
+    from app.models.sucursal import Sucursal
+    sucursales = db.query(Sucursal).join(
+        UsuarioSucursal, UsuarioSucursal.sucursal_id == Sucursal.id
+    ).filter(UsuarioSucursal.usuario_id == usuario_id).all()
+    return [{"id": str(s.id), "nombre": s.nombre} for s in sucursales]
+
+@router.put("/{usuario_id}/sucursales")
+def actualizar_sucursales_usuario(
+    usuario_id: str,
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    if current_user.rol != "directora":
+        raise HTTPException(status_code=403, detail="Solo directora")
+    from app.models.usuario_sucursal import UsuarioSucursal
+    db.query(UsuarioSucursal).filter(UsuarioSucursal.usuario_id == usuario_id).delete()
+    for sucursal_id in data.get("sucursal_ids", []):
+        db.add(UsuarioSucursal(usuario_id=usuario_id, sucursal_id=sucursal_id))
+    db.commit()
+    return {"mensaje": "Sucursales actualizadas"}
+
 @router.get("/lista-basica")
 def get_usuarios_basica(
     db: Session = Depends(get_db),
@@ -122,14 +151,19 @@ def get_maestras_sucursal(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
+    from app.models.usuario_sucursal import UsuarioSucursal
     from sqlalchemy import or_
     maestras = db.query(Usuario).filter(
         Usuario.rol.in_(['maestra', 'encargada']),
         Usuario.activo == True,
         or_(
             Usuario.sucursal_id == sucursal_id,
-            Usuario.sucursal_id == None
+            Usuario.id.in_(
+                db.query(UsuarioSucursal.usuario_id).filter(
+                    UsuarioSucursal.sucursal_id == sucursal_id
+                )
+            ),
+            Usuario.es_global == True
         )
     ).all()
-
     return maestras

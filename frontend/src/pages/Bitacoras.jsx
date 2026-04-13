@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { bitacorasService, maestrasService, usuariosService } from '../services/api'
+import api, { bitacorasService, maestrasService, usuariosService } from '../services/api'
 
 const COLORES_MAESTRA = {
   default: { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', dot: 'bg-purple-400' },
@@ -168,22 +168,34 @@ export default function Bitacoras() {
     if (seleccionadasList.length === 0) return
     if (!estadoMasivo && !fechaMasiva) return
 
+    // Construir mapa nomenclatura → programa personalizado
+    const nomenclaturaPrograma = {}
+    bitacora?.programas?.forEach(prog => {
+      if (prog.es_personalizado) {
+        prog.actividades.forEach(act => {
+          nomenclaturaPrograma[act.nomenclatura] = prog.programa
+        })
+      }
+    })
+
     const promesas = seleccionadasList.map(nomenclatura => {
       const data = {}
       if (estadoMasivo) data.estado = estadoMasivo
       if (fechaMasiva) data.fecha = fechaMasiva
+
+      const progPersonalizado = nomenclaturaPrograma[nomenclatura]
+      if (progPersonalizado) {
+        return api.put(`/bitacoras/registro/${alumnoSeleccionado.id}/${encodeURIComponent(nomenclatura)}`, {
+          ...data, es_personalizado: true, programa: progPersonalizado
+        })
+      }
       return actualizarRegistro(nomenclatura, Object.keys(data)[0], Object.values(data)[0])
     })
 
     await Promise.all(promesas)
-
-    if (estadoMasivo && fechaMasiva) {
-      const promesas2 = seleccionadasList.map(n => actualizarRegistro(n, 'fecha', fechaMasiva))
-      await Promise.all(promesas2)
-    }
-
     limpiarSeleccion()
     setModoSeleccion(false)
+    cargarBitacora(alumnoSeleccionado)
   }
 
   const togglePrograma = (programa) => {
@@ -257,8 +269,14 @@ export default function Bitacoras() {
     (filtraMaestra === '' || a.maestra_id === filtraMaestra || a.maestra_lectura_id === filtraMaestra || a.maestra_matematicas_id === filtraMaestra)
   )
 
-  const sinPrograma = alumnosFiltrados.filter(a => !a.programa_lectura && !a.programa_matematicas)
-  const conPrograma = alumnosFiltrados.filter(a => a.programa_lectura || a.programa_matematicas)
+  const conPrograma = alumnosFiltrados.filter(a =>
+    a.programa_lectura || a.programa_matematicas ||
+    a.programa_personalizado_lectura || a.programa_personalizado_matematicas
+  )
+  const sinPrograma = alumnosFiltrados.filter(a =>
+    !a.programa_lectura && !a.programa_matematicas &&
+    !a.programa_personalizado_lectura && !a.programa_personalizado_matematicas
+  )
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -320,6 +338,12 @@ export default function Bitacoras() {
                   <p className="text-xs text-gray-400 mt-0.5">
                     {alumno.programa_lectura || '—'} · {alumno.programa_matematicas || '—'}
                   </p>
+                  {alumno.programa_personalizado_lectura && (
+                    <span className="text-xs text-blue-400">PERSON LECT</span>
+                  )}
+                  {alumno.programa_personalizado_matematicas && (
+                    <span className="text-xs text-red-400">PERSON MAT</span>
+                  )}
                 </button>
               ))}
               {sinPrograma.length > 0 && (
@@ -446,7 +470,103 @@ export default function Bitacoras() {
                   </div>
 
                   {!programasColapsados[prog.programa] && (
-                  <div className="bg-white rounded-xl shadow overflow-hidden">
+                    prog.es_personalizado ? (
+                      <div>
+                        <table className="w-full text-xs">
+                          <thead className="bg-gray-50 border-b">
+                            <tr>
+                              {modoSeleccion && <th className="px-2 py-2 w-8"></th>}
+                              <th className="text-left px-2 py-2 text-gray-500 font-medium w-16">Sem</th>
+                              <th className="text-left px-2 py-2 text-gray-500 font-medium">Nomenclatura</th>
+                              <th className="text-left px-2 py-2 text-gray-500 font-medium w-28">Estado</th>
+                              <th className="text-left px-2 py-2 text-gray-500 font-medium w-28">Fecha</th>
+                              <th className="text-left px-2 py-2 text-gray-500 font-medium w-20">Ejercicios</th>
+                              <th className="text-left px-2 py-2 text-gray-500 font-medium">Comentario</th>
+                              <th className="text-left px-2 py-2 text-gray-500 font-medium w-20">Registró</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {prog.actividades.map((act, ai) => (
+                              <tr key={ai} className="hover:bg-gray-50">
+                                {modoSeleccion && (
+                                  <td className="px-2 py-1.5">
+                                    <input type="checkbox"
+                                      checked={!!seleccionadas[act.nomenclatura]}
+                                      onChange={() => toggleSeleccion(act.nomenclatura)}
+                                      className="w-4 h-4 text-purple-600 rounded" />
+                                  </td>
+                                )}
+                                <td className="px-2 py-1.5">
+                                  <input type="text" defaultValue={act.semana || ''}
+                                    onBlur={async (e) => await api.put(`/bitacoras/registro/${alumnoSeleccionado?.id}/${encodeURIComponent(act.nomenclatura)}`, {
+                                      semana: e.target.value, es_personalizado: true, programa: prog.programa
+                                    })}
+                                    className="w-14 text-xs border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-purple-400"
+                                    placeholder="Sem" />
+                                </td>
+                                <td className="px-2 py-1.5">
+                                  <input type="text" defaultValue={act.nomenclatura}
+                                    onBlur={async (e) => {
+                                      if (e.target.value !== act.nomenclatura) {
+                                        await api.put(`/bitacoras/registro/${alumnoSeleccionado?.id}/${encodeURIComponent(act.nomenclatura)}`, {
+                                          nomenclatura_nueva: e.target.value,
+                                          es_personalizado: true,
+                                          programa: prog.programa
+                                        })
+                                        cargarBitacora(alumnoSeleccionado)
+                                      }
+                                    }}
+                                    className="w-full text-xs border border-gray-200 rounded px-1 py-0.5 font-mono focus:outline-none focus:ring-1 focus:ring-purple-400" />
+                                </td>
+                                <td className="px-2 py-1.5">
+                                  <select value={act.estado || ''}
+                                    onChange={async (e) => {
+                                      await api.put(`/bitacoras/registro/${alumnoSeleccionado?.id}/${encodeURIComponent(act.nomenclatura)}`, {
+                                        estado: e.target.value, es_personalizado: true, programa: prog.programa
+                                      })
+                                      cargarBitacora(alumnoSeleccionado)
+                                    }}
+                                    className="w-full text-xs border border-gray-200 rounded px-1 py-0.5 focus:outline-none">
+                                    {ESTADO_OPCIONES.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
+                                  </select>
+                                </td>
+                                <td className="px-2 py-1.5">
+                                  <input type="text" defaultValue={act.fecha || ''}
+                                    onBlur={async (e) => await api.put(`/bitacoras/registro/${alumnoSeleccionado?.id}/${encodeURIComponent(act.nomenclatura)}`, {
+                                      fecha: e.target.value, es_personalizado: true, programa: prog.programa
+                                    })}
+                                    className="w-full text-xs border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-purple-400"
+                                    placeholder="Fecha" />
+                                </td>
+                                <td className="px-2 py-1.5">
+                                  <input type="text" defaultValue={act.ejercicios || ''}
+                                    onBlur={async (e) => await api.put(`/bitacoras/registro/${alumnoSeleccionado?.id}/${encodeURIComponent(act.nomenclatura)}`, {
+                                      ejercicios: e.target.value, es_personalizado: true, programa: prog.programa
+                                    })}
+                                    className="w-16 text-xs border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-purple-400"
+                                    placeholder="Ej" />
+                                </td>
+                                <td className="px-2 py-1.5">
+                                  <input type="text" defaultValue={act.comentario || ''}
+                                    onBlur={async (e) => await api.put(`/bitacoras/registro/${alumnoSeleccionado?.id}/${encodeURIComponent(act.nomenclatura)}`, {
+                                      comentario: e.target.value, es_personalizado: true, programa: prog.programa
+                                    })}
+                                    className="w-full text-xs border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-purple-400"
+                                    placeholder="Comentario" />
+                                </td>
+                                <td className="px-2 py-1.5 text-gray-400">{act.registrado_por_nombre || '—'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <NuevaActividadPersonalizada
+                          alumnoId={alumnoSeleccionado?.id}
+                          programa={prog.programa}
+                          onCreada={() => cargarBitacora(alumnoSeleccionado)}
+                        />
+                      </div>
+                    ) : (
+                    <div className="bg-white rounded-xl shadow overflow-hidden">
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50 border-b">
                         <tr>
@@ -570,6 +690,7 @@ export default function Bitacoras() {
                       </tbody>
                     </table>
                   </div>
+                    )
                   )}
                 </div>
               ))
@@ -655,6 +776,58 @@ export default function Bitacoras() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function NuevaActividadPersonalizada({ alumnoId, programa, onCreada }) {
+  const [form, setForm] = useState({ nomenclatura: '', actividad: '', estado: 'En Proceso' })
+  const [guardando, setGuardando] = useState(false)
+  const OPCIONES = [
+    { value: 'Logrado', label: 'Logrado' },
+    { value: 'No Logrado', label: 'No Logrado' },
+    { value: 'En Proceso', label: 'En Proceso' },
+    { value: 'Tarea', label: 'Tarea' },
+  ]
+
+  const handleGuardar = async () => {
+    if (!form.nomenclatura.trim()) return
+    setGuardando(true)
+    try {
+      await api.put(`/bitacoras/registro/${alumnoId}/${encodeURIComponent(form.nomenclatura)}`, {
+        actividad: form.actividad,
+        estado: form.estado,
+        programa: programa,
+        es_personalizado: true
+      })
+      setForm({ nomenclatura: '', actividad: '', estado: 'En Proceso' })
+      onCreada()
+    } catch (err) {
+      console.error('Error guardando')
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  return (
+    <div className="mt-3 border-t pt-3">
+      <p className="text-xs text-gray-500 mb-2 font-medium">+ Nueva actividad</p>
+      <div className="flex gap-2 flex-wrap">
+        <input type="text" value={form.nomenclatura} onChange={e => setForm(f => ({...f, nomenclatura: e.target.value}))}
+          placeholder="Nomenclatura (ej: ACT-01)"
+          className="border border-gray-300 rounded px-2 py-1 text-xs flex-1 min-w-24 focus:outline-none focus:ring-1 focus:ring-purple-400" />
+        <input type="text" value={form.actividad} onChange={e => setForm(f => ({...f, actividad: e.target.value}))}
+          placeholder="Descripción"
+          className="border border-gray-300 rounded px-2 py-1 text-xs flex-1 min-w-32 focus:outline-none focus:ring-1 focus:ring-purple-400" />
+        <select value={form.estado} onChange={e => setForm(f => ({...f, estado: e.target.value}))}
+          className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-purple-400">
+          {OPCIONES.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
+        </select>
+        <button onClick={handleGuardar} disabled={guardando || !form.nomenclatura.trim()}
+          className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white px-3 py-1 rounded text-xs font-medium">
+          {guardando ? '...' : 'Agregar'}
+        </button>
+      </div>
     </div>
   )
 }

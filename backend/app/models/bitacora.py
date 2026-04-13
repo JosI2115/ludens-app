@@ -9,7 +9,7 @@ class Bitacora(Base):
     __tablename__ = "bitacoras"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     alumno_id = Column(UUID(as_uuid=True), ForeignKey("alumnos.id"), nullable=False)
-    programa = Column(String(20), nullable=False)
+    programa = Column(String(100), nullable=False)
     nomenclatura = Column(String(100), nullable=False)
     actividad = Column(String(200))
     semana = Column(Integer)

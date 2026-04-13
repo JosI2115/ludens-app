@@ -56,6 +56,7 @@ class PagoCreate(BaseModel):
     fecha_pago: Optional[date] = None
     con_penalizacion: Optional[bool] = False
     monto_penalizacion: Optional[float] = 0
+    sin_recargo: Optional[bool] = False
     comentarios: Optional[str] = None
     fecha_recepcion: Optional[date] = None
     monto_recibido: Optional[float] = None
@@ -110,6 +111,9 @@ def get_pagos(
             "pagado": pago_mes is not None,
             "fecha_pago": pago_mes.fecha_pago if pago_mes else None,
             "con_penalizacion": pago_mes.con_penalizacion if pago_mes else False,
+            "monto_penalizacion": pago_mes.monto_penalizacion if pago_mes else 0,
+            "monto_pagado": pago_mes.monto if pago_mes else None,
+            "fecha_recepcion": str(pago_mes.fecha_recepcion) if pago_mes and pago_mes.fecha_recepcion else None,
             "comentarios": pago_mes.comentarios if pago_mes else None,
             "sucursal_id": str(alumno.sucursal_id) if alumno.sucursal_id else None,
             "pago_id": str(pago_mes.id) if pago_mes else None,
@@ -136,10 +140,21 @@ def registrar_pago(
     if pago_existe:
         raise HTTPException(status_code=400, detail="Ya existe un pago registrado para este mes")
 
+    from datetime import datetime
+    if data.fecha_recepcion:
+        if isinstance(data.fecha_recepcion, str):
+            fecha_calculo = datetime.strptime(data.fecha_recepcion, '%Y-%m-%d').date()
+        else:
+            fecha_calculo = data.fecha_recepcion
+    else:
+        fecha_calculo = date.today()
     hoy = date.today()
-    estado_color, dias = calcular_estado_pago(alumno, hoy)
+    estado_color, dias = calcular_estado_pago(alumno, fecha_calculo)
     con_penalizacion = dias > 5
     monto_penalizacion = 50.0 if con_penalizacion else 0.0
+    if data.sin_recargo:
+        con_penalizacion = False
+        monto_penalizacion = 0
     monto_final = data.monto_recibido if data.monto_recibido else float(alumno.plan_pago or 0)
 
     comentario_auto = data.comentarios or ''

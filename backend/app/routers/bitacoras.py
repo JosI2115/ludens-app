@@ -17,6 +17,11 @@ class BitacoraUpdate(BaseModel):
     comentario: Optional[str] = None
     estado: Optional[str] = None
     registrado_por_nombre: Optional[str] = None
+    semana: Optional[str] = None
+    es_personalizado: Optional[bool] = False
+    actividad: Optional[str] = None
+    programa: Optional[str] = None
+    nomenclatura_nueva: Optional[str] = None
 
 @router.get("/alumno/{alumno_id}")
 def get_bitacora_alumno(
@@ -27,6 +32,9 @@ def get_bitacora_alumno(
     alumno = db.query(Alumno).filter(Alumno.id == alumno_id).first()
     if not alumno:
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
+
+    db.refresh(alumno)
+    print(f"DEBUG refresh: pers_lec={alumno.programa_personalizado_lectura} pers_mat={alumno.programa_personalizado_matematicas}")
 
     import json
     programas = []
@@ -101,6 +109,52 @@ def get_bitacora_alumno(
                 "actividades": actividades
             })
 
+    programas_ya = [p['programa'] for p in programas]
+
+    if alumno.programa_personalizado_lectura and 'Personalizado Lectura' not in programas_ya:
+        bitacoras_personalizado_lec = db.query(Bitacora).filter(
+            Bitacora.alumno_id == alumno_id,
+            Bitacora.programa == 'Personalizado Lectura'
+        ).all()
+        programas.append({
+            "programa": "Personalizado Lectura",
+            "es_personalizado": True,
+            "actividades": [{
+                "id": str(b.id),
+                "nomenclatura": b.nomenclatura,
+                "actividad": b.actividad,
+                "semana": b.semana,
+                "fecha": str(b.fecha) if b.fecha else None,
+                "estado": b.estado,
+                "comentario": b.comentario,
+                "ejercicios": b.ejercicios,
+                "registrado_por_nombre": b.registrado_por_nombre,
+            } for b in bitacoras_personalizado_lec]
+        })
+
+    if alumno.programa_personalizado_matematicas and 'Personalizado Matematicas' not in programas_ya:
+        bitacoras_personalizado_mat = db.query(Bitacora).filter(
+            Bitacora.alumno_id == alumno_id,
+            Bitacora.programa == 'Personalizado Matematicas'
+        ).all()
+        programas.append({
+            "programa": "Personalizado Matematicas",
+            "es_personalizado": True,
+            "actividades": [{
+                "id": str(b.id),
+                "nomenclatura": b.nomenclatura,
+                "actividad": b.actividad,
+                "semana": b.semana,
+                "fecha": str(b.fecha) if b.fecha else None,
+                "estado": b.estado,
+                "comentario": b.comentario,
+                "ejercicios": b.ejercicios,
+                "registrado_por_nombre": b.registrado_por_nombre,
+            } for b in bitacoras_personalizado_mat]
+        })
+
+    print(f"DEBUG alumno={alumno.nombre} pers_lec={alumno.programa_personalizado_lectura} pers_mat={alumno.programa_personalizado_matematicas} programas={[p['programa'] for p in programas]}")
+
     return {
         "alumno_id": alumno_id,
         "nombre": f"{alumno.nombre} {alumno.apellido}",
@@ -121,25 +175,42 @@ def actualizar_registro(
         Bitacora.nomenclatura == nomenclatura
     ).first()
 
-    act_cat = db.query(ProgramaCatalogo).filter(
-        ProgramaCatalogo.nomenclatura == nomenclatura
-    ).first()
+    if data.es_personalizado:
+        if not registro:
+            registro = Bitacora(
+                alumno_id=alumno_id,
+                programa=data.programa or 'Personalizado',
+                nomenclatura=nomenclatura,
+                actividad=data.actividad or '',
+                registrado_por=current_user.id
+            )
+            db.add(registro)
+        elif data.actividad is not None:
+            registro.actividad = data.actividad
+        if registro and data.nomenclatura_nueva and data.nomenclatura_nueva != nomenclatura:
+            registro.nomenclatura = data.nomenclatura_nueva
+    else:
+        act_cat = db.query(ProgramaCatalogo).filter(
+            ProgramaCatalogo.nomenclatura == nomenclatura
+        ).first()
 
-    if not act_cat:
-        raise HTTPException(status_code=404, detail="Actividad no encontrada en catálogo")
+        if not act_cat:
+            raise HTTPException(status_code=404, detail="Actividad no encontrada en catálogo")
 
-    if not registro:
-        registro = Bitacora(
-            alumno_id=alumno_id,
-            programa=act_cat.programa,
-            nomenclatura=nomenclatura,
-            actividad=act_cat.actividad,
-            semana=act_cat.semana,
-            drive_url=act_cat.drive_url,
-            registrado_por=current_user.id
-        )
-        db.add(registro)
+        if not registro:
+            registro = Bitacora(
+                alumno_id=alumno_id,
+                programa=act_cat.programa,
+                nomenclatura=nomenclatura,
+                actividad=act_cat.actividad,
+                semana=act_cat.semana,
+                drive_url=act_cat.drive_url,
+                registrado_por=current_user.id
+            )
+            db.add(registro)
 
+    if data.semana is not None:
+        registro.semana = data.semana
     if data.fecha is not None:
         registro.fecha = data.fecha
     if data.ejercicios is not None:
@@ -198,6 +269,8 @@ def get_vista_maestra(
             "maestra_lectura_id": str(alumno.maestra_lectura_id) if alumno.maestra_lectura_id else None,
             "maestra_matematicas_id": str(alumno.maestra_matematicas_id) if alumno.maestra_matematicas_id else None,
             "grado": alumno.grado,
+            "programa_personalizado_lectura": alumno.programa_personalizado_lectura or False,
+            "programa_personalizado_matematicas": alumno.programa_personalizado_matematicas or False,
         })
 
     return resultado

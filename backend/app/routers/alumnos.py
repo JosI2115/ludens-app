@@ -36,6 +36,8 @@ class AlumnoCreate(BaseModel):
     numero_hermano: Optional[int] = 1
     programa_lectura: Optional[str] = None
     programa_matematicas: Optional[str] = None
+    programa_personalizado_lectura: Optional[bool] = None
+    programa_personalizado_matematicas: Optional[bool] = None
     domicilio: Optional[str] = None
     escuela_procedencia: Optional[str] = None
     condicion_medica: Optional[str] = None
@@ -43,6 +45,8 @@ class AlumnoCreate(BaseModel):
     objetivos: Optional[str] = None
     maestra_lectura_id: Optional[str] = None
     maestra_matematicas_id: Optional[str] = None
+    materia_maestra1: Optional[str] = None
+    materia_maestra2: Optional[str] = None
     horario_json: Optional[str] = None
 
     class Config:
@@ -71,9 +75,13 @@ class AlumnoUpdate(BaseModel):
     motivo_baja: Optional[str] = None
     maestra_lectura_id: Optional[str] = None
     maestra_matematicas_id: Optional[str] = None
+    materia_maestra1: Optional[str] = None
+    materia_maestra2: Optional[str] = None
     numero_hermano: Optional[int] = None
     programa_lectura: Optional[str] = None
     programa_matematicas: Optional[str] = None
+    programa_personalizado_lectura: Optional[bool] = None
+    programa_personalizado_matematicas: Optional[bool] = None
     domicilio: Optional[str] = None
     escuela_procedencia: Optional[str] = None
     condicion_medica: Optional[str] = None
@@ -145,8 +153,16 @@ def get_alumnos(
     if not incluir_bajas:
         query = query.filter(Alumno.situacion != 'baja')
 
-    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
-        query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
+        from app.models.usuario_sucursal import UsuarioSucursal
+        sucursales_usuario = db.query(UsuarioSucursal).filter(
+            UsuarioSucursal.usuario_id == current_user.id
+        ).all()
+        if sucursales_usuario:
+            sucursal_ids = [us.sucursal_id for us in sucursales_usuario]
+            query = query.filter(Alumno.sucursal_id.in_(sucursal_ids))
+        elif current_user.sucursal_id:
+            query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
     elif sucursal_id:
         query = query.filter(Alumno.sucursal_id == sucursal_id)
 

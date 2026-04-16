@@ -115,7 +115,38 @@ def get_usuarios(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(solo_directora)
 ):
-    return db.query(Usuario).order_by(Usuario.nombre).all()
+    from app.models.usuario_sucursal import UsuarioSucursal
+    from app.models.sucursal import Sucursal
+
+    usuarios = db.query(Usuario).order_by(Usuario.nombre).all()
+    resultado = []
+    for u in usuarios:
+        sucursal_nombre = None
+        sucursales_lista = []
+
+        if u.rol == 'maestra':
+            us = db.query(UsuarioSucursal).filter(UsuarioSucursal.usuario_id == u.id).all()
+            if us:
+                for s in us:
+                    suc = db.query(Sucursal).filter(Sucursal.id == s.sucursal_id).first()
+                    if suc:
+                        sucursales_lista.append(suc.nombre)
+                sucursal_nombre = ', '.join(sucursales_lista)
+            elif u.sucursal_id:
+                suc = db.query(Sucursal).filter(Sucursal.id == u.sucursal_id).first()
+                sucursal_nombre = suc.nombre if suc else None
+        else:
+            if u.sucursal_id:
+                suc = db.query(Sucursal).filter(Sucursal.id == u.sucursal_id).first()
+                sucursal_nombre = suc.nombre if suc else None
+
+        resultado.append({
+            **{c.name: getattr(u, c.name) for c in u.__table__.columns},
+            "sucursal_nombre": sucursal_nombre,
+            "sucursales_lista": sucursales_lista,
+        })
+
+    return resultado
 
 @router.put("/{usuario_id}")
 def actualizar_usuario(

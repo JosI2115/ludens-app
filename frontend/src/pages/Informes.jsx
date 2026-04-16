@@ -206,7 +206,7 @@ export default function Informes() {
                               onChange={e => cambiarSituacion(inf.id, e.target.value)}
                               className={`text-xs px-2 py-1 rounded-full border-0 font-medium cursor-pointer ${sit.color}`}
                             >
-                              {SITUACIONES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                              {SITUACIONES.filter(s => s.value !== 'inscrito' && s.value !== 'pago_inscripcion').map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                             </select>
                           ) : (
                             <span className={`text-xs px-2 py-1 rounded-full font-medium ${sit.color}`}>
@@ -497,7 +497,7 @@ function ModalInforme({ informe, sucursales, usuarios, onClose, onSuccess }) {
               <label className="block text-sm font-medium text-gray-700 mb-1">Situación</label>
               <select name="situacion" value={form.situacion} onChange={handleChange}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
-                {SITUACIONES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                {SITUACIONES.filter(s => s.value !== 'inscrito' && s.value !== 'pago_inscripcion').map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>
           </div>

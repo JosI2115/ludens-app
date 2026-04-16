@@ -60,6 +60,7 @@ class PagoCreate(BaseModel):
     comentarios: Optional[str] = None
     fecha_recepcion: Optional[date] = None
     monto_recibido: Optional[float] = None
+    metodo_pago: Optional[str] = None
 
 @router.get("/")
 def get_pagos(
@@ -172,7 +173,8 @@ def registrar_pago(
         monto_penalizacion=monto_penalizacion,
         registrado_por=current_user.id,
         comentarios=comentario_auto or None,
-        fecha_recepcion=data.fecha_recepcion
+        fecha_recepcion=data.fecha_recepcion,
+        metodo_pago=data.metodo_pago
     )
     db.add(pago)
 

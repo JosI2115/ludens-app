@@ -19,6 +19,7 @@ class Pago(Base):
     registrado_por = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"))
     comentarios = Column(Text)
     fecha_recepcion = Column(Date, nullable=True)
+    metodo_pago = Column(String(20), nullable=True)  # efectivo, tarjeta, transferencia
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     alumno = relationship("Alumno", back_populates="pagos")

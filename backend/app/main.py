@@ -139,6 +139,7 @@ def startup():
         conn.execute(text("ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programas_lectura_historial TEXT"))
         conn.execute(text("ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programas_matematicas_historial TEXT"))
         conn.execute(text("ALTER TABLE pagos ADD COLUMN IF NOT EXISTS fecha_recepcion DATE"))
+        conn.execute(text("ALTER TABLE pagos ADD COLUMN IF NOT EXISTS metodo_pago VARCHAR(20)"))
         conn.commit()
 
     db = SessionLocal()

@@ -81,8 +81,8 @@ export default function Usuarios() {
                       {u.rol}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-500">
-                    {getNombreSucursal(u.sucursal_id)}
+                  <td className="px-4 py-3 text-gray-500 text-sm">
+                    {u.sucursal_nombre || <span className="text-purple-600 font-medium text-xs">Global</span>}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -220,7 +220,7 @@ function ModalEditarUsuario({ usuario: u, sucursales, onClose, onSuccess }) {
               <label className="block text-sm font-medium text-gray-700 mb-1">Sucursal</label>
               <select name="sucursal_id" value={form.sucursal_id} onChange={handleChange}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
-                <option value="">Sin sucursal (global)</option>
+                <option value="">Global (todas las sucursales)</option>
                 {sucursales.map(s => (
                   <option key={s.id} value={s.id}>{s.nombre}</option>
                 ))}
@@ -399,7 +399,7 @@ function ModalNuevoUsuario({ sucursales, onClose, onSuccess }) {
               <label className="block text-sm font-medium text-gray-700 mb-1">Sucursal</label>
               <select name="sucursal_id" value={form.sucursal_id} onChange={handleChange}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
-                <option value="">Sin sucursal (global)</option>
+                <option value="">Global (todas las sucursales)</option>
                 {sucursales.map(s => (
                   <option key={s.id} value={s.id}>{s.nombre}</option>
                 ))}

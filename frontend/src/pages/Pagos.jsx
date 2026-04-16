@@ -367,6 +367,7 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess, onPagoRegis
   const [fechaRecepcion, setFechaRecepcion] = useState('')
   const [montoPersonalizado, setMontoPersonalizado] = useState('')
   const [sinRecargo, setSinRecargo] = useState(false)
+  const [metodoPago, setMetodoPago] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const usuarioLocal = JSON.parse(localStorage.getItem('usuario') || '{}')
@@ -390,6 +391,7 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess, onPagoRegis
         fecha_recepcion: fechaRecepcion || null,
         monto_recibido: montoPersonalizado ? parseFloat(montoPersonalizado) : undefined,
         sin_recargo: sinRecargo,
+        metodo_pago: metodoPago || undefined,
       })
       onPagoRegistrado && onPagoRegistrado({
         nombre: alumno.nombre,
@@ -401,6 +403,7 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess, onPagoRegis
         comentarios,
         con_penalizacion: sinRecargo ? false : conPenalizacion,
         monto_penalizacion: sinRecargo ? 0 : (conPenalizacion ? 50 : 0),
+        metodo_pago: metodoPago || undefined,
       })
       onSuccess()
     } catch (err) {
@@ -457,6 +460,17 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess, onPagoRegis
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
             />
             <p className="text-xs text-gray-400 mt-1">Si se recibió en otra fecha diferente a hoy</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Método de pago</label>
+            <select value={metodoPago} onChange={e => setMetodoPago(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+              <option value="">Seleccionar</option>
+              <option value="efectivo">💵 Efectivo</option>
+              <option value="tarjeta">💳 Tarjeta</option>
+              <option value="transferencia">🏦 Transferencia</option>
+            </select>
           </div>
 
           <div>
@@ -543,6 +557,7 @@ function TicketPago({ pago, onClose }) {
         <div class="row"><span>Monto:</span><span class="bold">$${pago.monto}</span></div>
         ${pago.con_penalizacion ? `<div class="row"><span>Penalización:</span><span>$${pago.monto_penalizacion}</span></div>` : ''}
         ${pago.con_penalizacion ? `<div class="row"><span>Total:</span><span class="bold">$${parseFloat(pago.monto) + parseFloat(pago.monto_penalizacion || 0)}</span></div>` : ''}
+        ${pago.metodo_pago ? `<div class="row"><span>Método:</span><span>${pago.metodo_pago}</span></div>` : ''}
         ${pago.comentarios ? `<div class="row"><span>Comentarios:</span><span>${pago.comentarios}</span></div>` : ''}
         <div class="line"></div>
         <div class="row"><span>Atendió:</span><span>${pago.registrado_por}</span></div>

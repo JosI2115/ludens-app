@@ -67,7 +67,17 @@ def calcular_comisiones(
             Informe.alumno_id.in_(alumnos_inscritos_ids)
         ).all() if alumnos_inscritos_ids else []
 
-        num_inscritos = len(alumnos_inscritos)
+        # Buscar también por informes inscritos del mes
+        informes_inscritos = db.query(Informe).filter(
+            Informe.sucursal_id == suc.id,
+            Informe.situacion == 'inscrito',
+            Informe.fecha_inscripcion.between(primer_dia, ultimo_dia)
+        ).all()
+
+        # Unir ambas listas de informes para comisiones
+        todos_informes = list(inscritos_mes) + [i for i in informes_inscritos if i not in inscritos_mes]
+        inscritos_mes = todos_informes
+        num_inscritos = len(set([str(i.alumno_id) for i in inscritos_mes if i.alumno_id] + [str(a.id) for a in alumnos_inscritos]))
 
         # Bajas del mes
         bajas_mes = db.query(Alumno).filter(

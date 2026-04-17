@@ -24,6 +24,7 @@ class UsuarioUpdate(BaseModel):
     activo: Optional[bool] = None
     password: Optional[str] = None
     color: Optional[str] = None
+    es_global: Optional[bool] = None
 
 @router.post("/")
 def crear_usuario(
@@ -171,6 +172,8 @@ def actualizar_usuario(
         usuario.password_hash = hashear_password(data.password)
     if 'color' in data.dict(exclude_unset=True):
         usuario.color = data.color
+    if data.es_global is not None:
+        usuario.es_global = data.es_global
 
     db.commit()
     db.refresh(usuario)

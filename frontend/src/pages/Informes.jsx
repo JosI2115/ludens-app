@@ -201,13 +201,9 @@ export default function Informes() {
                         <td className="px-4 py-3 text-gray-500">{inf.medio || '—'}</td>
                         <td className="px-4 py-3">
                           {usuario.rol !== 'contadora' ? (
-                            <select
-                              value={inf.situacion}
-                              onChange={e => cambiarSituacion(inf.id, e.target.value)}
-                              className={`text-xs px-2 py-1 rounded-full border-0 font-medium cursor-pointer ${sit.color}`}
-                            >
-                              {SITUACIONES.filter(s => s.value !== 'inscrito' && s.value !== 'pago_inscripcion' || s.value === inf.situacion).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                            </select>
+                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${sit.color}`}>
+                              {sit.label}
+                            </span>
                           ) : (
                             <span className={`text-xs px-2 py-1 rounded-full font-medium ${sit.color}`}>
                               {sit.label}

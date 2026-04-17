@@ -456,7 +456,14 @@ def get_prospectos(
         inicio = hoy - timedelta(days=hoy.weekday())
     fin = inicio + timedelta(days=6)
 
+    # Limpiar prospectos pasados automáticamente
+    db.query(ProspectoCalendario).filter(
+        ProspectoCalendario.fecha < hoy
+    ).delete()
+    db.commit()
+
     query = db.query(ProspectoCalendario).filter(
+        ProspectoCalendario.fecha >= hoy,
         ProspectoCalendario.fecha >= inicio,
         ProspectoCalendario.fecha <= fin
     )

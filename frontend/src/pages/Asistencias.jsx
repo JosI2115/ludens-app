@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { asistenciasService } from '../services/api'
+import { asistenciasService, sucursalesService } from '../services/api'
 
 const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
 export default function Asistencias() {
   const hoy = new Date().toISOString().split('T')[0]
+  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
   const [fecha, setFecha] = useState(hoy)
   const [alumnos, setAlumnos] = useState([])
   const [loading, setLoading] = useState(true)
@@ -17,15 +18,23 @@ export default function Asistencias() {
   const [historialInicio, setHistorialInicio] = useState('')
   const [historialFin, setHistorialFin] = useState('')
   const [historialAlumnoId, setHistorialAlumnoId] = useState('')
+  const [sucursales, setSucursales] = useState([])
+  const [filtroSucursal, setFiltroSucursal] = useState('')
+
+  useEffect(() => {
+    if (usuario.rol === 'directora' || usuario.es_encargada_general) {
+      sucursalesService.getAll().then(r => setSucursales(r.data)).catch(() => {})
+    }
+  }, [])
 
   useEffect(() => {
     cargarAlumnos()
-  }, [fecha, verTodos])
+  }, [fecha, verTodos, filtroSucursal])
 
   const cargarAlumnos = async () => {
     try {
       setLoading(true)
-      const response = await asistenciasService.getDia(fecha, verTodos)
+      const response = await asistenciasService.getDia(fecha, verTodos, filtroSucursal || null)
       setAlumnos(response.data)
     } catch (err) {
       console.error('Error cargando asistencias')
@@ -96,6 +105,13 @@ export default function Asistencias() {
             </button>
             <span className="text-sm text-gray-600">Ver todos</span>
           </div>
+          {(usuario.rol === 'directora' || usuario.es_encargada_general) && (
+            <select value={filtroSucursal} onChange={e => setFiltroSucursal(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+              <option value="">Todas las sucursales</option>
+              {sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+            </select>
+          )}
           <input
             type="text"
             placeholder="Buscar alumno..."

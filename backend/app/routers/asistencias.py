@@ -59,6 +59,7 @@ def get_asistencias(
 def get_alumnos_del_dia(
     fecha: Optional[date] = None,
     todos: bool = False,
+    sucursal_id: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
@@ -70,8 +71,11 @@ def get_alumnos_del_dia(
         Alumno.situacion.in_(['activo', 'pendiente', 'en_riesgo'])
     )
 
-    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
-        query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
+        if current_user.sucursal_id:
+            query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+    elif sucursal_id:
+        query = query.filter(Alumno.sucursal_id == sucursal_id)
 
     # Solo mostrar alumnos que ya ingresaron en esa fecha
     query = query.filter(

@@ -48,6 +48,7 @@ export default function Bitacoras() {
   const [programasLista, setProgramasLista] = useState([])
   const [urlsEditadas, setUrlsEditadas] = useState({})
   const [guardandoUrls, setGuardandoUrls] = useState(false)
+  const [modalListaMaestra, setModalListaMaestra] = useState(null)
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
 
   useEffect(() => {
@@ -291,6 +292,12 @@ export default function Bitacoras() {
                   className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded-lg transition"
                 >
                   ⚙️
+                </button>
+              )}
+              {(usuario.rol === 'directora' || usuario.es_encargada_general) && (
+                <button onClick={() => setModalListaMaestra(true)}
+                  className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded-lg transition">
+                  📋 Lista
                 </button>
               )}
               <button
@@ -742,6 +749,13 @@ export default function Bitacoras() {
         </div>
       </div>
       )}
+      {modalListaMaestra && (
+        <ModalListaMaestra
+          maestras={maestras}
+          alumnos={alumnos}
+          onClose={() => setModalListaMaestra(null)}
+        />
+      )}
       {mostrarUrls && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-screen overflow-y-auto">
@@ -776,6 +790,128 @@ export default function Bitacoras() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function ModalListaMaestra({ maestras, alumnos, onClose }) {
+  const [maestraSeleccionada, setMaestraSeleccionada] = useState('')
+
+  const alumnosMaestra = alumnos.filter(a =>
+    a.maestra_id === maestraSeleccionada ||
+    a.maestra_lectura_id === maestraSeleccionada ||
+    a.maestra_matematicas_id === maestraSeleccionada
+  ).sort((a, b) => a.nombre.localeCompare(b.nombre))
+
+  const imprimir = () => {
+    const maestra = maestras.find(m => m.id === maestraSeleccionada)
+    const ventana = window.open('', '_blank', 'width=600,height=800')
+    ventana.document.write(`
+      <html>
+      <head>
+        <title>Lista de alumnos - ${maestra?.nombre}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          h2 { color: #4c1d95; }
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+          th { background: #4c1d95; color: white; padding: 8px; text-align: left; }
+          td { padding: 8px; border-bottom: 1px solid #e5e7eb; }
+          tr:nth-child(even) { background: #f9fafb; }
+          .total { margin-top: 15px; font-weight: bold; color: #4c1d95; }
+        </style>
+      </head>
+      <body>
+        <h2>Lista de alumnos — ${maestra?.nombre}</h2>
+        <p>Fecha: ${new Date().toLocaleDateString('es-MX')}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nombre</th>
+              <th>Grado</th>
+              <th>Programa Lectura</th>
+              <th>Programa Matemáticas</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${alumnosMaestra.map((a, i) => `
+              <tr>
+                <td>${i + 1}</td>
+                <td>${a.nombre}</td>
+                <td>${a.grado || '—'}</td>
+                <td>${a.programa_lectura || (a.programa_personalizado_lectura ? 'Personalizado' : '—')}</td>
+                <td>${a.programa_matematicas || (a.programa_personalizado_matematicas ? 'Personalizado' : '—')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <p class="total">Total de alumnos: ${alumnosMaestra.length}</p>
+      </body>
+      </html>
+    `)
+    ventana.document.close()
+    ventana.focus()
+    ventana.print()
+    ventana.close()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
+        <div className="p-5 border-b flex justify-between items-center">
+          <h3 className="font-bold text-gray-800">📋 Lista de alumnos por maestra</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Seleccionar maestra</label>
+            <select value={maestraSeleccionada} onChange={e => setMaestraSeleccionada(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+              <option value="">Seleccionar...</option>
+              {maestras.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+            </select>
+          </div>
+
+          {maestraSeleccionada && (
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <p className="text-sm font-medium text-gray-700">
+                  Total: <span className="text-purple-700 font-bold">{alumnosMaestra.length} alumnos</span>
+                </p>
+                <button onClick={imprimir}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                  🖨️ Imprimir lista
+                </button>
+              </div>
+              <div className="max-h-64 overflow-y-auto border rounded-lg">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 border-b sticky top-0">
+                    <tr>
+                      <th className="text-left px-3 py-2 text-gray-500 font-medium">#</th>
+                      <th className="text-left px-3 py-2 text-gray-500 font-medium">Nombre</th>
+                      <th className="text-left px-3 py-2 text-gray-500 font-medium">Grado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {alumnosMaestra.map((a, i) => (
+                      <tr key={i} className="hover:bg-gray-50">
+                        <td className="px-3 py-2 text-gray-400">{i + 1}</td>
+                        <td className="px-3 py-2 font-medium text-gray-800">{a.nombre}</td>
+                        <td className="px-3 py-2 text-gray-500">{a.grado || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          <button onClick={onClose}
+            className="w-full border border-gray-300 text-gray-700 py-2 rounded-lg text-sm">
+            Cerrar
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

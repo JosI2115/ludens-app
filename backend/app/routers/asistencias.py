@@ -11,18 +11,34 @@ from app.models.usuario import Usuario
 
 router = APIRouter(prefix="/asistencias", tags=["asistencias"])
 
-def alumno_asiste_hoy(horario: str, dia_semana: int) -> bool:
-    """
-    dia_semana: 0=Lunes, 1=Martes, 2=Miércoles, 3=Jueves, 4=Viernes, 5=Sábado
-    """
+def alumno_asiste_hoy(horario, dia_semana, horario_json=None):
+    import json
+
+    # Primero intentar con horario_json
+    if horario_json:
+        try:
+            franjas = json.loads(horario_json)
+            DIAS_MAP = {
+                'Lunes': 0, 'Martes': 1, 'Miércoles': 2, 'Miercoles': 2,
+                'Jueves': 3, 'Viernes': 4, 'Sábado': 5, 'Sabado': 5
+            }
+            for franja in franjas:
+                dia_nombre = franja.get('dia', '')
+                dia_num = DIAS_MAP.get(dia_nombre)
+                if dia_num == dia_semana:
+                    return True
+            return False
+        except:
+            pass
+
+    # Fallback al horario texto
     if not horario:
-        return True  # Si no tiene horario registrado, mostrar siempre
+        return False  # Sin horario no aparece
 
     dias_map = {
         'lunes': 0, 'martes': 1, 'miércoles': 2, 'miercoles': 2,
         'jueves': 3, 'viernes': 4, 'sábado': 5, 'sabado': 5
     }
-
     horario_lower = horario.lower()
     for dia_nombre, dia_num in dias_map.items():
         if dia_nombre in horario_lower and dia_num == dia_semana:
@@ -86,7 +102,7 @@ def get_alumnos_del_dia(
 
     dia_semana = fecha.weekday()  # 0=Lunes, 6=Domingo
     if not todos:
-        alumnos_filtrados = [a for a in alumnos if alumno_asiste_hoy(a.horario, dia_semana)]
+        alumnos_filtrados = [a for a in alumnos if alumno_asiste_hoy(a.horario, dia_semana, a.horario_json)]
     else:
         alumnos_filtrados = alumnos
 

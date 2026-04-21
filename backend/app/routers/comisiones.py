@@ -98,28 +98,39 @@ def calcular_comisiones(
 
         comisiones_sucursal = []
 
-        # Comisión por inscrito ($100 por persona que atendió)
+        # Comisión por inscrito ($100 dividido entre las personas asignadas)
         comisiones_individuales = {}
         for inf in inscritos_mes:
-            for uid in [str(inf.comision_usuario1_id), str(inf.comision_usuario2_id)]:
-                if uid and uid != 'None':
-                    if uid not in comisiones_individuales:
-                        comisiones_individuales[uid] = 0
-                    comisiones_individuales[uid] += 100
+            # Contar cuántas personas tienen comisión asignada
+            personas = []
+            if inf.comision_usuario1_id:
+                personas.append(str(inf.comision_usuario1_id))
+            if inf.comision_usuario2_id:
+                personas.append(str(inf.comision_usuario2_id))
 
-        for uid, monto in comisiones_individuales.items():
+            if not personas:
+                continue
+
+            # Dividir $100 entre las personas asignadas
+            monto_por_persona = 100 / len(personas)
+
+            for uid in personas:
+                if uid not in comisiones_individuales:
+                    comisiones_individuales[uid] = {"monto": 0, "inscritos": []}
+                comisiones_individuales[uid]["monto"] += monto_por_persona
+                nombre_nino = inf.nombre_nino or inf.nombre_contacto or "Alumno"
+                comisiones_individuales[uid]["inscritos"].append(nombre_nino)
+
+        for uid, data in comisiones_individuales.items():
             u = db.query(Usuario).filter(Usuario.id == uid).first()
             if u:
-                ninos = ', '.join([
-                    i.nombre_nino or i.nombre_contacto
-                    for i in inscritos_mes
-                    if str(i.comision_usuario1_id) == uid or str(i.comision_usuario2_id) == uid
-                ])
+                monto = data["monto"]
+                nombres = ', '.join(data["inscritos"])
                 comisiones_sucursal.append({
                     "tipo": "inscrito",
                     "usuario": u.nombre,
                     "monto": monto,
-                    "descripcion": f"${monto} por {monto//100} inscrito(s): {ninos}"
+                    "descripcion": f"${monto:.0f} por {len(data['inscritos'])} inscrito(s): {nombres}"
                 })
 
         # Bono tabulador por sucursal

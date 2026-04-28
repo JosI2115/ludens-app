@@ -400,14 +400,33 @@ def get_espacios_maestra(
 
     fechas_semana = [inicio_semana + timedelta(days=i) for i in range(6)]
 
+    from app.models.usuario_sucursal import UsuarioSucursal
+    from sqlalchemy import or_
+
     query_maestras = db.query(UsuarioModel).filter(
-        UsuarioModel.rol.in_(['maestra']),
+        UsuarioModel.rol.in_(['maestra', 'encargada']),
         UsuarioModel.activo == True
     )
+
     if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
-        query_maestras = query_maestras.filter(UsuarioModel.sucursal_id == current_user.sucursal_id)
+        sucursal_filtro = current_user.sucursal_id
     elif sucursal_id:
-        query_maestras = query_maestras.filter(UsuarioModel.sucursal_id == sucursal_id)
+        sucursal_filtro = sucursal_id
+    else:
+        sucursal_filtro = None
+
+    if sucursal_filtro:
+        query_maestras = query_maestras.filter(
+            or_(
+                UsuarioModel.sucursal_id == sucursal_filtro,
+                UsuarioModel.es_global == True,
+                UsuarioModel.id.in_(
+                    db.query(UsuarioSucursal.usuario_id).filter(
+                        UsuarioSucursal.sucursal_id == sucursal_filtro
+                    )
+                )
+            )
+        )
 
     maestras = query_maestras.all()
 

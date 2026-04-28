@@ -251,10 +251,31 @@ def get_vista_maestra(
         Alumno.activo == True,
         Alumno.situacion.in_(["activo", "pendiente", "en_riesgo"])
     )
-    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
-        query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
-    elif sucursal_id:
-        query = query.filter(Alumno.sucursal_id == sucursal_id)
+    from app.models.usuario_sucursal import UsuarioSucursal
+    from sqlalchemy import or_
+
+    if current_user.rol == 'directora' or current_user.es_encargada_general:
+        if sucursal_id:
+            query = query.filter(Alumno.sucursal_id == sucursal_id)
+    elif current_user.es_global:
+        query = query.filter(
+            or_(
+                Alumno.maestra_id == current_user.id,
+                Alumno.maestra_lectura_id == current_user.id,
+                Alumno.maestra_matematicas_id == current_user.id
+            )
+        )
+    elif current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        if current_user.sucursal_id:
+            query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+        else:
+            query = query.filter(
+                or_(
+                    Alumno.maestra_id == current_user.id,
+                    Alumno.maestra_lectura_id == current_user.id,
+                    Alumno.maestra_matematicas_id == current_user.id
+                )
+            )
 
     alumnos = query.order_by(Alumno.nombre).all()
 

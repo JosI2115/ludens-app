@@ -942,3 +942,20 @@ def fix_columnas(
             except Exception as e:
                 resultados.append(f"SKIP: {str(e)[:40]}")
     return {"ok": len([r for r in resultados if r == "OK"]), "total": len(columnas)}
+
+@router.post("/admin/fix-bajas")
+def fix_bajas(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    if current_user.rol != "directora":
+        raise HTTPException(status_code=403, detail="Solo directora")
+    from app.models.alumno import Alumno
+    bajas = db.query(Alumno).filter(
+        Alumno.activo == False,
+        Alumno.situacion == 'baja'
+    ).all()
+    for a in bajas:
+        a.activo = True
+    db.commit()
+    return {"arreglados": len(bajas), "nombres": [f"{a.nombre} {a.apellido}" for a in bajas]}

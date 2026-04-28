@@ -368,7 +368,6 @@ def dar_baja_alumno(
     from datetime import datetime as dt
     alumno.fecha_baja = dt.strptime(fecha_baja, '%Y-%m-%d').date() if fecha_baja else date.today()
     alumno.motivo_baja = motivo
-    alumno.activo = False
     db.commit()
     return {"mensaje": "Alumno dado de baja correctamente"}
 

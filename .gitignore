@@ -1,0 +1,5 @@
+*.sql
+backup_produccion.sql
+*.pyc
+__pycache__/
+.claude/settings.local.json

@@ -22,6 +22,8 @@ export default function Calendario() {
   const [modalRecup, setModalRecup] = useState(null)
   const [vistaActual, setVistaActual] = useState('general')
   const [datosMaestras, setDatosMaestras] = useState(null)
+  const [datosEspacios, setDatosEspacios] = useState(null)
+  const [diaEspacios, setDiaEspacios] = useState(new Date().getDay() === 0 ? 6 : new Date().getDay() - 1)
   const [sucursales, setSucursales] = useState([])
   const [sucursalFiltro, setSucursalFiltro] = useState('')
   const [nuevosAlumnos, setNuevosAlumnos] = useState([])
@@ -36,6 +38,7 @@ export default function Calendario() {
     }
     cargarCalendario()
     cargarCalendarioMaestras()
+    cargarEspacios()
     cargarNuevosAlumnos()
     cargarProspectos()
   }, [fechaInicio, sucursalFiltro])
@@ -90,6 +93,18 @@ export default function Calendario() {
     }
   }
 
+  const cargarEspacios = async () => {
+    try {
+      const params = {}
+      if (fechaInicio) params.fecha_inicio = fechaInicio
+      if (sucursalFiltro) params.sucursal_id = sucursalFiltro
+      const res = await api.get('/calendario/espacios-maestra', { params })
+      setDatosEspacios(res.data)
+    } catch (err) {
+      console.error('Error cargando espacios')
+    }
+  }
+
   const cargarCalendarioMaestras = async () => {
     try {
       const params = {}
@@ -122,26 +137,30 @@ export default function Calendario() {
     }
   }
 
+  const getLunesActual = () => {
+    const hoy = new Date()
+    const dia = hoy.getDay()
+    const diff = dia === 0 ? -6 : 1 - dia
+    const lunes = new Date(hoy)
+    lunes.setDate(hoy.getDate() + diff)
+    return `${lunes.getFullYear()}-${String(lunes.getMonth()+1).padStart(2,'0')}-${String(lunes.getDate()).padStart(2,'0')}`
+  }
+
+  const getFechaBase = () => fechaInicio || getLunesActual()
+
   const semanaAnterior = () => {
-    const base = fechaInicio ? new Date(fechaInicio + 'T00:00:00') : new Date()
-    const lunes = new Date(base)
-    lunes.setDate(lunes.getDate() - lunes.getDay() + (lunes.getDay() === 0 ? -6 : 1) - 7)
-    setFechaInicio(lunes.toISOString().split('T')[0])
+    const base = new Date(getFechaBase() + 'T12:00:00')
+    base.setDate(base.getDate() - 7)
+    setFechaInicio(`${base.getFullYear()}-${String(base.getMonth()+1).padStart(2,'0')}-${String(base.getDate()).padStart(2,'0')}`)
   }
 
   const semanaSiguiente = () => {
-    const base = fechaInicio ? new Date(fechaInicio + 'T00:00:00') : new Date()
-    const lunes = new Date(base)
-    lunes.setDate(lunes.getDate() - lunes.getDay() + (lunes.getDay() === 0 ? -6 : 1) + 7)
-    setFechaInicio(lunes.toISOString().split('T')[0])
+    const base = new Date(getFechaBase() + 'T12:00:00')
+    base.setDate(base.getDate() + 7)
+    setFechaInicio(`${base.getFullYear()}-${String(base.getMonth()+1).padStart(2,'0')}-${String(base.getDate()).padStart(2,'0')}`)
   }
 
-  const semanaActual = () => {
-    const hoy = new Date()
-    const lunes = new Date(hoy)
-    lunes.setDate(hoy.getDate() - hoy.getDay() + (hoy.getDay() === 0 ? -6 : 1))
-    setFechaInicio(lunes.toISOString().split('T')[0])
-  }
+  const semanaActual = () => setFechaInicio('')
 
   if (loading) return <div className="p-6 text-gray-400 text-center py-12">Cargando calendario...</div>
   if (!datos) return null
@@ -159,6 +178,10 @@ export default function Calendario() {
             <button onClick={() => setVistaActual('maestras')}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${vistaActual === 'maestras' ? 'bg-white shadow text-purple-700' : 'text-gray-600'}`}>
               👩‍🏫 Maestras
+            </button>
+            <button onClick={() => setVistaActual('espacios')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${vistaActual === 'espacios' ? 'bg-white shadow text-purple-700' : 'text-gray-600'}`}>
+              📊 Espacios
             </button>
           </div>
           {(usuario.rol === 'directora' || usuario.rol === 'contadora') && (
@@ -316,6 +339,69 @@ export default function Calendario() {
                   })}
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {vistaActual === 'espacios' && datosEspacios && (
+        <div className="overflow-x-auto">
+          <div className="flex gap-2 mb-4 flex-wrap">
+            {DIAS.map((dia, i) => (
+              <button key={i} onClick={() => setDiaEspacios(i)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${diaEspacios === i ? 'bg-purple-600 text-white' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
+                {dia}
+              </button>
+            ))}
+          </div>
+          <table className="w-full border-collapse" style={{minWidth: '900px'}}>
+            <thead>
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200">Hora</th>
+                {datosEspacios.maestras.map((m, i) => (
+                  <th key={i} className="px-3 py-3 text-center text-xs font-medium bg-gray-50 border border-gray-200">
+                    <div className="flex items-center justify-center gap-1">
+                      <div className="w-3 h-3 rounded-full" style={{backgroundColor: m.color}}></div>
+                      <span>{m.nombre}</span>
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {datosEspacios.horas.map(hora => {
+                const getAsignadosMaestraDia = (maestraId) => {
+                  if (!datos) return 0
+                  const alumnosDia = datos.calendario[hora]?.[String(diaEspacios)] || []
+                  return alumnosDia.filter(a => a.maestra_id === maestraId).length
+                }
+                return (
+                  <tr key={hora}>
+                    <td className="px-4 py-2 text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200">{hora}</td>
+                    {datosEspacios.maestras.map((m, mi) => {
+                      const asignados = getAsignadosMaestraDia(m.maestra_id)
+                      const disponibles = Math.max(0, 4 - asignados)
+                      const lleno = asignados >= 4
+                      return (
+                        <td key={mi} className={`px-3 py-2 text-center border border-gray-200 ${
+                          lleno ? 'bg-red-50' : disponibles <= 1 ? 'bg-yellow-50' : 'bg-white'
+                        }`}>
+                          {asignados > 0 ? (
+                            <div>
+                              <p className={`text-xs font-bold ${lleno ? 'text-red-600' : disponibles <= 1 ? 'text-yellow-600' : 'text-green-600'}`}>
+                                {disponibles} disponible{disponibles !== 1 ? 's' : ''}
+                              </p>
+                              <p className="text-xs text-gray-400">{asignados}/4 ocupados</p>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-gray-300">4 disponibles</p>
+                          )}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

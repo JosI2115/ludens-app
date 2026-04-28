@@ -107,6 +107,7 @@ def startup():
             "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programa_personalizado_matematicas BOOLEAN DEFAULT FALSE",
             "ALTER TABLE bitacoras ALTER COLUMN programa TYPE VARCHAR(100)",
             "CREATE TABLE IF NOT EXISTS usuario_sucursales (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE, sucursal_id UUID REFERENCES sucursales(id) ON DELETE CASCADE, created_at TIMESTAMPTZ DEFAULT NOW())",
+            "CREATE TABLE IF NOT EXISTS tareas_asignadas (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), asignada_a UUID NOT NULL, asignada_por UUID NOT NULL, texto TEXT NOT NULL, completada BOOLEAN DEFAULT FALSE, fecha_completada TIMESTAMPTZ, notificacion_vista BOOLEAN DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT NOW())",
         ]
         for sql in migraciones_auto:
             try:

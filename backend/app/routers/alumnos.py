@@ -353,6 +353,7 @@ def actualizar_alumno(
 def dar_baja_alumno(
     alumno_id: str,
     motivo: Optional[str] = None,
+    fecha_baja: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
@@ -364,7 +365,8 @@ def dar_baja_alumno(
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
 
     alumno.situacion = "baja"
-    alumno.fecha_baja = date.today()
+    from datetime import datetime as dt
+    alumno.fecha_baja = dt.strptime(fecha_baja, '%Y-%m-%d').date() if fecha_baja else date.today()
     alumno.motivo_baja = motivo
     alumno.activo = False
     db.commit()

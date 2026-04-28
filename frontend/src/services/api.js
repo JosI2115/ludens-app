@@ -39,7 +39,7 @@ export const alumnosService = {
   getPerfil: (id) => api.get(`/alumnos/${id}/perfil`),
   crear: (data) => api.post('/alumnos/', data),
   actualizar: (id, data) => api.put(`/alumnos/${id}`, data),
-  darBaja: (id, motivo) => api.delete(`/alumnos/${id}`, { params: { motivo } }),
+  darBaja: (id, motivo, fecha_baja) => api.delete(`/alumnos/${id}?motivo=${encodeURIComponent(motivo)}&fecha_baja=${fecha_baja}`),
   eliminarCompleto: (id) => api.delete(`/alumnos/${id}/eliminar`),
 }
 

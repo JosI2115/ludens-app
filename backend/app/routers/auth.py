@@ -99,7 +99,7 @@ def dashboard_stats(
         query_base = query_base.filter(Alumno.sucursal_id == current_user.sucursal_id)
 
     # Total alumnos activos
-    total_activos = query_base.filter(Alumno.activo == True, Alumno.situacion != 'baja').count()
+    total_activos = query_base.filter(Alumno.activo == True, Alumno.situacion == 'activo').count()
 
     # Alumnos nuevos este mes
     nuevos_mes = query_base.filter(
@@ -419,7 +419,119 @@ def dashboard_pendientes(
             "items": alertas_reporte[:5]
         })
 
+    # Tareas asignadas pendientes
+    from app.models.aviso import TareaAsignada
+
+    if current_user.rol != 'directora':
+        tareas_pendientes = db.query(TareaAsignada).filter(
+            TareaAsignada.asignada_a == current_user.id,
+            TareaAsignada.completada == False
+        ).all()
+        if tareas_pendientes:
+            pendientes.append({
+                "categoria": "📌 Tareas asignadas",
+                "items": [{
+                    "tipo": "tarea_asignada",
+                    "mensaje": t.texto,
+                    "urgente": False,
+                    "tarea_id": str(t.id)
+                } for t in tareas_pendientes]
+            })
+    else:
+        tareas_completadas = db.query(TareaAsignada).filter(
+            TareaAsignada.asignada_por == current_user.id,
+            TareaAsignada.completada == True,
+            TareaAsignada.notificacion_vista == False
+        ).all()
+        if tareas_completadas:
+            asignados = {str(t.asignada_a): db.query(Usuario).filter(Usuario.id == t.asignada_a).first() for t in tareas_completadas}
+            pendientes.append({
+                "categoria": "✅ Tareas completadas",
+                "items": [{
+                    "tipo": "tarea_completada",
+                    "mensaje": f"{asignados.get(str(t.asignada_a)).nombre if asignados.get(str(t.asignada_a)) else '?'} completó: {t.texto}",
+                    "urgente": False,
+                    "tarea_id": str(t.id)
+                } for t in tareas_completadas]
+            })
+
     return pendientes
+
+@router.get("/tareas-asignadas")
+def get_tareas_asignadas(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.aviso import TareaAsignada
+    if current_user.rol == 'directora':
+        tareas = db.query(TareaAsignada).order_by(TareaAsignada.created_at.desc()).all()
+    else:
+        tareas = db.query(TareaAsignada).filter(
+            TareaAsignada.asignada_a == current_user.id,
+            TareaAsignada.completada == False
+        ).order_by(TareaAsignada.created_at.desc()).all()
+
+    resultado = []
+    for t in tareas:
+        asignado = db.query(Usuario).filter(Usuario.id == t.asignada_a).first()
+        resultado.append({
+            "id": str(t.id),
+            "texto": t.texto,
+            "completada": t.completada,
+            "asignada_a_nombre": asignado.nombre if asignado else "—",
+            "asignada_a": str(t.asignada_a),
+            "notificacion_vista": t.notificacion_vista,
+            "fecha_completada": str(t.fecha_completada) if t.fecha_completada else None,
+            "created_at": str(t.created_at)
+        })
+    return resultado
+
+@router.post("/tareas-asignadas")
+def crear_tarea_asignada(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.aviso import TareaAsignada
+    if current_user.rol != 'directora':
+        raise HTTPException(status_code=403, detail="Solo la directora puede asignar tareas")
+    tarea = TareaAsignada(
+        asignada_a=data.get("asignada_a"),
+        asignada_por=current_user.id,
+        texto=data.get("texto")
+    )
+    db.add(tarea)
+    db.commit()
+    return {"mensaje": "Tarea asignada"}
+
+@router.put("/tareas-asignadas/{tarea_id}/completar")
+def completar_tarea(
+    tarea_id: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.aviso import TareaAsignada
+    from datetime import datetime
+    tarea = db.query(TareaAsignada).filter(TareaAsignada.id == tarea_id).first()
+    if not tarea:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+    tarea.completada = True
+    tarea.fecha_completada = datetime.now()
+    db.commit()
+    return {"mensaje": "Tarea completada"}
+
+@router.put("/tareas-asignadas/{tarea_id}/ver-notificacion")
+def ver_notificacion_tarea(
+    tarea_id: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.aviso import TareaAsignada
+    tarea = db.query(TareaAsignada).filter(TareaAsignada.id == tarea_id).first()
+    if tarea:
+        tarea.notificacion_vista = True
+        db.commit()
+    return {"mensaje": "OK"}
 
 @router.get("/dashboard/cumpleanos")
 def dashboard_cumpleanos(

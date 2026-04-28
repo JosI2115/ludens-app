@@ -58,16 +58,27 @@ export default function ActividadDocente() {
     }
   }
 
+  const getLunesActual = () => {
+    const hoy = new Date()
+    const dia = hoy.getDay()
+    const diff = dia === 0 ? -6 : 1 - dia
+    const lunes = new Date(hoy)
+    lunes.setDate(hoy.getDate() + diff)
+    return `${lunes.getFullYear()}-${String(lunes.getMonth()+1).padStart(2,'0')}-${String(lunes.getDate()).padStart(2,'0')}`
+  }
+
+  const getFechaBase = () => fechaInicio || getLunesActual()
+
   const semanaAnterior = () => {
-    const base = fechaInicio ? new Date(fechaInicio + 'T12:00:00') : new Date()
+    const base = new Date(getFechaBase() + 'T12:00:00')
     base.setDate(base.getDate() - 7)
-    setFechaInicio(base.toISOString().split('T')[0])
+    setFechaInicio(`${base.getFullYear()}-${String(base.getMonth()+1).padStart(2,'0')}-${String(base.getDate()).padStart(2,'0')}`)
   }
 
   const semanaSiguiente = () => {
-    const base = fechaInicio ? new Date(fechaInicio + 'T12:00:00') : new Date()
+    const base = new Date(getFechaBase() + 'T12:00:00')
     base.setDate(base.getDate() + 7)
-    setFechaInicio(base.toISOString().split('T')[0])
+    setFechaInicio(`${base.getFullYear()}-${String(base.getMonth()+1).padStart(2,'0')}-${String(base.getDate()).padStart(2,'0')}`)
   }
 
   if (loading) return <div className="p-6 text-center text-gray-400">Cargando...</div>

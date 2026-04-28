@@ -190,7 +190,9 @@ export default function Bitacoras() {
           ...data, es_personalizado: true, programa: progPersonalizado
         })
       }
-      return actualizarRegistro(nomenclatura, Object.keys(data)[0], Object.values(data)[0])
+      return api.put(`/bitacoras/registro/${alumnoSeleccionado.id}/${encodeURIComponent(nomenclatura)}`, {
+        ...data, registrado_por_nombre: usuario.nombre
+      })
     })
 
     await Promise.all(promesas)

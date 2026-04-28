@@ -16,6 +16,10 @@ export default function Dashboard() {
   const [mostrarFormAviso, setMostrarFormAviso] = useState(false)
   const [pendientesPersonales, setPendientesPersonales] = useState([])
   const [nuevoPendiente, setNuevoPendiente] = useState('')
+  const [tareasAsignadas, setTareasAsignadas] = useState([])
+  const [modalTarea, setModalTarea] = useState(false)
+  const [usuariosTareas, setUsuariosTareas] = useState([])
+  const [nuevaTarea, setNuevaTarea] = useState({ asignada_a: '', texto: '' })
 
   const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
@@ -24,6 +28,10 @@ export default function Dashboard() {
     cargarStats()
     cargarAvisos()
     cargarPendientesPersonales()
+    cargarTareasAsignadas()
+    if (usuario.rol === 'directora') {
+      api.get('/usuarios/lista-basica').then(res => setUsuariosTareas(res.data))
+    }
   }, [])
 
   const cargarPendientes = async () => {
@@ -73,6 +81,46 @@ export default function Dashboard() {
     try {
       await api.delete(`/auth/pendientes-personales/${id}`)
       cargarPendientesPersonales()
+    } catch (err) {
+      console.error('Error')
+    }
+  }
+
+  const cargarTareasAsignadas = async () => {
+    try {
+      const res = await api.get('/auth/tareas-asignadas')
+      setTareasAsignadas(res.data)
+    } catch (err) {
+      console.error('Error cargando tareas')
+    }
+  }
+
+  const crearTarea = async () => {
+    if (!nuevaTarea.asignada_a || !nuevaTarea.texto.trim()) return
+    try {
+      await api.post('/auth/tareas-asignadas', nuevaTarea)
+      setNuevaTarea({ asignada_a: '', texto: '' })
+      setModalTarea(false)
+      cargarTareasAsignadas()
+    } catch (err) {
+      console.error('Error creando tarea')
+    }
+  }
+
+  const completarTarea = async (tarea_id) => {
+    try {
+      await api.put(`/auth/tareas-asignadas/${tarea_id}/completar`)
+      cargarPendientes()
+    } catch (err) {
+      console.error('Error completando tarea')
+    }
+  }
+
+  const verNotificacion = async (tarea_id) => {
+    try {
+      await api.put(`/auth/tareas-asignadas/${tarea_id}/ver-notificacion`)
+      cargarTareasAsignadas()
+      cargarPendientes()
     } catch (err) {
       console.error('Error')
     }
@@ -275,6 +323,47 @@ export default function Dashboard() {
             </div>
           )}
 
+          {usuario.rol === 'directora' && (
+            <div className="mb-6 bg-white rounded-xl shadow p-5">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-bold text-gray-700 text-sm uppercase tracking-wide">📌 Tareas asignadas</h3>
+                <button onClick={() => setModalTarea(true)}
+                  className="text-sm bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1.5 rounded-lg font-medium">
+                  + Asignar tarea
+                </button>
+              </div>
+              {tareasAsignadas.filter(t => !t.completada).length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-2">Sin tareas pendientes</p>
+              ) : (
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {tareasAsignadas.filter(t => !t.completada).map((t, i) => (
+                    <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                      <div>
+                        <p className="text-xs text-purple-600 font-medium">{t.asignada_a_nombre}</p>
+                        <p className="text-sm text-gray-700">{t.texto}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {tareasAsignadas.filter(t => t.completada && !t.notificacion_vista).length > 0 && (
+                <div className="mt-3 border-t pt-3">
+                  <p className="text-xs font-medium text-green-600 mb-2">✅ Recién completadas:</p>
+                  {tareasAsignadas.filter(t => t.completada && !t.notificacion_vista).map((t, i) => (
+                    <div key={i} className="flex items-center justify-between bg-green-50 rounded-lg px-3 py-2 mb-1">
+                      <div>
+                        <p className="text-xs text-green-600 font-medium">{t.asignada_a_nombre}</p>
+                        <p className="text-sm text-gray-700">{t.texto}</p>
+                      </div>
+                      <button onClick={() => verNotificacion(t.id)}
+                        className="text-xs text-green-600 hover:text-green-800 ml-2">✓ Visto</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {pendientes.length > 0 && (
             <div className="mb-8">
               <h3 className="text-base font-bold text-gray-700 mb-4">Pendientes</h3>
@@ -305,6 +394,18 @@ export default function Dashboard() {
                               className="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded font-medium flex-shrink-0"
                             >
                               ✓ Listo
+                            </button>
+                          )}
+                          {item.tipo === 'tarea_asignada' && (
+                            <button onClick={() => completarTarea(item.tarea_id)}
+                              className="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded font-medium flex-shrink-0">
+                              ✓ Listo
+                            </button>
+                          )}
+                          {item.tipo === 'tarea_completada' && (
+                            <button onClick={() => verNotificacion(item.tarea_id)}
+                              className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded font-medium flex-shrink-0">
+                              ✓ Visto
                             </button>
                           )}
                         </div>
@@ -382,6 +483,43 @@ export default function Dashboard() {
             )}
           </div>
         </>
+      )}
+      {modalTarea && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+            <div className="p-5 border-b flex justify-between items-center">
+              <h3 className="font-bold text-gray-800">📌 Asignar tarea</h3>
+              <button onClick={() => setModalTarea(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Asignar a</label>
+                <select value={nuevaTarea.asignada_a} onChange={e => setNuevaTarea(t => ({...t, asignada_a: e.target.value}))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                  <option value="">Seleccionar persona...</option>
+                  {usuariosTareas.filter(u => u.rol !== 'directora').map(u => (
+                    <option key={u.id} value={u.id}>{u.nombre} ({u.rol})</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tarea</label>
+                <textarea value={nuevaTarea.texto} onChange={e => setNuevaTarea(t => ({...t, texto: e.target.value}))}
+                  placeholder="Describe la tarea..."
+                  rows={3}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none" />
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setModalTarea(false)}
+                  className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg text-sm">Cancelar</button>
+                <button onClick={crearTarea} disabled={!nuevaTarea.asignada_a || !nuevaTarea.texto.trim()}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white py-2 rounded-lg text-sm font-medium">
+                  Asignar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

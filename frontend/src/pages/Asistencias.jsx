@@ -4,9 +4,12 @@ import { asistenciasService, sucursalesService } from '../services/api'
 const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
 export default function Asistencias() {
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoyLocal = () => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+  }
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
-  const [fecha, setFecha] = useState(hoy)
+  const [fecha, setFecha] = useState(hoyLocal())
   const [alumnos, setAlumnos] = useState([])
   const [loading, setLoading] = useState(true)
   const [guardando, setGuardando] = useState({})

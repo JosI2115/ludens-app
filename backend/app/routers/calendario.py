@@ -380,6 +380,82 @@ def get_calendario_maestras(
         }
     }
 
+@router.get("/espacios-maestra")
+def get_espacios_maestra(
+    fecha_inicio: Optional[str] = None,
+    sucursal_id: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from datetime import datetime
+    from app.models.usuario import Usuario as UsuarioModel
+
+    MAX_POR_HORA = 4
+    hoy = date.today()
+    if fecha_inicio:
+        inicio_semana = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+    else:
+        dias_lunes = hoy.weekday()
+        inicio_semana = hoy - timedelta(days=dias_lunes)
+
+    fechas_semana = [inicio_semana + timedelta(days=i) for i in range(6)]
+
+    query_maestras = db.query(UsuarioModel).filter(
+        UsuarioModel.rol.in_(['maestra']),
+        UsuarioModel.activo == True
+    )
+    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
+        query_maestras = query_maestras.filter(UsuarioModel.sucursal_id == current_user.sucursal_id)
+    elif sucursal_id:
+        query_maestras = query_maestras.filter(UsuarioModel.sucursal_id == sucursal_id)
+
+    maestras = query_maestras.all()
+
+    query_alumnos = db.query(Alumno).filter(
+        Alumno.activo == True,
+        Alumno.situacion.in_(['activo', 'inscripcion', 'becado', 'pendiente'])
+    )
+    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
+        query_alumnos = query_alumnos.filter(Alumno.sucursal_id == current_user.sucursal_id)
+    elif sucursal_id:
+        query_alumnos = query_alumnos.filter(Alumno.sucursal_id == sucursal_id)
+
+    alumnos = query_alumnos.all()
+
+    resultado = []
+    for maestra in maestras:
+        espacios_por_hora = {}
+        for hora in HORAS:
+            count = 0
+            for alumno in alumnos:
+                if not alumno.horario_json:
+                    continue
+                try:
+                    import json
+                    franjas = json.loads(alumno.horario_json)
+                    for franja in franjas:
+                        if (franja.get('maestra_id') == str(maestra.id) and
+                                franja.get('hora_inicio') == hora):
+                            count += 1
+                except:
+                    pass
+
+            disponibles = MAX_POR_HORA - count
+            espacios_por_hora[hora] = {
+                "asignados": count,
+                "disponibles": max(0, disponibles),
+                "lleno": count >= MAX_POR_HORA
+            }
+
+        resultado.append({
+            "maestra_id": str(maestra.id),
+            "nombre": maestra.nombre,
+            "color": maestra.color or "#9B59B6",
+            "espacios": espacios_por_hora
+        })
+
+    return {"horas": HORAS, "maestras": resultado}
+
 @router.get("/nuevos")
 def get_nuevos_alumnos(
     fecha_inicio: Optional[str] = None,

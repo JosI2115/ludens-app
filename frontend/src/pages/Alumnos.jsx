@@ -38,6 +38,9 @@ export default function Alumnos() {
   const [modalAbierto, setModalAbierto] = useState(false)
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null)
   const [error, setError] = useState('')
+  const [modalBaja, setModalBaja] = useState(null)
+  const [fechaBaja, setFechaBaja] = useState(new Date().toISOString().split('T')[0])
+  const [motivoBaja, setMotivoBaja] = useState('')
 
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
 
@@ -53,6 +56,26 @@ export default function Alumnos() {
       setModalAbierto(true)
     }
   }, [])
+
+  const iniciarBaja = (alumno) => {
+    setModalBaja(alumno)
+    setFechaBaja(new Date().toISOString().split('T')[0])
+    setMotivoBaja('')
+  }
+
+  const confirmarBaja = async () => {
+    if (!motivoBaja.trim()) {
+      alert('El motivo de baja es obligatorio')
+      return
+    }
+    try {
+      await alumnosService.darBaja(modalBaja.id, motivoBaja, fechaBaja)
+      setModalBaja(null)
+      cargarAlumnos()
+    } catch (err) {
+      alert('Error al dar de baja')
+    }
+  }
 
   const cargarSucursales = async () => {
     try {
@@ -232,6 +255,14 @@ export default function Alumnos() {
                     >
                       Editar
                     </button>
+                    {(usuario.rol === 'directora' || usuario.rol === 'encargada' || usuario.rol === 'recepcionista') && alumno.situacion !== 'baja' && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); iniciarBaja(alumno) }}
+                        className="text-orange-500 hover:text-orange-700 text-xs font-medium ml-2"
+                      >
+                        Dar de baja
+                      </button>
+                    )}
                     {(usuario.rol === 'directora' || usuario.rol === 'encargada' || usuario.rol === 'recepcionista') && (
                       <button
                         onClick={async (e) => {
@@ -263,6 +294,39 @@ export default function Alumnos() {
           onClose={() => setModalAbierto(false)}
           onSuccess={() => { setModalAbierto(false); cargarAlumnos() }}
         />
+      )}
+
+      {modalBaja && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+            <div className="p-5 border-b flex justify-between items-center">
+              <h3 className="font-bold text-gray-800">Dar de baja a {modalBaja.nombre} {modalBaja.apellido}</h3>
+              <button onClick={() => setModalBaja(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de baja *</label>
+                <input type="date" value={fechaBaja} onChange={e => setFechaBaja(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Motivo de baja *</label>
+                <textarea value={motivoBaja} onChange={e => setMotivoBaja(e.target.value)}
+                  placeholder="Ej: Se cambió de escuela, No siguió pagando..."
+                  rows={3}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none" />
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setModalBaja(null)}
+                  className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg text-sm">Cancelar</button>
+                <button onClick={confirmarBaja}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg text-sm font-medium">
+                  Dar de baja
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

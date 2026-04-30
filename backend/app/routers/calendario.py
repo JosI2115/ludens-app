@@ -124,6 +124,12 @@ def get_calendario_semana(
 
     alumnos = query.all()
 
+    # Limpiar confirmaciones de días pasados
+    db.query(ConfirmacionAsistencia).filter(
+        ConfirmacionAsistencia.fecha < hoy
+    ).delete()
+    db.commit()
+
     confirmaciones = db.query(ConfirmacionAsistencia).filter(
         ConfirmacionAsistencia.fecha.in_(fechas_semana)
     ).all()

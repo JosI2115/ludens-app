@@ -239,7 +239,7 @@ export default function Expedientes() {
 
   const filtrados = alumnos.filter(a =>
     `${a.nombre} ${a.apellido}`.toLowerCase().includes(busqueda.toLowerCase()) &&
-    (filtroMaestra === '' || a.maestra_id === filtroMaestra)
+    (filtroMaestra === '' || a.maestra_id === filtroMaestra || a.maestra_lectura_id === filtroMaestra || a.maestra_matematicas_id === filtroMaestra)
   )
 
   return (

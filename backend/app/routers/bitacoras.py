@@ -77,6 +77,7 @@ def get_bitacora_alumno(
             actividades_catalogo,
             key=lambda x: (
                 x.semana or 0,
+                1 if ('EX' in (x.nomenclatura or '').upper()) else 0,
                 x.nomenclatura.split('.')[-2] if len(x.nomenclatura.split('.')) > 2 else '',
                 int(x.nomenclatura.split('.')[-1]) if x.nomenclatura.split('.')[-1].isdigit() else 0
             )

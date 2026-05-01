@@ -117,8 +117,20 @@ def get_calendario_semana(
         Alumno.activo == True,
         Alumno.situacion.in_(['activo', 'inscripcion', 'becado', 'pendiente'])
     )
-    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
-        query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+
+    from app.models.usuario_sucursal import UsuarioSucursal
+    from sqlalchemy import or_
+
+    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
+        if current_user.es_global:
+            sucursales_maestra = db.query(UsuarioSucursal.sucursal_id).filter(
+                UsuarioSucursal.usuario_id == current_user.id
+            ).all()
+            sucursal_ids = [s.sucursal_id for s in sucursales_maestra]
+            if sucursal_ids:
+                query = query.filter(Alumno.sucursal_id.in_(sucursal_ids))
+        elif current_user.sucursal_id:
+            query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
     elif sucursal_id:
         query = query.filter(Alumno.sucursal_id == sucursal_id)
 
@@ -323,8 +335,20 @@ def get_calendario_maestras(
         Alumno.activo == True,
         Alumno.situacion.in_(['activo', 'inscripcion', 'becado', 'pendiente'])
     )
-    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
-        query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+
+    from app.models.usuario_sucursal import UsuarioSucursal
+    from sqlalchemy import or_
+
+    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
+        if current_user.es_global:
+            sucursales_maestra = db.query(UsuarioSucursal.sucursal_id).filter(
+                UsuarioSucursal.usuario_id == current_user.id
+            ).all()
+            sucursal_ids = [s.sucursal_id for s in sucursales_maestra]
+            if sucursal_ids:
+                query = query.filter(Alumno.sucursal_id.in_(sucursal_ids))
+        elif current_user.sucursal_id:
+            query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
     elif sucursal_id:
         query = query.filter(Alumno.sucursal_id == sucursal_id)
 
@@ -503,8 +527,19 @@ def get_nuevos_alumnos(
         Alumno.fecha_ingreso >= inicio_semana,
         Alumno.fecha_ingreso <= fin_semana
     )
-    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
-        query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+    from app.models.usuario_sucursal import UsuarioSucursal
+    from sqlalchemy import or_
+
+    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
+        if current_user.es_global:
+            sucursales_maestra = db.query(UsuarioSucursal.sucursal_id).filter(
+                UsuarioSucursal.usuario_id == current_user.id
+            ).all()
+            sucursal_ids = [s.sucursal_id for s in sucursales_maestra]
+            if sucursal_ids:
+                query = query.filter(Alumno.sucursal_id.in_(sucursal_ids))
+        elif current_user.sucursal_id:
+            query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
     elif sucursal_id:
         query = query.filter(Alumno.sucursal_id == sucursal_id)
 

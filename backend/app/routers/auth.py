@@ -93,6 +93,10 @@ def dashboard_stats(
     mes = hoy.month
     anio = hoy.year
     primer_dia_mes = date(anio, mes, 1)
+    if mes == 12:
+        ultimo_dia_mes = date(anio + 1, 1, 1)
+    else:
+        ultimo_dia_mes = date(anio, mes + 1, 1)
 
     query_base = db.query(Alumno)
     if current_user.rol in ["maestra", "encargada", "recepcionista"]:
@@ -104,7 +108,9 @@ def dashboard_stats(
     # Alumnos nuevos este mes
     nuevos_mes = query_base.filter(
         Alumno.activo == True,
-        Alumno.fecha_ingreso >= primer_dia_mes
+        Alumno.situacion != 'baja',
+        Alumno.fecha_ingreso >= primer_dia_mes,
+        Alumno.fecha_ingreso < ultimo_dia_mes
     ).count()
 
     # Alumnos dados de baja este mes
@@ -127,7 +133,7 @@ def dashboard_stats(
     for suc in sucursales:
         count = db.query(Alumno).filter(
             Alumno.activo == True,
-            Alumno.situacion != 'baja',
+            Alumno.situacion == 'activo',
             Alumno.sucursal_id == suc.id
         ).count()
         por_sucursal.append({
@@ -550,8 +556,18 @@ def dashboard_cumpleanos(
         Alumno.fecha_nacimiento != None
     )
 
-    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
-        query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+    from app.models.usuario_sucursal import UsuarioSucursal
+
+    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
+        if current_user.es_global:
+            sucursales_maestra = db.query(UsuarioSucursal.sucursal_id).filter(
+                UsuarioSucursal.usuario_id == current_user.id
+            ).all()
+            sucursal_ids = [s.sucursal_id for s in sucursales_maestra]
+            if sucursal_ids:
+                query = query.filter(Alumno.sucursal_id.in_(sucursal_ids))
+        elif current_user.sucursal_id:
+            query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
 
     alumnos = query.all()
 

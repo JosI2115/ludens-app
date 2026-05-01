@@ -329,6 +329,26 @@ def actualizar_alumno(
             db.add(historial)
             setattr(alumno, campo, valor_nuevo)
     
+    # Recalcular plan_pago si cambia el descuento de hermano
+    if 'tiene_descuento_hermano' in cambios or 'numero_hermano' in cambios:
+        DESCUENTOS = {
+            '900':  {1: 900,  2: 630,  3: 765,  4: 855},
+            '1200': {1: 1200, 2: 840,  3: 1020, 4: 1140},
+            '1500': {1: 1500, 2: 1050, 3: 1275, 4: 1425},
+            '1650': {1: 1650, 2: 1155, 3: 1402, 4: 1567},
+            '2300': {1: 2300, 2: 1610, 3: 1955, 4: 2185},
+        }
+        tiene_descuento = cambios.get('tiene_descuento_hermano', alumno.tiene_descuento_hermano)
+        numero_hermano = int(cambios.get('numero_hermano', alumno.numero_hermano) or 1)
+        plan_base = alumno.plan_pago
+
+        if tiene_descuento and str(plan_base) in DESCUENTOS:
+            monto = DESCUENTOS[str(plan_base)].get(numero_hermano)
+            if monto:
+                alumno.plan_pago = str(monto)
+        elif not tiene_descuento and str(plan_base) in DESCUENTOS:
+            pass  # Mantener el plan actual
+
     # Sincronizar con informes cuando cambia situación
     if 'situacion' in cambios:
         from app.models.informe import Informe

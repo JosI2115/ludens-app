@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { alumnosService, usuariosService, reportesService, maestrasService, sucursalesService } from '../services/api'
+import api, { alumnosService, usuariosService, reportesService, maestrasService, sucursalesService } from '../services/api'
 
 const SITUACION_COLORES = {
   prospecto:   'bg-gray-100 text-gray-600',
@@ -46,13 +46,18 @@ export default function Expedientes() {
     try {
       const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
       let res
-      if (usuario.rol === 'directora' || usuario.rol === 'contadora') {
-        res = await usuariosService.getAll()
-        setMaestras(res.data.filter(u => u.rol === 'maestra' || u.rol === 'encargada'))
+      let todasMaestras = []
+      if (usuario.rol === 'directora' || usuario.es_encargada_general) {
+        const res = await usuariosService.getAll()
+        todasMaestras = res.data.filter(u => u.rol === 'maestra' || u.rol === 'encargada')
+      } else if (!usuario.sucursal_id) {
+        const res = await api.get('/usuarios/maestras-por-sucursales')
+        todasMaestras = res.data
       } else {
-        res = await maestrasService.getPorSucursal(usuario.sucursal_id)
-        setMaestras(res.data)
+        const res = await maestrasService.getPorSucursal(usuario.sucursal_id)
+        todasMaestras = res.data
       }
+      setMaestras(todasMaestras)
     } catch (err) {
       console.error('Error cargando maestras')
     }

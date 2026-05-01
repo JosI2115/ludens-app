@@ -179,6 +179,38 @@ def actualizar_usuario(
     db.refresh(usuario)
     return usuario
 
+@router.get("/maestras-por-sucursales")
+def get_maestras_por_sucursales(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.usuario_sucursal import UsuarioSucursal
+    from sqlalchemy import or_
+
+    sucursales_usuario = db.query(UsuarioSucursal.sucursal_id).filter(
+        UsuarioSucursal.usuario_id == current_user.id
+    ).all()
+    sucursal_ids = [s.sucursal_id for s in sucursales_usuario]
+
+    if not sucursal_ids:
+        return []
+
+    maestras = db.query(Usuario).filter(
+        Usuario.rol.in_(['maestra', 'encargada']),
+        Usuario.activo == True,
+        or_(
+            Usuario.sucursal_id.in_(sucursal_ids),
+            Usuario.es_global == True,
+            Usuario.id.in_(
+                db.query(UsuarioSucursal.usuario_id).filter(
+                    UsuarioSucursal.sucursal_id.in_(sucursal_ids)
+                )
+            )
+        )
+    ).all()
+
+    return [{"id": str(m.id), "nombre": m.nombre, "rol": m.rol, "color": m.color} for m in maestras]
+
 @router.get("/sucursal/{sucursal_id}/maestras")
 def get_maestras_sucursal(
     sucursal_id: str,

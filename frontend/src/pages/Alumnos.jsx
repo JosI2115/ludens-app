@@ -335,6 +335,7 @@ export default function Alumnos() {
 function FormularioAlumno({ alumno, onClose, onSuccess }) {
   const urlParams = new URLSearchParams(window.location.search)
   const informeIdParam = urlParams.get('informe_id')
+  const [alumnoEnBaja, setAlumnoEnBaja] = useState(null)
   const [form, setForm] = useState({
     nombre: alumno?.nombre || urlParams.get('nombre') || '',
     apellido: alumno?.apellido || urlParams.get('apellido') || '',
@@ -478,7 +479,27 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
       setForm(f => ({ ...f, [name]: value, materias }))
       return
     }
+    if (name === 'nombre' || name === 'apellido') {
+      const nombreCompleto = name === 'nombre' ? `${value} ${form.apellido}` : `${form.nombre} ${value}`
+      buscarAlumnoEnBaja(nombreCompleto)
+    }
     setForm(f => ({ ...f, [name]: type === 'checkbox' ? checked : value }))
+  }
+
+  const buscarAlumnoEnBaja = async (nombre) => {
+    if (nombre.trim().length < 3) { setAlumnoEnBaja(null); return }
+    try {
+      const res = await alumnosService.getAll({ incluir_bajas: true })
+      console.log('Buscando:', nombre, 'Total alumnos:', res.data.length)
+      const encontrado = res.data.find(a =>
+        a.situacion === 'baja' &&
+        `${a.nombre} ${a.apellido}`.toLowerCase().includes(nombre.toLowerCase())
+      )
+      console.log('Encontrado:', encontrado)
+      setAlumnoEnBaja(encontrado || null)
+    } catch (err) {
+      console.error('Error buscando:', err)
+    }
   }
 
   const getPlanesPago = (sucursalId) => {
@@ -623,6 +644,31 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400" />
             </div>
           </div>
+          {alumnoEnBaja && (
+            <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-3 text-sm">
+              <p className="text-yellow-800 font-medium">⚠️ Posible reingreso</p>
+              <p className="text-yellow-700">"{alumnoEnBaja.nombre} {alumnoEnBaja.apellido}" está actualmente en baja. Motivo: {alumnoEnBaja.motivo_baja || 'No especificado'}</p>
+              <p className="text-yellow-600 text-xs mt-1">Considera reactivar ese alumno en lugar de crear uno nuevo.</p>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!window.confirm(`¿Reactivar a ${alumnoEnBaja.nombre} ${alumnoEnBaja.apellido}?`)) return
+                  try {
+                    await alumnosService.actualizar(alumnoEnBaja.id, { situacion: 'activo', fecha_baja: null, motivo_baja: null })
+                    alert(`${alumnoEnBaja.nombre} ${alumnoEnBaja.apellido} reactivado correctamente`)
+                    onClose()
+                    window.location.reload()
+                  } catch (err) {
+                    console.error('Error reactivando:', err.response?.data || err.message)
+                    alert('Error reactivando alumno')
+                  }
+                }}
+                className="mt-2 bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium"
+              >
+                Reactivar a {alumnoEnBaja.nombre}
+              </button>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>

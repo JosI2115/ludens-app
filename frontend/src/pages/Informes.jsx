@@ -25,6 +25,9 @@ export default function Informes() {
   const [loading, setLoading] = useState(true)
   const [filtroSucursal, setFiltroSucursal] = useState('')
   const [filtroSituacion, setFiltroSituacion] = useState('')
+  const [busquedaInforme, setBusquedaInforme] = useState('')
+  const [filtroMes, setFiltroMes] = useState(new Date().getMonth() + 1)
+  const [filtroAnio, setFiltroAnio] = useState(new Date().getFullYear())
   const [modalNuevo, setModalNuevo] = useState(false)
   const [modalEditar, setModalEditar] = useState(null)
   const [vistaActual, setVistaActual] = useState('lista')
@@ -36,7 +39,7 @@ export default function Informes() {
 
   useEffect(() => {
     cargarDatos()
-  }, [filtroSucursal, filtroSituacion])
+  }, [filtroSucursal, filtroSituacion, filtroMes, filtroAnio])
 
   useEffect(() => {
     cargarHistorico()
@@ -78,6 +81,8 @@ export default function Informes() {
       const params = {}
       if (filtroSucursal) params.sucursal_id = filtroSucursal
       if (filtroSituacion) params.situacion = filtroSituacion
+      params.mes = filtroMes
+      params.anio = filtroAnio
       const infRes = await api.get('/informes/', { params })
       setInformes(infRes.data)
     } catch (err) {
@@ -158,6 +163,23 @@ export default function Informes() {
       {vistaActual === 'lista' && (
         <>
           <div className="flex gap-3 mb-4 flex-wrap">
+            <input
+              type="text"
+              placeholder="Buscar por nombre..."
+              value={busquedaInforme}
+              onChange={e => setBusquedaInforme(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+            />
+            <select value={filtroMes} onChange={e => setFiltroMes(parseInt(e.target.value))}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+              {['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'].map((m,i) => (
+                <option key={i+1} value={i+1}>{m}</option>
+              ))}
+            </select>
+            <select value={filtroAnio} onChange={e => setFiltroAnio(parseInt(e.target.value))}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+              {[2024,2025,2026,2027].map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
             <select value={filtroSucursal} onChange={e => setFiltroSucursal(e.target.value)}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
               <option value="">Todas las sucursales</option>
@@ -189,13 +211,18 @@ export default function Informes() {
                 <tbody className="divide-y divide-gray-100">
                   {informes.length === 0 ? (
                     <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">Sin informes registrados</td></tr>
-                  ) : informes.filter(i => i.situacion !== 'no_contesta').map(inf => {
+                  ) : informes.filter(i =>
+                    i.situacion !== 'no_contesta' &&
+                    (busquedaInforme === '' ||
+                     i.nombre_contacto.toLowerCase().includes(busquedaInforme.toLowerCase()) ||
+                     (i.nombre_nino || '').toLowerCase().includes(busquedaInforme.toLowerCase()))
+                  ).map(inf => {
                     const sit = getSituacion(inf.situacion)
                     return (
                       <tr key={inf.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
-                          <p className="font-medium text-gray-800">{inf.nombre_contacto}</p>
-                          {inf.nombre_nino && <p className="text-xs text-gray-400">Niño: {inf.nombre_nino}</p>}
+                          {inf.nombre_nino && <p className="font-medium text-gray-800">{inf.nombre_nino}</p>}
+                          <p className={inf.nombre_nino ? "text-xs text-gray-500" : "font-medium text-gray-800"}>{inf.nombre_contacto}</p>
                           <p className="text-xs text-gray-400">{inf.fecha_solicitud}</p>
                         </td>
                         <td className="px-4 py-3 text-gray-500">{inf.medio || '—'}</td>
@@ -493,7 +520,11 @@ function ModalInforme({ informe, sucursales, usuarios, onClose, onSuccess }) {
               <label className="block text-sm font-medium text-gray-700 mb-1">Situación</label>
               <select name="situacion" value={form.situacion} onChange={handleChange}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
-                {SITUACIONES.filter(s => s.value !== 'inscrito' && s.value !== 'pago_inscripcion' || s.value === form.situacion).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                {SITUACIONES.filter(s => {
+                  if (s.value === 'acudio_diagnostico') return informe?.alumno_id != null
+                  if (s.value === 'inscrito' || s.value === 'pago_inscripcion') return informe?.situacion === s.value
+                  return true
+                }).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>
           </div>

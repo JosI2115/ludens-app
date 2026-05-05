@@ -85,6 +85,8 @@ def informe_to_dict(inf, db):
 def get_informes(
     sucursal_id: Optional[str] = None,
     situacion: Optional[str] = None,
+    mes: Optional[int] = None,
+    anio: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
@@ -103,6 +105,12 @@ def get_informes(
         query = query.filter(Informe.sucursal_id == sucursal_id)
     if situacion:
         query = query.filter(Informe.situacion == situacion)
+    if mes and anio:
+        import calendar
+        from datetime import date
+        primer_dia = date(anio, mes, 1)
+        ultimo_dia = date(anio, mes, calendar.monthrange(anio, mes)[1])
+        query = query.filter(Informe.fecha_solicitud.between(primer_dia, ultimo_dia))
     informes = query.order_by(Informe.created_at.desc()).all()
     return [informe_to_dict(inf, db) for inf in informes]
 

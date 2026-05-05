@@ -207,7 +207,9 @@ def dashboard_pendientes(
 
     # Actividades por imprimir
     from sqlalchemy import or_
-    if current_user.rol == 'maestra':
+    if current_user.rol == 'recepcionista':
+        bitacoras_imprimir = []
+    elif current_user.rol == 'maestra':
         try:
             alumnos_impr_ids = db.query(Alumno.id).filter(
                 or_(

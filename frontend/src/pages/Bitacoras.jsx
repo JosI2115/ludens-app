@@ -267,7 +267,8 @@ export default function Bitacoras() {
         drive_url: grupo.items[0].drive_url,
         alumno: grupo.items[0].alumno,
         alumno_id: grupo.items[0].alumno_id,
-        count: nums.length
+        count: nums.length,
+        actividades: grupo.items
       }
     })
   }
@@ -738,14 +739,29 @@ export default function Bitacoras() {
                         <p className="text-xs text-gray-500 font-mono">{grupo.rango}</p>
                         <p className="text-xs text-gray-400">{grupo.count} actividades</p>
                       </div>
-                      {grupo.drive_url ? (
-                        <a href={grupo.drive_url} target="_blank" rel="noopener noreferrer"
-                          className="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1 rounded-full transition flex-shrink-0">
-                          📁 Abrir Drive
-                        </a>
-                      ) : (
-                        <span className="text-xs text-gray-400">Sin URL</span>
-                      )}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {grupo.drive_url ? (
+                          <a href={grupo.drive_url} target="_blank" rel="noopener noreferrer"
+                            className="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1 rounded-full transition">
+                            📁 Abrir Drive
+                          </a>
+                        ) : (
+                          <span className="text-xs text-gray-400">Sin URL</span>
+                        )}
+                        <button
+                          onClick={async () => {
+                            if (!window.confirm('¿Marcar todas como ya impresas?')) return
+                            const promesas = grupo.actividades.map(act =>
+                              bitacorasService.actualizarRegistro(act.alumno_id, act.nomenclatura, { estado: 'Ya impresa', registrado_por_nombre: usuario.nombre })
+                            )
+                            await Promise.all(promesas)
+                            cargarPendientesImpresion()
+                          }}
+                          className="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded font-medium"
+                        >
+                          ✓ Todas impresas
+                        </button>
+                      </div>
                     </div>
                   ))}
                   </div>

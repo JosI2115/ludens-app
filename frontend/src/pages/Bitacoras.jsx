@@ -49,11 +49,14 @@ export default function Bitacoras() {
   const [urlsEditadas, setUrlsEditadas] = useState({})
   const [guardandoUrls, setGuardandoUrls] = useState(false)
   const [modalListaMaestra, setModalListaMaestra] = useState(null)
+  const [modalCambiarPrograma, setModalCambiarPrograma] = useState(null)
+  const [editandoHistoricos, setEditandoHistoricos] = useState({})
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
 
   useEffect(() => {
     cargarAlumnos()
     cargarMaestras()
+    cargarProgramasLista()
   }, [])
 
   const cargarMaestras = async () => {
@@ -213,16 +216,16 @@ export default function Bitacoras() {
     }))
   }
 
-  const cargarProgramasLista = async () => {
+  const cargarProgramasLista = async ({ mostrarPanel = false } = {}) => {
     try {
       const res = await bitacorasService.getProgramasLista()
       setProgramasLista(res.data)
       const urls = {}
       res.data.forEach(p => { urls[p.programa] = p.drive_url || '' })
       setUrlsEditadas(urls)
-      setMostrarUrls(true)
+      if (mostrarPanel) setMostrarUrls(true)
     } catch (err) {
-      console.error('Error')
+      console.error('Error cargando programas lista:', err)
     }
   }
 
@@ -287,6 +290,37 @@ export default function Bitacoras() {
     !a.programa_personalizado_lectura && !a.programa_personalizado_matematicas
   )
 
+  const programasActivos = (bitacora?.programas || []).filter(prog => {
+    const histLec = bitacora?.programas_historial_lectura || []
+    const histMat = bitacora?.programas_historial_matematicas || []
+    const esHistorico = histLec.includes(prog.programa) || histMat.includes(prog.programa)
+    return !esHistorico
+  })
+
+  const tiposActivos = {}
+  const programasActivosFinales = []
+  const programasExtraAlHistorial = []
+
+  programasActivos.forEach(prog => {
+    const esMat = prog.programa.startsWith('MAT') || prog.programa.includes('Matematicas')
+    const tipo = esMat ? 'mat' : 'lec'
+    if (!tiposActivos[tipo]) {
+      tiposActivos[tipo] = true
+      programasActivosFinales.push(prog)
+    } else {
+      programasExtraAlHistorial.push(prog)
+    }
+  })
+
+  const programasHistoricos = [
+    ...programasExtraAlHistorial,
+    ...(bitacora?.programas || []).filter(prog => {
+      const histLec = bitacora?.programas_historial_lectura || []
+      const histMat = bitacora?.programas_historial_matematicas || []
+      return histLec.includes(prog.programa) || histMat.includes(prog.programa)
+    })
+  ]
+
   return (
     <div className="flex h-screen overflow-hidden">
       <div className="w-72 border-r border-gray-200 bg-white flex flex-col flex-shrink-0">
@@ -296,7 +330,7 @@ export default function Bitacoras() {
             <div className="flex gap-1">
               {usuario.rol === 'directora' && (
                 <button
-                  onClick={cargarProgramasLista}
+                  onClick={() => cargarProgramasLista({ mostrarPanel: true })}
                   className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded-lg transition"
                 >
                   ⚙️
@@ -457,7 +491,10 @@ export default function Bitacoras() {
                 </button>
               </div>
             ) : (
-              bitacora.programas.map((prog, pi) => (
+              <>
+                {programasActivosFinales.map((prog) => {
+                  const pi = bitacora.programas.findIndex(p => p.programa === prog.programa)
+                  return (
                 <div key={pi} className="mb-8">
                   <div
                     className="flex items-center gap-3 mb-4 cursor-pointer select-none"
@@ -482,6 +519,33 @@ export default function Bitacoras() {
                     <span className="text-xs text-gray-400 ml-auto">
                       {prog.actividades.filter(a => a.estado).length}/{prog.actividades.length} registradas
                     </span>
+                    {(usuario.rol === 'directora' || usuario.rol === 'encargada' || usuario.rol === 'maestra' || usuario.es_encargada_general) && (
+                      <>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setModalCambiarPrograma(prog) }}
+                          className="text-xs text-blue-400 hover:text-blue-600 ml-2"
+                          title="Cambiar programa"
+                        >
+                          🔄
+                        </button>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            if (!window.confirm(`¿Eliminar el programa ${prog.programa} y todas sus actividades?`)) return
+                            try {
+                              await api.delete(`/bitacoras/alumno/${alumnoSeleccionado.id}/programa/${encodeURIComponent(prog.programa)}`)
+                              cargarBitacora(alumnoSeleccionado)
+                            } catch (err) {
+                              console.error('Error eliminando programa')
+                            }
+                          }}
+                          className="text-xs text-red-400 hover:text-red-600 ml-2"
+                          title="Eliminar programa"
+                        >
+                          🗑️
+                        </button>
+                      </>
+                    )}
                   </div>
 
                   {!programasColapsados[prog.programa] && (
@@ -708,7 +772,120 @@ export default function Bitacoras() {
                     )
                   )}
                 </div>
-              ))
+                  )
+                })}
+                {programasHistoricos.length > 0 && (
+                  <div className="mt-6 border-t pt-4">
+                    <h4 className="text-sm font-medium text-gray-400 mb-3">📚 Programas anteriores</h4>
+                    {programasHistoricos.map((prog, pi) => {
+                      const editando = editandoHistoricos[prog.programa] || false
+                      const realPi = bitacora.programas.findIndex(p => p.programa === prog.programa)
+                      return (
+                        <div key={pi} className="opacity-70 mt-4 border border-dashed border-gray-300 rounded-xl p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <input type="checkbox" checked={editando}
+                                onChange={e => setEditandoHistoricos(prev => ({ ...prev, [prog.programa]: e.target.checked }))}
+                                className="w-4 h-4 text-purple-600 rounded" />
+                              <span className="text-sm font-medium text-gray-500">{prog.programa}</span>
+                            </div>
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation()
+                                if (!window.confirm(`¿Eliminar el programa ${prog.programa}?`)) return
+                                try {
+                                  await api.delete(`/bitacoras/alumno/${alumnoSeleccionado.id}/programa/${encodeURIComponent(prog.programa)}`)
+                                  cargarBitacora(alumnoSeleccionado)
+                                } catch (err) {
+                                  console.error('Error eliminando')
+                                }
+                              }}
+                              className="text-xs text-red-400 hover:text-red-600"
+                              title="Eliminar programa">
+                              🗑️
+                            </button>
+                          </div>
+                          {!editando && (
+                            <p className="text-xs text-gray-400 italic">{prog.actividades?.length || 0} actividades — marca el checkbox para editar</p>
+                          )}
+                          {editando && (
+                            <div className="bg-white rounded-xl shadow overflow-hidden mt-2">
+                              <table className="w-full text-sm">
+                                <thead className="bg-gray-50 border-b">
+                                  <tr>
+                                    <th className="text-left px-4 py-3 text-gray-500 font-medium w-8">Sem</th>
+                                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Nomenclatura</th>
+                                    <th className="text-left px-4 py-3 text-gray-500 font-medium w-36">Estado</th>
+                                    <th className="text-left px-4 py-3 text-gray-500 font-medium w-36">Fecha</th>
+                                    <th className="text-left px-4 py-3 text-gray-500 font-medium w-20">Ejercicios</th>
+                                    <th className="text-left px-4 py-3 text-gray-500 font-medium">Comentario</th>
+                                    <th className="text-left px-4 py-3 text-gray-500 font-medium w-24">Registró</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                  {prog.actividades.map((act, ai) => (
+                                    <tr key={ai} className="hover:bg-gray-50">
+                                      <td className="px-4 py-2 text-gray-400 text-xs">{act.semana === 9 ? 'Ex' : act.semana}</td>
+                                      <td className="px-4 py-2">
+                                        <span className="font-mono text-xs text-gray-600">{act.nomenclatura}</span>
+                                        {act.actividad && <p className="text-xs text-gray-400 mt-0.5">{act.actividad}</p>}
+                                      </td>
+                                      <td className="px-2 py-1.5">
+                                        <select
+                                          value={act.estado || ''}
+                                          onChange={e => actualizarRegistro(act.nomenclatura, 'estado', e.target.value)}
+                                          disabled={guardando[act.nomenclatura]}
+                                          className={`w-full text-xs border border-gray-200 rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer ${act.estado ? ESTADO_COLORES[act.estado] || '' : 'text-gray-400'}`}
+                                        >
+                                          {ESTADO_OPCIONES.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
+                                        </select>
+                                      </td>
+                                      <td className="px-2 py-1.5">
+                                        <input type="text" value={act.fecha || ''} placeholder="Semana..."
+                                          onBlur={e => actualizarRegistro(act.nomenclatura, 'fecha', e.target.value)}
+                                          onChange={e => setBitacora(prev => ({
+                                            ...prev,
+                                            programas: prev.programas.map((p, pii) =>
+                                              pii === realPi ? { ...p, actividades: p.actividades.map((a, aii) => aii === ai ? { ...a, fecha: e.target.value } : a) } : p
+                                            )
+                                          }))}
+                                          className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-purple-400" />
+                                      </td>
+                                      <td className="px-2 py-1.5">
+                                        <input type="number" value={act.ejercicios || ''} placeholder="0"
+                                          onBlur={e => actualizarRegistro(act.nomenclatura, 'ejercicios', e.target.value ? parseInt(e.target.value) : null)}
+                                          onChange={e => setBitacora(prev => ({
+                                            ...prev,
+                                            programas: prev.programas.map((p, pii) =>
+                                              pii === realPi ? { ...p, actividades: p.actividades.map((a, aii) => aii === ai ? { ...a, ejercicios: e.target.value } : a) } : p
+                                            )
+                                          }))}
+                                          className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-purple-400" />
+                                      </td>
+                                      <td className="px-2 py-1.5">
+                                        <input type="text" value={act.comentario || ''} placeholder="Observaciones..."
+                                          onBlur={e => actualizarRegistro(act.nomenclatura, 'comentario', e.target.value)}
+                                          onChange={e => setBitacora(prev => ({
+                                            ...prev,
+                                            programas: prev.programas.map((p, pii) =>
+                                              pii === realPi ? { ...p, actividades: p.actividades.map((a, aii) => aii === ai ? { ...a, comentario: e.target.value } : a) } : p
+                                            )
+                                          }))}
+                                          className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-purple-400" />
+                                      </td>
+                                      <td className="px-4 py-2 text-xs text-gray-400">{act.registrado_por_nombre || '—'}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </div>
         ) : null}
@@ -771,6 +948,15 @@ export default function Bitacoras() {
           </div>
         </div>
       </div>
+      )}
+      {modalCambiarPrograma && (
+        <ModalCambiarPrograma
+          programa={modalCambiarPrograma}
+          alumnoId={alumnoSeleccionado.id}
+          programas={programasLista.map(p => p.programa)}
+          onClose={() => setModalCambiarPrograma(null)}
+          onCambiado={() => { setModalCambiarPrograma(null); cargarBitacora(alumnoSeleccionado) }}
+        />
       )}
       {modalListaMaestra && (
         <ModalListaMaestra
@@ -986,6 +1172,101 @@ function NuevaActividadPersonalizada({ alumnoId, programa, onCreada }) {
           className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white px-3 py-1 rounded text-xs font-medium">
           {guardando ? '...' : 'Agregar'}
         </button>
+      </div>
+    </div>
+  )
+}
+
+function ModalCambiarPrograma({ programa, alumnoId, programas, onClose, onCambiado }) {
+  const [nuevoProg, setNuevoProg] = useState('')
+  const [guardando, setGuardando] = useState(false)
+
+  const tipo = programa.programa.toLowerCase().includes('mat') ? 'matematicas' : 'lectura'
+  const [tipoSeleccionado, setTipoSeleccionado] = useState(tipo)
+
+  const handleCambiar = async () => {
+    if (!nuevoProg) return
+    setGuardando(true)
+    try {
+      const nombrePrograma = nuevoProg === 'personalizado'
+        ? (tipoSeleccionado === 'matematicas' ? 'Personalizado Matematicas' : 'Personalizado Lectura')
+        : nuevoProg
+      await api.put(`/bitacoras/alumno/${alumnoId}/cambiar-programa`, {
+        tipo: tipoSeleccionado,
+        programa: nombrePrograma,
+        es_personalizado: nuevoProg === 'personalizado'
+      })
+      onCambiado()
+    } catch (err) {
+      console.error('Error cambiando programa')
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  const programasFiltrados = programas.filter(p => {
+    if (tipoSeleccionado === 'matematicas') return p.startsWith('MAT')
+    return !p.startsWith('MAT')
+  })
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+        <div className="p-5 border-b flex justify-between items-center">
+          <h3 className="font-bold text-gray-800">🔄 Cambiar programa</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+        </div>
+        <div className="p-5 space-y-4">
+          <p className="text-sm text-gray-600">Programa actual: <span className="font-medium">{programa.programa}</span></p>
+          <p className="text-xs text-yellow-600 bg-yellow-50 rounded p-2">⚠️ El programa actual se moverá al historial</p>
+          {programa.programa.includes('Personalizado') && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de programa</label>
+              <div className="flex gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" value="lectura" checked={tipoSeleccionado === 'lectura'}
+                    onChange={() => { setTipoSeleccionado('lectura'); setNuevoProg('') }}
+                    className="text-purple-600" />
+                  <span className="text-sm">Lectura</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" value="matematicas" checked={tipoSeleccionado === 'matematicas'}
+                    onChange={() => { setTipoSeleccionado('matematicas'); setNuevoProg('') }}
+                    className="text-purple-600" />
+                  <span className="text-sm">Matemáticas</span>
+                </label>
+              </div>
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nuevo programa</label>
+            <div className="flex items-center gap-2 mb-2">
+              <input type="checkbox" id="personalizado"
+                checked={nuevoProg === 'personalizado'}
+                onChange={e => setNuevoProg(e.target.checked ? 'personalizado' : '')}
+                className="w-4 h-4 text-purple-600 rounded" />
+              <label htmlFor="personalizado" className="text-sm text-gray-700">Programa personalizado</label>
+            </div>
+            {nuevoProg !== 'personalizado' && (
+              <select value={nuevoProg} onChange={e => setNuevoProg(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                <option value="">Seleccionar...</option>
+                {programasFiltrados.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            )}
+            {nuevoProg === 'personalizado' && (
+              <p className="text-xs text-purple-600 bg-purple-50 rounded p-2">Se activará el programa personalizado</p>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <button onClick={onClose}
+              className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg text-sm">Cancelar</button>
+            <button onClick={handleCambiar} disabled={!nuevoProg || guardando}
+              className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white py-2 rounded-lg text-sm font-medium">
+              {guardando ? 'Cambiando...' : 'Cambiar programa'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )

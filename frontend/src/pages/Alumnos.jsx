@@ -941,11 +941,17 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
                   onChange={e => setForm(f => ({
                     ...f,
                     programa_personalizado_lectura: e.target.checked,
-                    programa_lectura: e.target.checked ? '' : f.programa_lectura
                   }))}
                   className="w-4 h-4 text-purple-600 rounded"
                 />
                 <label className="text-xs text-gray-500">Agregar programa personalizado de lectura</label>
+                {form.programa_lectura && (
+                  <button type="button"
+                    onClick={() => setForm(f => ({ ...f, programa_lectura: '' }))}
+                    className="text-xs text-red-400 hover:text-red-600 ml-2">
+                    ✕ Quitar programa
+                  </button>
+                )}
               </div>
             </div>
             <div>

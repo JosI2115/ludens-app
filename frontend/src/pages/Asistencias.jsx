@@ -47,6 +47,21 @@ export default function Asistencias() {
   }
 
   const registrar = async (alumno_id, asistio) => {
+    const alumno = alumnos.find(a => a.id === alumno_id)
+    if (alumno?.asistio === asistio) {
+      setGuardando(g => ({ ...g, [alumno_id]: true }))
+      try {
+        await asistenciasService.eliminar(alumno_id, fecha)
+        setAlumnos(prev => prev.map(a =>
+          a.id === alumno_id ? { ...a, asistio: null } : a
+        ))
+      } catch (err) {
+        console.error('Error eliminando asistencia')
+      } finally {
+        setGuardando(g => ({ ...g, [alumno_id]: false }))
+      }
+      return
+    }
     setGuardando(g => ({ ...g, [alumno_id]: true }))
     try {
       await asistenciasService.registrar({ alumno_id, fecha, asistio })

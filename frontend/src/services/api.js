@@ -47,7 +47,7 @@ export const pagosService = {
   getAll: (params) => api.get('/pagos/', { params }),
   resumen: (params) => api.get('/pagos/resumen', { params }),
   registrar: (data) => api.post('/pagos/registrar', data),
-  tablero: () => api.get('/pagos/tablero'),
+  tablero: (params) => api.get('/pagos/tablero', { params }),
   eliminar: (id) => api.delete(`/pagos/${id}`),
 }
 

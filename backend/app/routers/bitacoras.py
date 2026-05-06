@@ -160,6 +160,8 @@ def get_bitacora_alumno(
         "alumno_id": alumno_id,
         "nombre": f"{alumno.nombre} {alumno.apellido}",
         "objetivo": alumno.objetivos,
+        "programas_historial_lectura": json.loads(alumno.programas_lectura_historial or '[]'),
+        "programas_historial_matematicas": json.loads(alumno.programas_matematicas_historial or '[]'),
         "programas": programas
     }
 
@@ -452,3 +454,80 @@ def actualizar_url_programa(
     ).update({"drive_url": data.get("drive_url")})
     db.commit()
     return {"mensaje": f"URL actualizada para {programa}"}
+
+@router.delete("/alumno/{alumno_id}/programa/{programa}")
+def eliminar_programa_bitacora(
+    alumno_id: str,
+    programa: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from urllib.parse import unquote
+    from app.models.alumno import Alumno
+
+    programa_decoded = unquote(programa)
+
+    db.query(Bitacora).filter(
+        Bitacora.alumno_id == alumno_id,
+        Bitacora.programa == programa_decoded
+    ).delete()
+
+    alumno = db.query(Alumno).filter(Alumno.id == alumno_id).first()
+    if alumno:
+        if 'Personalizado Lectura' in programa_decoded or alumno.programa_lectura == programa_decoded:
+            if 'Personalizado' in programa_decoded:
+                alumno.programa_personalizado_lectura = False
+            else:
+                alumno.programa_lectura = None
+        elif 'Personalizado Matematicas' in programa_decoded or alumno.programa_matematicas == programa_decoded:
+            if 'Personalizado' in programa_decoded:
+                alumno.programa_personalizado_matematicas = False
+            else:
+                alumno.programa_matematicas = None
+
+    db.commit()
+    return {"mensaje": f"Programa {programa_decoded} eliminado"}
+
+@router.put("/alumno/{alumno_id}/cambiar-programa")
+def cambiar_programa(
+    alumno_id: str,
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.alumno import Alumno
+    import json
+
+    alumno = db.query(Alumno).filter(Alumno.id == alumno_id).first()
+    if not alumno:
+        raise HTTPException(status_code=404, detail="Alumno no encontrado")
+
+    tipo = data.get('tipo')
+    nuevo_programa = data.get('programa')
+    es_personalizado = data.get('es_personalizado', False)
+
+    if tipo == 'lectura':
+        historial = json.loads(alumno.programas_lectura_historial or '[]')
+        if alumno.programa_lectura and alumno.programa_lectura not in historial:
+            historial.append(alumno.programa_lectura)
+        alumno.programas_lectura_historial = json.dumps(historial)
+        if es_personalizado:
+            alumno.programa_personalizado_lectura = True
+            alumno.programa_lectura = None
+        else:
+            alumno.programa_lectura = nuevo_programa
+            alumno.programa_personalizado_lectura = False
+    elif tipo == 'matematicas':
+        historial = json.loads(alumno.programas_matematicas_historial or '[]')
+        if alumno.programa_matematicas and alumno.programa_matematicas not in historial:
+            historial.append(alumno.programa_matematicas)
+        alumno.programas_matematicas_historial = json.dumps(historial)
+        if es_personalizado:
+            alumno.programa_personalizado_matematicas = True
+            alumno.programa_matematicas = None
+        else:
+            alumno.programa_matematicas = nuevo_programa
+            alumno.programa_personalizado_matematicas = False
+
+    db.commit()
+    return {"mensaje": "Programa actualizado"}

@@ -47,7 +47,7 @@ export default function Pagos() {
 
   const cargarTablero = async () => {
     try {
-      const res = await pagosService.tablero()
+      const res = await pagosService.tablero({ mes, anio })
       setTablero(res.data)
     } catch (err) {
       console.error('Error cargando tablero')

@@ -244,6 +244,8 @@ def resumen_pagos(
 
 @router.get("/tablero")
 def get_tablero_pagos(
+    mes: Optional[int] = None,
+    anio: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
@@ -252,8 +254,8 @@ def get_tablero_pagos(
     from datetime import date
 
     hoy = date.today()
-    mes = hoy.month
-    anio = hoy.year
+    mes = mes or hoy.month
+    anio = anio or hoy.year
 
     query = db.query(Alumno).filter(
         Alumno.activo == True,

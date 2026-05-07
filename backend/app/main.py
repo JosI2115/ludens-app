@@ -88,6 +88,7 @@ def startup():
     from app.auth.auth import hashear_password
     from sqlalchemy import text
 
+    print("STARTUP: Iniciando...")
     from sqlalchemy import text
     with engine.connect() as conn:
         migraciones_auto = [
@@ -117,8 +118,10 @@ def startup():
             except Exception:
                 pass
 
+    print("STARTUP: Migraciones completadas")
     Base.metadata.create_all(bind=engine)
-    
+    print("STARTUP: Tablas creadas")
+
     # Agregar columnas nuevas si no existen
     from sqlalchemy import text
     with engine.connect() as conn:
@@ -129,8 +132,8 @@ def startup():
             conn.commit()
         except Exception:
             conn.rollback()
-    
-    # Crear tablas nuevas de bitácoras
+    print("STARTUP: Columnas extra OK")
+
     from app.models.catalogo import ProgramaCatalogo
     from app.models.bitacora import Bitacora
 
@@ -149,6 +152,7 @@ def startup():
                 conn.commit()
         except Exception:
             pass
+    print("STARTUP: Columnas extra 2 OK")
 
     db = SessionLocal()
 
@@ -162,6 +166,7 @@ def startup():
         for s in sucursales:
             db.add(s)
         db.commit()
+    print("STARTUP: Sucursales OK")
 
     if db.query(Usuario).count() == 0:
         suc = {s.nombre: s.id for s in db.query(Sucursal).all()}
@@ -193,12 +198,15 @@ def startup():
             db.add(nuevo)
         db.commit()
 
+    print("STARTUP: Usuarios OK")
     db.close()
 
     try:
         actualizar_situaciones_por_inasistencia()
+        print("STARTUP: Situaciones OK")
     except Exception as e:
         print(f"Warning: actualizar_situaciones_por_inasistencia falló: {e}")
+    print("STARTUP: Completado")
 
 @app.get("/")
 def root():

@@ -172,14 +172,18 @@ def actualizar_informe(
         setattr(inf, campo, valor)
 
     # Si agenda diagnóstico, agregar al calendario
-    print(f"DEBUG prospecto: situacion={inf.situacion}, fecha={inf.fecha_diagnostico}, hora={inf.hora_diagnostico}, nombre={inf.nombre_nino}, sucursal={inf.sucursal_id}")
-    if inf.situacion == 'agendo_diagnostico' and inf.fecha_diagnostico and inf.hora_diagnostico and inf.nombre_nino:
+    print(f"DEBUG prospecto: situacion={inf.situacion!r}, fecha={inf.fecha_diagnostico!r}, hora={inf.hora_diagnostico!r}, nombre={inf.nombre_nino!r}, sucursal={inf.sucursal_id!r}")
+    condicion_ok = inf.situacion == 'agendo_diagnostico' and inf.fecha_diagnostico and inf.hora_diagnostico and inf.nombre_nino
+    print(f"DEBUG condicion_ok={condicion_ok}")
+    if condicion_ok:
         from app.models.prospecto_calendario import ProspectoCalendario
         prospecto_existe = db.query(ProspectoCalendario).filter(
             ProspectoCalendario.nombre_nino == inf.nombre_nino,
             ProspectoCalendario.fecha == inf.fecha_diagnostico
         ).first()
+        print(f"DEBUG prospecto_existe={prospecto_existe}")
         if not prospecto_existe:
+            print(f"DEBUG creando prospecto en calendario...")
             prospecto = ProspectoCalendario(
                 nombre_nino=inf.nombre_nino,
                 grado=inf.grado_nino,
@@ -191,6 +195,7 @@ def actualizar_informe(
                 registrado_por=current_user.id
             )
             db.add(prospecto)
+            print(f"DEBUG prospecto agregado al db")
 
     db.commit()
     return informe_to_dict(inf, db)

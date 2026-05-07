@@ -346,7 +346,7 @@ export default function Expedientes() {
                   📄 Generar expediente
                 </button>
                 <button
-                  onClick={() => navigate(`/alumnos/${alumnoSeleccionado.id}`)}
+                  onClick={() => navigate(`/alumnos?editar=${alumnoSeleccionado.id}`)}
                   className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition"
                 >
                   ✏️ Editar

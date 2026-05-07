@@ -485,6 +485,18 @@ def eliminar_programa_bitacora(
             else:
                 alumno.programa_matematicas = None
 
+        import json
+        historial_lec = json.loads(alumno.programas_lectura_historial or '[]')
+        historial_mat = json.loads(alumno.programas_matematicas_historial or '[]')
+
+        if programa_decoded in historial_lec:
+            historial_lec.remove(programa_decoded)
+            alumno.programas_lectura_historial = json.dumps(historial_lec)
+
+        if programa_decoded in historial_mat:
+            historial_mat.remove(programa_decoded)
+            alumno.programas_matematicas_historial = json.dumps(historial_mat)
+
     db.commit()
     return {"mensaje": f"Programa {programa_decoded} eliminado"}
 

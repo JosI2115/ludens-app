@@ -8,9 +8,9 @@ const menuItems = [
   { path: '/pagos', icon: '💰', label: 'Pagos', roles: ['directora', 'encargada', 'recepcionista', 'contadora'] },
   { path: '/asistencias', icon: '📋', label: 'Asistencias', roles: ['directora', 'encargada', 'maestra', 'recepcionista'] },
   { path: '/expedientes', icon: '📁', label: 'Expedientes', roles: ['directora', 'encargada', 'maestra', 'recepcionista'] },
-  { path: '/ingresos-bajas', icon: '📊', label: 'Ingresos y Bajas', roles: ['directora', 'encargada', 'contadora'] },
+  { path: '/ingresos-bajas', icon: '📊', label: 'Ingresos y Bajas', roles: ['directora', 'encargada', 'contadora', 'recepcionista'] },
   { path: '/informes', icon: '📞', label: 'Informes', roles: ['directora', 'encargada', 'recepcionista', 'contadora'] },
-  { path: '/comisiones', icon: '💰', label: 'Comisiones', roles: ['directora', 'encargada', 'contadora'] },
+  { path: '/comisiones', icon: '💰', label: 'Comisiones', roles: ['directora', 'encargada', 'contadora', 'recepcionista'] },
   { path: '/docentes', icon: '👩‍🏫', label: 'Actividad Docente', roles: ['directora', 'encargada', 'maestra'] },
   { path: '/usuarios', icon: '👥', label: 'Usuarios', roles: ['directora'] },
 ]

@@ -55,6 +55,16 @@ export default function Alumnos() {
       setAlumnoSeleccionado(null)
       setModalAbierto(true)
     }
+    const editarId = urlParams.get('editar')
+    if (editarId) {
+      alumnosService.getAll({ incluir_bajas: true }).then(res => {
+        const alumno = res.data.find(a => a.id === editarId)
+        if (alumno) {
+          setAlumnoSeleccionado(alumno)
+          setModalAbierto(true)
+        }
+      })
+    }
   }, [])
 
   const iniciarBaja = (alumno) => {

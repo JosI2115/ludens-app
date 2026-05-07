@@ -44,7 +44,7 @@ def calcular_comisiones(
     ultimo_dia = date(anio, mes, calendar.monthrange(anio, mes)[1])
 
     sucursales = db.query(Sucursal).all()
-    if current_user.rol == 'encargada' and not current_user.es_encargada_general:
+    if current_user.rol in ['encargada', 'recepcionista'] and not current_user.es_encargada_general:
         sucursales = [s for s in sucursales if str(s.id) == str(current_user.sucursal_id)]
     elif sucursal_id:
         sucursales = [s for s in sucursales if str(s.id) == sucursal_id]

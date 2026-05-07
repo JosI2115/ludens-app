@@ -134,15 +134,21 @@ def startup():
     from app.models.catalogo import ProgramaCatalogo
     from app.models.bitacora import Bitacora
 
-    # Agregar columnas nuevas si no existen (para DBs existentes)
-    with engine.connect() as conn:
-        conn.execute(text("ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programa_lectura VARCHAR(20)"))
-        conn.execute(text("ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programa_matematicas VARCHAR(20)"))
-        conn.execute(text("ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programas_lectura_historial TEXT"))
-        conn.execute(text("ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programas_matematicas_historial TEXT"))
-        conn.execute(text("ALTER TABLE pagos ADD COLUMN IF NOT EXISTS fecha_recepcion DATE"))
-        conn.execute(text("ALTER TABLE pagos ADD COLUMN IF NOT EXISTS metodo_pago VARCHAR(20)"))
-        conn.commit()
+    columnas_extra = [
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programa_lectura VARCHAR(50)",
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programa_matematicas VARCHAR(50)",
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programas_lectura_historial TEXT",
+        "ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS programas_matematicas_historial TEXT",
+        "ALTER TABLE pagos ADD COLUMN IF NOT EXISTS fecha_recepcion DATE",
+        "ALTER TABLE pagos ADD COLUMN IF NOT EXISTS metodo_pago VARCHAR(20)",
+    ]
+    for sql in columnas_extra:
+        try:
+            with engine.connect() as conn:
+                conn.execute(text(sql))
+                conn.commit()
+        except Exception:
+            pass
 
     db = SessionLocal()
 
@@ -189,7 +195,10 @@ def startup():
 
     db.close()
 
-    actualizar_situaciones_por_inasistencia()
+    try:
+        actualizar_situaciones_por_inasistencia()
+    except Exception as e:
+        print(f"Warning: actualizar_situaciones_por_inasistencia falló: {e}")
 
 @app.get("/")
 def root():

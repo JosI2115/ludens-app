@@ -305,6 +305,13 @@ export default function Expedientes() {
               >
                 <p className="font-medium">{alumno.nombre} {alumno.apellido}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{alumno.grado} · {alumno.situacion}</p>
+                <div className="text-xs mt-0.5">
+                  <span className="text-blue-600 font-medium">Programas: </span>
+                  {(alumno.programas_activos && alumno.programas_activos.length > 0)
+                    ? alumno.programas_activos.join(', ')
+                    : [alumno.programa_lectura, alumno.programa_matematicas].filter(Boolean).join(', ') || '—'
+                  }
+                </div>
               </button>
             ))
           )}
@@ -385,15 +392,33 @@ export default function Expedientes() {
                     <p className="font-medium text-sm bg-purple-50 text-purple-700 px-3 py-2 rounded-lg">{perfil.alumno.objetivos}</p>
                   </div>
                 )}
-                <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-gray-500 text-sm mb-1">Programa de Lectura</p>
-                    <p className="font-mono font-bold text-blue-600 bg-blue-50 px-3 py-2 rounded-lg text-sm">{perfil.alumno.programa_lectura || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500 text-sm mb-1">Programa de Matemáticas</p>
-                    <p className="font-mono font-bold text-red-600 bg-red-50 px-3 py-2 rounded-lg text-sm">{perfil.alumno.programa_matematicas || '—'}</p>
-                  </div>
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  {(() => {
+                    const a = perfil.alumno
+                    const progs = a.programas_activos || []
+                    const lec = progs.filter(p => !p.startsWith('MAT') && !p.includes('Matematicas'))
+                    const mat = progs.filter(p => p.startsWith('MAT') || p.includes('Matematicas'))
+                    const fallbackLec = a.programa_lectura ? [a.programa_lectura] : []
+                    const fallbackMat = a.programa_matematicas ? [a.programa_matematicas] : []
+                    const lecFinal = lec.length > 0 ? lec : fallbackLec
+                    const matFinal = mat.length > 0 ? mat : fallbackMat
+                    return (
+                      <div className="grid grid-cols-2 gap-4">
+                        {lecFinal.length > 0 && (
+                          <div>
+                            <p className="text-gray-500 text-sm mb-1">Programa de Lectura</p>
+                            <p className="font-mono font-bold text-blue-600 bg-blue-50 px-3 py-2 rounded-lg text-sm">{lecFinal.join(', ')}</p>
+                          </div>
+                        )}
+                        {matFinal.length > 0 && (
+                          <div>
+                            <p className="text-gray-500 text-sm mb-1">Programa de Matemáticas</p>
+                            <p className="font-mono font-bold text-red-600 bg-red-50 px-3 py-2 rounded-lg text-sm">{matFinal.join(', ')}</p>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
 

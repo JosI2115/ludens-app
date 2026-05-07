@@ -33,38 +33,54 @@ def get_bitacora_alumno(
     if not alumno:
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
 
-    db.refresh(alumno)
-    print(f"DEBUG refresh: pers_lec={alumno.programa_personalizado_lectura} pers_mat={alumno.programa_personalizado_matematicas}")
-
     import json
+    from app.models.alumno_programa import AlumnoPrograma
+
+    programas_activos_db = db.query(AlumnoPrograma).filter(
+        AlumnoPrograma.alumno_id == alumno_id,
+        AlumnoPrograma.en_historial == False
+    ).all()
+
+    programas_historial_db = db.query(AlumnoPrograma).filter(
+        AlumnoPrograma.alumno_id == alumno_id,
+        AlumnoPrograma.en_historial == True
+    ).all()
+
+    # Si la tabla está vacía, inicializarla con los campos del alumno
+    if not programas_activos_db and not programas_historial_db:
+        if alumno.programa_lectura:
+            nuevo = AlumnoPrograma(alumno_id=alumno.id, programa=alumno.programa_lectura, tipo='lectura', activo=True, en_historial=False)
+            db.add(nuevo)
+            programas_activos_db.append(nuevo)
+        if alumno.programa_matematicas:
+            nuevo = AlumnoPrograma(alumno_id=alumno.id, programa=alumno.programa_matematicas, tipo='matematicas', activo=True, en_historial=False)
+            db.add(nuevo)
+            programas_activos_db.append(nuevo)
+        if alumno.programa_personalizado_lectura:
+            nuevo = AlumnoPrograma(alumno_id=alumno.id, programa='Personalizado Lectura', tipo='personalizado_lectura', activo=True, en_historial=False)
+            db.add(nuevo)
+            programas_activos_db.append(nuevo)
+        if alumno.programa_personalizado_matematicas:
+            nuevo = AlumnoPrograma(alumno_id=alumno.id, programa='Personalizado Matematicas', tipo='personalizado_matematicas', activo=True, en_historial=False)
+            db.add(nuevo)
+            programas_activos_db.append(nuevo)
+        for prog in json.loads(alumno.programas_lectura_historial or '[]'):
+            nuevo = AlumnoPrograma(alumno_id=alumno.id, programa=prog, tipo='lectura', activo=False, en_historial=True)
+            db.add(nuevo)
+            programas_historial_db.append(nuevo)
+        for prog in json.loads(alumno.programas_matematicas_historial or '[]'):
+            nuevo = AlumnoPrograma(alumno_id=alumno.id, programa=prog, tipo='matematicas', activo=False, en_historial=True)
+            db.add(nuevo)
+            programas_historial_db.append(nuevo)
+        if programas_activos_db or programas_historial_db:
+            db.commit()
+
+    nombres_programas = [p.programa for p in programas_activos_db]
+    todos_programas = [{"nombre": p.programa, "tipo": p.tipo.replace('personalizado_', '') if p.tipo else 'lectura', "activo": p.activo, "id": str(p.id)} for p in programas_activos_db]
+    historial_lec = [p.programa for p in programas_historial_db if p.tipo and 'mat' not in p.tipo]
+    historial_mat = [p.programa for p in programas_historial_db if p.tipo and 'mat' in p.tipo]
+
     programas = []
-
-    # Construir lista de programas: historial + actual
-    progs_lectura = []
-    progs_mat = []
-
-    if alumno.programas_lectura_historial:
-        try:
-            progs_lectura = json.loads(alumno.programas_lectura_historial)
-        except:
-            pass
-    if alumno.programa_lectura:
-        if alumno.programa_lectura not in progs_lectura:
-            progs_lectura.append(alumno.programa_lectura)
-
-    if alumno.programas_matematicas_historial:
-        try:
-            progs_mat = json.loads(alumno.programas_matematicas_historial)
-        except:
-            pass
-    if alumno.programa_matematicas:
-        if alumno.programa_matematicas not in progs_mat:
-            progs_mat.append(alumno.programa_matematicas)
-
-    todos_programas = (
-        [{"nombre": p, "tipo": "lectura"} for p in progs_lectura] +
-        [{"nombre": p, "tipo": "matematicas"} for p in progs_mat]
-    )
 
     for prog_info in todos_programas:
         prog_nombre = prog_info["nombre"]
@@ -106,13 +122,19 @@ def get_bitacora_alumno(
             programas.append({
                 "programa": prog_nombre,
                 "tipo": prog_info["tipo"],
+                "activo": prog_info["activo"],
+                "programa_id": prog_info["id"],
                 "drive_url": actividades_catalogo[0].drive_url if actividades_catalogo else None,
                 "actividades": actividades
             })
 
     programas_ya = [p['programa'] for p in programas]
 
-    if alumno.programa_personalizado_lectura and 'Personalizado Lectura' not in programas_ya:
+    tiene_pers_lec = alumno.programa_personalizado_lectura or any(p.tipo == 'personalizado_lectura' for p in programas_activos_db)
+    tiene_pers_mat = alumno.programa_personalizado_matematicas or any(p.tipo == 'personalizado_matematicas' for p in programas_activos_db)
+
+    if tiene_pers_lec and 'Personalizado Lectura' not in programas_ya:
+        pers_lec_db = next((p for p in programas_activos_db if p.tipo == 'personalizado_lectura'), None)
         bitacoras_personalizado_lec = db.query(Bitacora).filter(
             Bitacora.alumno_id == alumno_id,
             Bitacora.programa == 'Personalizado Lectura'
@@ -120,6 +142,8 @@ def get_bitacora_alumno(
         programas.append({
             "programa": "Personalizado Lectura",
             "es_personalizado": True,
+            "activo": pers_lec_db.activo if pers_lec_db else True,
+            "programa_id": str(pers_lec_db.id) if pers_lec_db else None,
             "actividades": [{
                 "id": str(b.id),
                 "nomenclatura": b.nomenclatura,
@@ -133,7 +157,8 @@ def get_bitacora_alumno(
             } for b in bitacoras_personalizado_lec]
         })
 
-    if alumno.programa_personalizado_matematicas and 'Personalizado Matematicas' not in programas_ya:
+    if tiene_pers_mat and 'Personalizado Matematicas' not in programas_ya:
+        pers_mat_db = next((p for p in programas_activos_db if p.tipo == 'personalizado_matematicas'), None)
         bitacoras_personalizado_mat = db.query(Bitacora).filter(
             Bitacora.alumno_id == alumno_id,
             Bitacora.programa == 'Personalizado Matematicas'
@@ -141,6 +166,8 @@ def get_bitacora_alumno(
         programas.append({
             "programa": "Personalizado Matematicas",
             "es_personalizado": True,
+            "activo": pers_mat_db.activo if pers_mat_db else True,
+            "programa_id": str(pers_mat_db.id) if pers_mat_db else None,
             "actividades": [{
                 "id": str(b.id),
                 "nomenclatura": b.nomenclatura,
@@ -154,14 +181,12 @@ def get_bitacora_alumno(
             } for b in bitacoras_personalizado_mat]
         })
 
-    print(f"DEBUG alumno={alumno.nombre} pers_lec={alumno.programa_personalizado_lectura} pers_mat={alumno.programa_personalizado_matematicas} programas={[p['programa'] for p in programas]}")
-
     return {
         "alumno_id": alumno_id,
         "nombre": f"{alumno.nombre} {alumno.apellido}",
         "objetivo": alumno.objetivos,
-        "programas_historial_lectura": json.loads(alumno.programas_lectura_historial or '[]'),
-        "programas_historial_matematicas": json.loads(alumno.programas_matematicas_historial or '[]'),
+        "programas_historial_lectura": historial_lec,
+        "programas_historial_matematicas": historial_mat,
         "programas": programas
     }
 
@@ -472,18 +497,22 @@ def eliminar_programa_bitacora(
         Bitacora.programa == programa_decoded
     ).delete()
 
+    from app.models.alumno_programa import AlumnoPrograma
+    db.query(AlumnoPrograma).filter(
+        AlumnoPrograma.alumno_id == alumno_id,
+        AlumnoPrograma.programa == programa_decoded
+    ).delete()
+
     alumno = db.query(Alumno).filter(Alumno.id == alumno_id).first()
     if alumno:
-        if 'Personalizado Lectura' in programa_decoded or alumno.programa_lectura == programa_decoded:
-            if 'Personalizado' in programa_decoded:
-                alumno.programa_personalizado_lectura = False
-            else:
-                alumno.programa_lectura = None
-        elif 'Personalizado Matematicas' in programa_decoded or alumno.programa_matematicas == programa_decoded:
-            if 'Personalizado' in programa_decoded:
-                alumno.programa_personalizado_matematicas = False
-            else:
-                alumno.programa_matematicas = None
+        if programa_decoded == alumno.programa_lectura:
+            alumno.programa_lectura = None
+        if programa_decoded == alumno.programa_matematicas:
+            alumno.programa_matematicas = None
+        if 'Personalizado Lectura' in programa_decoded:
+            alumno.programa_personalizado_lectura = False
+        if 'Personalizado Matematicas' in programa_decoded:
+            alumno.programa_personalizado_matematicas = False
 
         import json
         historial_lec = json.loads(alumno.programas_lectura_historial or '[]')
@@ -541,5 +570,176 @@ def cambiar_programa(
             alumno.programa_matematicas = nuevo_programa
             alumno.programa_personalizado_matematicas = False
 
+    from app.models.alumno_programa import AlumnoPrograma
+
+    if tipo in ('lectura', 'personalizado_lectura'):
+        programas_anteriores = db.query(AlumnoPrograma).filter(
+            AlumnoPrograma.alumno_id == alumno_id,
+            AlumnoPrograma.tipo.in_(['lectura', 'personalizado_lectura']),
+            AlumnoPrograma.activo == True
+        ).all()
+        for p in programas_anteriores:
+            p.activo = False
+    elif tipo in ('matematicas', 'personalizado_matematicas'):
+        programas_anteriores = db.query(AlumnoPrograma).filter(
+            AlumnoPrograma.alumno_id == alumno_id,
+            AlumnoPrograma.tipo.in_(['matematicas', 'personalizado_matematicas']),
+            AlumnoPrograma.activo == True
+        ).all()
+        for p in programas_anteriores:
+            p.activo = False
+
+    tipo_nuevo = 'personalizado_lectura' if es_personalizado and tipo == 'lectura' else \
+                 'personalizado_matematicas' if es_personalizado and tipo == 'matematicas' else tipo
+
+    nuevo_prog = AlumnoPrograma(
+        alumno_id=alumno_id,
+        programa=nuevo_programa,
+        tipo=tipo_nuevo,
+        activo=True,
+        en_historial=False
+    )
+    db.add(nuevo_prog)
+
     db.commit()
     return {"mensaje": "Programa actualizado"}
+
+
+@router.get("/alumno/{alumno_id}/programas-lista")
+def get_programas_alumno(
+    alumno_id: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.alumno_programa import AlumnoPrograma
+    programas = db.query(AlumnoPrograma).filter(
+        AlumnoPrograma.alumno_id == alumno_id
+    ).order_by(AlumnoPrograma.en_historial, AlumnoPrograma.created_at).all()
+    return [{
+        "id": str(p.id),
+        "programa": p.programa,
+        "tipo": p.tipo,
+        "activo": p.activo,
+        "en_historial": p.en_historial,
+    } for p in programas]
+
+
+@router.post("/alumno/{alumno_id}/programas-lista")
+def agregar_programa_alumno(
+    alumno_id: str,
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.alumno_programa import AlumnoPrograma
+    from app.models.alumno import Alumno
+
+    programa = data.get('programa')
+    tipo = data.get('tipo')
+
+    existente = db.query(AlumnoPrograma).filter(
+        AlumnoPrograma.alumno_id == alumno_id,
+        AlumnoPrograma.programa == programa,
+        AlumnoPrograma.en_historial == False
+    ).first()
+    if existente:
+        raise HTTPException(status_code=400, detail="Este programa ya está asignado")
+
+    nuevo = AlumnoPrograma(
+        alumno_id=alumno_id,
+        programa=programa,
+        tipo=tipo,
+        activo=True,
+        en_historial=False
+    )
+    db.add(nuevo)
+
+    alumno = db.query(Alumno).filter(Alumno.id == alumno_id).first()
+    if alumno:
+        if tipo == 'lectura' and not alumno.programa_lectura:
+            alumno.programa_lectura = programa
+        elif tipo == 'matematicas' and not alumno.programa_matematicas:
+            alumno.programa_matematicas = programa
+        elif tipo == 'personalizado_lectura':
+            alumno.programa_personalizado_lectura = True
+        elif tipo == 'personalizado_matematicas':
+            alumno.programa_personalizado_matematicas = True
+
+    db.commit()
+    return {"mensaje": "Programa agregado"}
+
+
+@router.put("/alumno/{alumno_id}/programas-lista/{programa_id}/historial")
+def mover_a_historial(
+    alumno_id: str,
+    programa_id: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.alumno_programa import AlumnoPrograma
+    p = db.query(AlumnoPrograma).filter(AlumnoPrograma.id == programa_id).first()
+    if p:
+        p.en_historial = True
+        p.activo = False
+        db.commit()
+    return {"mensaje": "Movido a historial"}
+
+
+@router.put("/alumno/{alumno_id}/programas-lista/{programa_id}/deshabilitar")
+def deshabilitar_programa(
+    alumno_id: str,
+    programa_id: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.alumno_programa import AlumnoPrograma
+    p = db.query(AlumnoPrograma).filter(AlumnoPrograma.id == programa_id).first()
+    if p:
+        p.activo = not p.activo
+        db.commit()
+        estado = "habilitado" if p.activo else "deshabilitado"
+    return {"mensaje": f"Programa {estado}"}
+
+
+@router.delete("/alumno/{alumno_id}/programas-lista/{programa_id}")
+def eliminar_programa_alumno(
+    alumno_id: str,
+    programa_id: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.alumno_programa import AlumnoPrograma
+    from app.models.alumno import Alumno
+    import json
+
+    p = db.query(AlumnoPrograma).filter(AlumnoPrograma.id == programa_id).first()
+    if p:
+        db.query(Bitacora).filter(
+            Bitacora.alumno_id == alumno_id,
+            Bitacora.programa == p.programa
+        ).delete()
+
+        alumno = db.query(Alumno).filter(Alumno.id == alumno_id).first()
+        if alumno:
+            if p.tipo == 'lectura':
+                if alumno.programa_lectura == p.programa:
+                    alumno.programa_lectura = None
+                hist = json.loads(alumno.programas_lectura_historial or '[]')
+                if p.programa in hist:
+                    hist.remove(p.programa)
+                    alumno.programas_lectura_historial = json.dumps(hist)
+            elif p.tipo == 'matematicas':
+                if alumno.programa_matematicas == p.programa:
+                    alumno.programa_matematicas = None
+                hist = json.loads(alumno.programas_matematicas_historial or '[]')
+                if p.programa in hist:
+                    hist.remove(p.programa)
+                    alumno.programas_matematicas_historial = json.dumps(hist)
+            elif p.tipo == 'personalizado_lectura':
+                alumno.programa_personalizado_lectura = False
+            elif p.tipo == 'personalizado_matematicas':
+                alumno.programa_personalizado_matematicas = False
+
+        db.delete(p)
+        db.commit()
+    return {"mensaje": "Programa eliminado"}

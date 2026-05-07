@@ -370,7 +370,16 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess, onPagoRegis
   const [metodoPago, setMetodoPago] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [mesPagoSeleccionado, setMesPagoSeleccionado] = useState(null)
   const usuarioLocal = JSON.parse(localStorage.getItem('usuario') || '{}')
+
+  const detectarMesAmbiguo = (alumno) => {
+    if (!alumno) return false
+    const hoy = new Date()
+    const diaHoy = hoy.getDate()
+    const diaPago = alumno?.dia_pago || 0
+    return diaPago >= 26 && diaHoy <= 8
+  }
 
   const conPenalizacion = alumno.dias_retraso > 5
   const monto = Number(alumno.plan_pago) || 0
@@ -380,10 +389,27 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess, onPagoRegis
     setLoading(true)
     setError('')
     try {
+      const hoy = new Date()
+      let mesEnviar = hoy.getMonth() + 1
+      let anioEnviar = hoy.getFullYear()
+
+      if (detectarMesAmbiguo(alumno) && mesPagoSeleccionado === 'anterior') {
+        if (hoy.getMonth() === 0) {
+          mesEnviar = 12
+          anioEnviar = hoy.getFullYear() - 1
+        } else {
+          mesEnviar = hoy.getMonth()
+          anioEnviar = hoy.getFullYear()
+        }
+      } else if (!detectarMesAmbiguo(alumno)) {
+        mesEnviar = mes
+        anioEnviar = anio
+      }
+
       await pagosService.registrar({
         alumno_id: alumno.id,
-        mes,
-        anio,
+        mes: mesEnviar,
+        anio: anioEnviar,
         fecha_pago: fechaRecepcion || new Date().toISOString().split('T')[0],
         con_penalizacion: conPenalizacion,
         monto_penalizacion: conPenalizacion ? 50 : 0,
@@ -396,8 +422,8 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess, onPagoRegis
       onPagoRegistrado && onPagoRegistrado({
         nombre: alumno.nombre,
         monto: montoPersonalizado || alumno.plan_pago,
-        mes,
-        anio,
+        mes: mesEnviar,
+        anio: anioEnviar,
         fecha_recepcion: fechaRecepcion,
         registrado_por: usuarioLocal.nombre,
         comentarios,
@@ -425,6 +451,28 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess, onPagoRegis
             <p className="font-medium text-gray-800">{alumno.nombre}</p>
             <p className="text-sm text-gray-500">Día de pago: {alumno.dia_pago}</p>
           </div>
+
+          {detectarMesAmbiguo(alumno) && (
+            <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-3 mb-3">
+              <p className="text-sm font-medium text-yellow-800 mb-2">⚠️ ¿A qué mes corresponde este pago?</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMesPagoSeleccionado('anterior')}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium border transition ${mesPagoSeleccionado === 'anterior' ? 'bg-yellow-500 text-white border-yellow-500' : 'bg-white text-yellow-700 border-yellow-300'}`}
+                >
+                  {new Date().getMonth() === 0 ? 'Diciembre' : ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][new Date().getMonth()-1]}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMesPagoSeleccionado('actual')}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium border transition ${mesPagoSeleccionado === 'actual' ? 'bg-yellow-500 text-white border-yellow-500' : 'bg-white text-yellow-700 border-yellow-300'}`}
+                >
+                  {['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][new Date().getMonth()]}
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <div className="flex justify-between text-sm">

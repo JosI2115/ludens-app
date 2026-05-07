@@ -86,6 +86,12 @@ def get_pagos(
     elif sucursal_id:
         query = query.filter(Alumno.sucursal_id == sucursal_id)
 
+    primer_dia_mes = date(anio, mes, 1)
+    query = query.filter(
+        (Alumno.fecha_ingreso == None) |
+        (Alumno.fecha_ingreso <= primer_dia_mes)
+    )
+
     alumnos = query.order_by(Alumno.nombre).all()
 
     resultado = []
@@ -132,10 +138,31 @@ def registrar_pago(
     if not alumno:
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
 
+    from datetime import datetime as dt
+    if data.fecha_recepcion:
+        fecha_rec = dt.strptime(data.fecha_recepcion, '%Y-%m-%d').date() if isinstance(data.fecha_recepcion, str) else data.fecha_recepcion
+    else:
+        fecha_rec = date.today()
+
+    mes_pago = data.mes
+    anio_pago = data.anio
+
+    if not mes_pago:
+        if alumno.dia_pago and alumno.dia_pago >= 26 and fecha_rec.day <= 5:
+            if fecha_rec.month == 1:
+                mes_pago = 12
+                anio_pago = fecha_rec.year - 1
+            else:
+                mes_pago = fecha_rec.month - 1
+                anio_pago = fecha_rec.year
+        else:
+            mes_pago = fecha_rec.month
+            anio_pago = fecha_rec.year
+
     pago_existe = db.query(Pago).filter(
         Pago.alumno_id == data.alumno_id,
-        Pago.mes == data.mes,
-        Pago.anio == data.anio
+        Pago.mes == mes_pago,
+        Pago.anio == anio_pago
     ).first()
 
     if pago_existe:
@@ -166,8 +193,8 @@ def registrar_pago(
     pago = Pago(
         alumno_id=data.alumno_id,
         monto=monto_final,
-        mes=data.mes,
-        anio=data.anio,
+        mes=mes_pago,
+        anio=anio_pago,
         fecha_pago=data.fecha_pago or hoy,
         con_penalizacion=con_penalizacion,
         monto_penalizacion=monto_penalizacion,

@@ -171,10 +171,16 @@ def get_alumnos(
     
     from sqlalchemy.orm import joinedload
     alumnos = query.options(joinedload(Alumno.maestra)).order_by(Alumno.nombre).all()
+    from app.models.alumno_programa import AlumnoPrograma
     result = []
     for a in alumnos:
         maestra_lec = db.query(Usuario).filter(Usuario.id == a.maestra_lectura_id).first() if a.maestra_lectura_id else None
         maestra_mat = db.query(Usuario).filter(Usuario.id == a.maestra_matematicas_id).first() if a.maestra_matematicas_id else None
+        progs_activos = db.query(AlumnoPrograma).filter(
+            AlumnoPrograma.alumno_id == a.id,
+            AlumnoPrograma.activo == True,
+            AlumnoPrograma.en_historial == False
+        ).all()
         result.append({
             **{c.name: getattr(a, c.name) for c in a.__table__.columns},
             "maestra_nombre": a.maestra.nombre if a.maestra else None,
@@ -182,6 +188,7 @@ def get_alumnos(
             "maestra_lectura_nombre": maestra_lec.nombre if maestra_lec else None,
             "maestra_matematicas_id": str(a.maestra_matematicas_id) if a.maestra_matematicas_id else None,
             "maestra_matematicas_nombre": maestra_mat.nombre if maestra_mat else None,
+            "programas_activos": [p.programa for p in progs_activos],
         })
     return result
 
@@ -433,6 +440,7 @@ def get_perfil_alumno(
     from app.models.pago import Pago
     from app.models.asistencia import Asistencia
     from app.models.historial import HistorialCambio
+    from app.models.alumno_programa import AlumnoPrograma
     from datetime import date
 
     from sqlalchemy.orm import joinedload
@@ -492,6 +500,11 @@ def get_perfil_alumno(
             "maestra_matematicas_nombre": maestra_mat.nombre if maestra_mat else None,
             "programa_lectura": alumno.programa_lectura,
             "programa_matematicas": alumno.programa_matematicas,
+            "programas_activos": [p.programa for p in db.query(AlumnoPrograma).filter(
+                AlumnoPrograma.alumno_id == alumno_id,
+                AlumnoPrograma.activo == True,
+                AlumnoPrograma.en_historial == False
+            ).all()],
             "objetivos": alumno.objetivos,
             "domicilio": alumno.domicilio,
             "escuela_procedencia": alumno.escuela_procedencia,

@@ -73,7 +73,12 @@ def actualizar_situaciones_por_inasistencia():
 
 
 @app.on_event("startup")
-def startup():
+def _run_startup():
+    import threading
+    t = threading.Thread(target=_startup_logic, daemon=True)
+    t.start()
+
+def _startup_logic():
     from app.database import Base, engine, SessionLocal
     from app.models.alumno import Alumno
     from app.models.usuario import Usuario
@@ -88,7 +93,7 @@ def startup():
     from app.auth.auth import hashear_password
     from sqlalchemy import text
 
-    print("STARTUP: Iniciando...")
+    print("STARTUP: Iniciando...", flush=True)
     from sqlalchemy import text
     with engine.connect() as conn:
         migraciones_auto = [
@@ -118,9 +123,9 @@ def startup():
             except Exception:
                 pass
 
-    print("STARTUP: Migraciones completadas")
+    print("STARTUP: Migraciones completadas", flush=True)
     Base.metadata.create_all(bind=engine)
-    print("STARTUP: Tablas creadas")
+    print("STARTUP: Tablas creadas", flush=True)
 
     # Agregar columnas nuevas si no existen
     from sqlalchemy import text
@@ -132,7 +137,7 @@ def startup():
             conn.commit()
         except Exception:
             conn.rollback()
-    print("STARTUP: Columnas extra OK")
+    print("STARTUP: Columnas extra OK", flush=True)
 
     from app.models.catalogo import ProgramaCatalogo
     from app.models.bitacora import Bitacora
@@ -152,7 +157,7 @@ def startup():
                 conn.commit()
         except Exception:
             pass
-    print("STARTUP: Columnas extra 2 OK")
+    print("STARTUP: Columnas extra 2 OK", flush=True)
 
     db = SessionLocal()
 
@@ -166,7 +171,7 @@ def startup():
         for s in sucursales:
             db.add(s)
         db.commit()
-    print("STARTUP: Sucursales OK")
+    print("STARTUP: Sucursales OK", flush=True)
 
     if db.query(Usuario).count() == 0:
         suc = {s.nombre: s.id for s in db.query(Sucursal).all()}
@@ -198,15 +203,15 @@ def startup():
             db.add(nuevo)
         db.commit()
 
-    print("STARTUP: Usuarios OK")
+    print("STARTUP: Usuarios OK", flush=True)
     db.close()
 
     try:
         actualizar_situaciones_por_inasistencia()
-        print("STARTUP: Situaciones OK")
+        print("STARTUP: Situaciones OK", flush=True)
     except Exception as e:
-        print(f"Warning: actualizar_situaciones_por_inasistencia falló: {e}")
-    print("STARTUP: Completado")
+        print(f"Warning: actualizar_situaciones_por_inasistencia falló: {e}", flush=True)
+    print("STARTUP: Completado", flush=True)
 
 @app.get("/")
 def root():

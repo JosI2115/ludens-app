@@ -86,10 +86,12 @@ def get_pagos(
     elif sucursal_id:
         query = query.filter(Alumno.sucursal_id == sucursal_id)
 
-    primer_dia_mes = date(anio, mes, 1)
+    import calendar
+    ultimo_dia = calendar.monthrange(anio, mes)[1]
+    ultimo_dia_mes = date(anio, mes, ultimo_dia)
     query = query.filter(
         (Alumno.fecha_ingreso == None) |
-        (Alumno.fecha_ingreso <= primer_dia_mes)
+        (Alumno.fecha_ingreso <= ultimo_dia_mes)
     )
 
     alumnos = query.order_by(Alumno.nombre).all()

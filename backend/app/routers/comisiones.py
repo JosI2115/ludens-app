@@ -32,7 +32,7 @@ def calcular_comisiones(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    if current_user.rol not in ["directora", "contadora", "encargada"] and not current_user.es_encargada_general:
+    if current_user.rol not in ["directora", "contadora", "encargada", "recepcionista"] and not current_user.es_encargada_general:
         raise HTTPException(status_code=403, detail="Sin permisos")
 
     hoy = date.today()

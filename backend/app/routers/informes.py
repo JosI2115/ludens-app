@@ -146,6 +146,27 @@ def crear_informe(
     db.add(inf)
     db.commit()
     db.refresh(inf)
+
+    if inf.situacion == 'agendo_diagnostico' and inf.fecha_diagnostico and inf.hora_diagnostico and inf.nombre_nino:
+        from app.models.prospecto_calendario import ProspectoCalendario
+        prospecto_existe = db.query(ProspectoCalendario).filter(
+            ProspectoCalendario.nombre_nino == inf.nombre_nino,
+            ProspectoCalendario.fecha == inf.fecha_diagnostico
+        ).first()
+        if not prospecto_existe:
+            prospecto = ProspectoCalendario(
+                nombre_nino=inf.nombre_nino,
+                grado=inf.grado_nino,
+                edad=inf.edad_nino,
+                nombre_tutor=inf.nombre_contacto,
+                sucursal_id=inf.sucursal_id,
+                fecha=inf.fecha_diagnostico,
+                hora=inf.hora_diagnostico,
+                registrado_por=current_user.id
+            )
+            db.add(prospecto)
+            db.commit()
+
     return informe_to_dict(inf, db)
 
 @router.put("/{informe_id}")

@@ -53,31 +53,20 @@ def calcular_comisiones(
     for suc in sucursales:
         metas = get_metas(suc.nombre)
 
-        # Alumnos inscritos (activos) en ese mes según su fecha de ingreso
+        # Solo alumnos que ingresaron este mes
         alumnos_inscritos = db.query(Alumno).filter(
             Alumno.sucursal_id == suc.id,
             Alumno.activo == True,
-            Alumno.situacion.in_(['activo', 'becado']),
             Alumno.fecha_ingreso.between(primer_dia, ultimo_dia)
         ).all()
 
-        alumnos_inscritos_ids = [str(a.id) for a in alumnos_inscritos]
+        num_inscritos = len(alumnos_inscritos)
 
+        # Buscar informes vinculados a esos alumnos para las comisiones individuales
+        alumnos_ids = [str(a.id) for a in alumnos_inscritos]
         inscritos_mes = db.query(Informe).filter(
-            Informe.alumno_id.in_(alumnos_inscritos_ids)
-        ).all() if alumnos_inscritos_ids else []
-
-        # Buscar también por informes inscritos del mes
-        informes_inscritos = db.query(Informe).filter(
-            Informe.sucursal_id == suc.id,
-            Informe.situacion == 'inscrito',
-            Informe.fecha_inscripcion.between(primer_dia, ultimo_dia)
-        ).all()
-
-        # Unir ambas listas de informes para comisiones
-        todos_informes = list(inscritos_mes) + [i for i in informes_inscritos if i not in inscritos_mes]
-        inscritos_mes = todos_informes
-        num_inscritos = len(set([str(i.alumno_id) for i in inscritos_mes if i.alumno_id] + [str(a.id) for a in alumnos_inscritos]))
+            Informe.alumno_id.in_(alumnos_ids)
+        ).all() if alumnos_ids else []
 
         # Bajas del mes
         bajas_mes = db.query(Alumno).filter(

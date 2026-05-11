@@ -210,11 +210,14 @@ def actualizar_registro(
                 programa=data.programa or 'Personalizado',
                 nomenclatura=nomenclatura,
                 actividad=data.actividad or '',
+                estado=data.estado or '',
+                registrado_por_nombre=current_user.nombre,
                 registrado_por=current_user.id
             )
             db.add(registro)
-        elif data.actividad is not None:
-            registro.actividad = data.actividad
+        else:
+            if data.actividad is not None:
+                registro.actividad = data.actividad
         if registro and data.nomenclatura_nueva and data.nomenclatura_nueva != nomenclatura:
             registro.nomenclatura = data.nomenclatura_nueva
     else:
@@ -256,6 +259,24 @@ def actualizar_registro(
     db.commit()
     db.refresh(registro)
     return registro
+
+@router.delete("/registro/{alumno_id}/{nomenclatura}")
+def eliminar_registro(
+    alumno_id: str,
+    nomenclatura: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from urllib.parse import unquote
+    nomenclatura_decoded = unquote(nomenclatura)
+    registro = db.query(Bitacora).filter(
+        Bitacora.alumno_id == alumno_id,
+        Bitacora.nomenclatura == nomenclatura_decoded
+    ).first()
+    if registro:
+        db.delete(registro)
+        db.commit()
+    return {"mensaje": "Actividad eliminada"}
 
 @router.get("/programas")
 def get_programas_catalogo(

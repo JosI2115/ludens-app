@@ -320,7 +320,7 @@ export default function Bitacoras() {
                   ⚙️
                 </button>
               )}
-              {(usuario.rol === 'directora' || usuario.es_encargada_general) && (
+              {(usuario.rol === 'directora' || usuario.rol === 'encargada' || usuario.rol === 'maestra' || usuario.es_encargada_general) && (
                 <button onClick={() => setModalListaMaestra(true)}
                   className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded-lg transition">
                   📋 Lista
@@ -555,11 +555,13 @@ export default function Bitacoras() {
                               {modoSeleccion && <th className="px-2 py-2 w-8"></th>}
                               <th className="text-left px-2 py-2 text-gray-500 font-medium w-16">Sem</th>
                               <th className="text-left px-2 py-2 text-gray-500 font-medium">Nomenclatura</th>
+                              <th className="text-left px-2 py-2 text-gray-500 font-medium">Descripción</th>
                               <th className="text-left px-2 py-2 text-gray-500 font-medium w-28">Estado</th>
                               <th className="text-left px-2 py-2 text-gray-500 font-medium w-28">Fecha</th>
                               <th className="text-left px-2 py-2 text-gray-500 font-medium w-20">Ejercicios</th>
                               <th className="text-left px-2 py-2 text-gray-500 font-medium">Comentario</th>
                               <th className="text-left px-2 py-2 text-gray-500 font-medium w-20">Registró</th>
+                              <th className="px-2 py-2 w-8"></th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100">
@@ -594,6 +596,14 @@ export default function Bitacoras() {
                                       }
                                     }}
                                     className="w-full text-xs border border-gray-200 rounded px-1 py-0.5 font-mono focus:outline-none focus:ring-1 focus:ring-purple-400" />
+                                </td>
+                                <td className="px-2 py-1.5">
+                                  <input type="text" defaultValue={act.actividad || ''}
+                                    onBlur={async (e) => await api.put(`/bitacoras/registro/${alumnoSeleccionado?.id}/${encodeURIComponent(act.nomenclatura)}`, {
+                                      actividad: e.target.value, es_personalizado: true, programa: prog.programa
+                                    })}
+                                    className="w-full text-xs border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-purple-400"
+                                    placeholder="Descripción" />
                                 </td>
                                 <td className="px-2 py-1.5">
                                   <select value={act.estado || ''}
@@ -632,6 +642,23 @@ export default function Bitacoras() {
                                     placeholder="Comentario" />
                                 </td>
                                 <td className="px-2 py-1.5 text-gray-400">{act.registrado_por_nombre || '—'}</td>
+                                <td className="px-2 py-1.5">
+                                  <button
+                                    onClick={async () => {
+                                      if (!window.confirm('¿Eliminar esta actividad?')) return
+                                      try {
+                                        await api.delete(`/bitacoras/registro/${alumnoSeleccionado.id}/${encodeURIComponent(act.nomenclatura)}`)
+                                        cargarBitacora(alumnoSeleccionado)
+                                      } catch (err) {
+                                        console.error('Error eliminando actividad')
+                                      }
+                                    }}
+                                    className="text-red-400 hover:text-red-600 text-xs"
+                                    title="Eliminar actividad"
+                                  >
+                                    🗑️
+                                  </button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>

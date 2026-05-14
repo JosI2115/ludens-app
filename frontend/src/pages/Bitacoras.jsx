@@ -483,6 +483,7 @@ export default function Bitacoras() {
             ) : (
               <>
                 {programasMostrar.map((prog, pi) => {
+                  const realPi = bitacora.programas.findIndex(p => p.programa === prog.programa)
                   return (
                 <div key={pi} className={`mb-8${prog.activo === false ? ' opacity-40' : ''}`}>
                   <div
@@ -732,7 +733,7 @@ export default function Bitacoras() {
                                   setBitacora(prev => ({
                                     ...prev,
                                     programas: prev.programas.map((p, pii) =>
-                                      pii === pi ? {
+                                      pii === realPi ? {
                                         ...p,
                                         actividades: p.actividades.map((a, aii) =>
                                           aii === ai ? { ...a, fecha: e.target.value } : a
@@ -746,15 +747,15 @@ export default function Bitacoras() {
                             </td>
                             <td className="px-2 py-1.5">
                               <input
-                                type="number"
-                                value={act.ejercicios || ''}
+                                type="text"
+                                value={act.ejercicios ?? ''}
                                 placeholder="0"
                                 onBlur={e => actualizarRegistro(act.nomenclatura, 'ejercicios', e.target.value ? parseInt(e.target.value) : null)}
                                 onChange={e => {
                                   setBitacora(prev => ({
                                     ...prev,
                                     programas: prev.programas.map((p, pii) =>
-                                      pii === pi ? {
+                                      pii === realPi ? {
                                         ...p,
                                         actividades: p.actividades.map((a, aii) =>
                                           aii === ai ? { ...a, ejercicios: e.target.value } : a
@@ -776,7 +777,7 @@ export default function Bitacoras() {
                                   setBitacora(prev => ({
                                     ...prev,
                                     programas: prev.programas.map((p, pii) =>
-                                      pii === pi ? {
+                                      pii === realPi ? {
                                         ...p,
                                         actividades: p.actividades.map((a, aii) =>
                                           aii === ai ? { ...a, comentario: e.target.value } : a

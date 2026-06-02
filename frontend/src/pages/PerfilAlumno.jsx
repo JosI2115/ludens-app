@@ -63,6 +63,22 @@ export default function PerfilAlumno() {
           </span>
         </div>
 
+        {alumno.situacion === 'baja' && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 mt-4">
+            <h3 className="font-bold text-red-700 mb-2">📋 Información de baja</h3>
+            <div className="space-y-1">
+              <p className="text-sm">
+                <span className="text-gray-500 font-medium">Fecha de baja:</span>{' '}
+                <span className="text-gray-800">{alumno.fecha_baja || '—'}</span>
+              </p>
+              <p className="text-sm">
+                <span className="text-gray-500 font-medium">Motivo:</span>{' '}
+                <span className="text-gray-800">{alumno.motivo_baja || '—'}</span>
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
           <div className="bg-purple-50 rounded-lg p-3">
             <p className="text-xs text-gray-500">Plan de pago</p>

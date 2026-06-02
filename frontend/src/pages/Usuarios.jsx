@@ -153,10 +153,12 @@ function ModalEditarUsuario({ usuario: u, sucursales, onClose, onSuccess }) {
     password: '',
     color: u.color || '',
     es_global: u.es_global || false,
+    es_encargada_general: u.es_encargada_general || false,
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [sucursalesUsuario, setSucursalesUsuario] = useState([])
+  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
 
   useEffect(() => {
     if (u?.id && u?.rol === 'maestra') {
@@ -281,6 +283,15 @@ function ModalEditarUsuario({ usuario: u, sucursales, onClose, onSuccess }) {
               className="w-4 h-4 text-purple-600" />
             <label className="text-sm text-gray-700">Usuario activo</label>
           </div>
+          {usuario.rol === 'directora' && (
+            <div className="flex items-center gap-2">
+              <input type="checkbox"
+                checked={form.es_encargada_general || false}
+                onChange={e => setForm(f => ({...f, es_encargada_general: e.target.checked}))}
+                className="w-4 h-4 text-purple-600 rounded" />
+              <label className="text-sm text-gray-700">Encargada general (ve todas las sucursales)</label>
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Color para calendario</label>
             <div className="flex gap-2 flex-wrap mb-2">
@@ -327,11 +338,12 @@ function ModalEditarUsuario({ usuario: u, sucursales, onClose, onSuccess }) {
 function ModalNuevoUsuario({ sucursales, onClose, onSuccess }) {
   const [form, setForm] = useState({
     nombre: '', email: '', password: '', rol: 'maestra',
-    sucursal_id: '', color: '', es_global: false,
+    sucursal_id: '', color: '', es_global: false, es_encargada_general: false,
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [sucursalesUsuario, setSucursalesUsuario] = useState([])
+  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -447,6 +459,15 @@ function ModalNuevoUsuario({ sucursales, onClose, onSuccess }) {
                   <span className="text-sm text-gray-700">Maestra global (aparece en todas las sucursales)</span>
                 </label>
               </div>
+            </div>
+          )}
+          {usuario.rol === 'directora' && (
+            <div className="flex items-center gap-2">
+              <input type="checkbox"
+                checked={form.es_encargada_general || false}
+                onChange={e => setForm(f => ({...f, es_encargada_general: e.target.checked}))}
+                className="w-4 h-4 text-purple-600 rounded" />
+              <label className="text-sm text-gray-700">Encargada general (ve todas las sucursales)</label>
             </div>
           )}
           <div>

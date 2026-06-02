@@ -1120,6 +1120,11 @@ function EditorHorario({ franjas, onChange, maestraLecturaId, maestraMatematicas
   const HORAS = ['9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00']
   const tiene2Materias = parseInt(planPago) >= 1200 || planPago === 'personalizado'
 
+  const maestrasDisponibles = maestras.filter(m =>
+    m.id === maestraLecturaId || m.id === maestraMatematicasId
+  ).filter(Boolean)
+  const opcionesMaestra = maestrasDisponibles.length > 0 ? maestrasDisponibles : maestras
+
   const calcularHorasTotales = () => {
     return franjas.reduce((total, franja) => {
       const inicio = parseInt(franja.hora_inicio.split(':')[0])
@@ -1196,9 +1201,16 @@ function EditorHorario({ franjas, onChange, maestraLecturaId, maestraMatematicas
                 <option value="matematicas">🔢 Matemáticas</option>
               </select>
             )}
-            <span className="text-xs text-gray-400">
-              {maestras.find(m => m.id === franja.maestra_id)?.nombre || 'Sin maestra'}
-            </span>
+            <select
+              value={franja.maestra_id || ''}
+              onChange={e => actualizarFranja(i, 'maestra_id', e.target.value)}
+              className="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-purple-400"
+            >
+              <option value="">Sin maestra</option>
+              {opcionesMaestra.map(m => (
+                <option key={m.id} value={m.id}>{m.nombre}</option>
+              ))}
+            </select>
             <button type="button" onClick={() => eliminarFranja(i)}
               className="text-red-400 hover:text-red-600 text-xs ml-auto">✕</button>
           </div>

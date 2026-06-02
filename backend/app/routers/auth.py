@@ -53,7 +53,8 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
             "email": usuario.email,
             "rol": usuario.rol,
             "sucursal_id": str(usuario.sucursal_id) if usuario.sucursal_id else None,
-            "sucursal_nombre": usuario.sucursal.nombre if usuario.sucursal_id and usuario.sucursal else None
+            "sucursal_nombre": usuario.sucursal.nombre if usuario.sucursal_id and usuario.sucursal else None,
+            "es_encargada_general": usuario.es_encargada_general or False,
         }
     }
 

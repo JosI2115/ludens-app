@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime as dt
 import re
 from app.database import get_db
 from app.models.alumno import Alumno
@@ -11,6 +11,19 @@ from app.models.recuperacion import ClaseRecuperacion
 from app.auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/calendario", tags=["calendario"])
+
+def horas_en_rango(hora_inicio, hora_fin):
+    horas = []
+    try:
+        inicio = dt.strptime(hora_inicio, '%H:%M')
+        fin = dt.strptime(hora_fin, '%H:%M')
+        actual = inicio
+        while actual < fin:
+            horas.append(actual.strftime('%H:%M'))
+            actual += timedelta(hours=1)
+    except Exception:
+        horas.append(hora_inicio)
+    return horas
 
 HORAS = ['9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00']
 
@@ -174,15 +187,6 @@ def get_calendario_semana(
 
             nuevo = es_nuevo_ingreso(alumno, fecha_dia)
 
-            hora_key = None
-            for h in HORAS:
-                if h == hora_inicio or h.replace(':00', '') == hora_inicio.replace(':00', ''):
-                    hora_key = h
-                    break
-
-            if hora_key is None:
-                continue
-
             fecha_dia = fechas_semana[dia] if dia < len(fechas_semana) else None
             confirmado = conf_map.get((str(alumno.id), str(fecha_dia))) if fecha_dia else None
 
@@ -196,13 +200,23 @@ def get_calendario_semana(
             elif nuevo:
                 estado = 'nuevo_ingreso'
 
-            calendario[hora_key][dia].append({
+            alumno_data = {
                 "alumno_id": str(alumno.id),
                 "nombre": f"{alumno.nombre} {alumno.apellido}",
                 "hora_fin": franja['hora_fin'],
                 "estado": estado,
                 "maestra_id": franja.get('maestra_id') or (str(alumno.maestra_id) if alumno.maestra_id else None),
-            })
+            }
+
+            for hora in horas_en_rango(hora_inicio, franja.get('hora_fin', '')):
+                hora_key = None
+                for h in HORAS:
+                    if h == hora or h.split(':')[0] == hora.split(':')[0]:
+                        hora_key = h
+                        break
+                if hora_key is None:
+                    continue
+                calendario[hora_key][dia].append(alumno_data)
 
     for recup in recuperaciones:
         alumno = db.query(Alumno).filter(Alumno.id == recup.alumno_id).first()
@@ -603,7 +617,7 @@ def get_prospectos(
         ProspectoCalendario.fecha >= inicio,
         ProspectoCalendario.fecha <= fin
     )
-    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
+    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
         query = query.filter(ProspectoCalendario.sucursal_id == current_user.sucursal_id)
     elif sucursal_id:
         query = query.filter(ProspectoCalendario.sucursal_id == sucursal_id)

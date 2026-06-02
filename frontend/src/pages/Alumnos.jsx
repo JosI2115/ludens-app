@@ -346,6 +346,8 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
   const urlParams = new URLSearchParams(window.location.search)
   const informeIdParam = urlParams.get('informe_id')
   const [alumnoEnBaja, setAlumnoEnBaja] = useState(null)
+  const PLANES_FIJOS = ['900', '1200', '1500', '1650', '2300']
+  const esPersonalizado = alumno?.plan_pago && !PLANES_FIJOS.includes(alumno.plan_pago)
   const [form, setForm] = useState({
     nombre: alumno?.nombre || urlParams.get('nombre') || '',
     apellido: alumno?.apellido || urlParams.get('apellido') || '',
@@ -363,8 +365,8 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
     materia_maestra1: alumno?.materia_maestra1 || 'lectura',
     materia_maestra2: alumno?.materia_maestra2 || 'matematicas',
     situacion: alumno?.situacion || 'prospecto',
-    plan_pago: alumno?.plan_pago || '',
-    monto_personalizado: '',
+    plan_pago: esPersonalizado ? 'personalizado' : (alumno?.plan_pago || ''),
+    monto_personalizado: esPersonalizado ? alumno?.plan_pago : '',
     materias: alumno?.materias || '',
     horas_semana: alumno?.horas_semana || '',
     dia_pago: alumno?.dia_pago || '',
@@ -873,16 +875,14 @@ function FormularioAlumno({ alumno, onClose, onSuccess }) {
                 {maestras.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
               </select>
             </div>
-            {(form.plan_pago === '1200' || form.plan_pago === '1500' || parseInt(form.plan_pago) >= 1200 || (form.plan_pago === 'personalizado' && form.materias && form.materias.includes('y'))) && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Maestra 2</label>
-                <select name="maestra_matematicas_id" value={form.maestra_matematicas_id || ''} onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
-                  <option value="">Sin asignar</option>
-                  {maestras.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-                </select>
-              </div>
-            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Maestra 2</label>
+              <select name="maestra_matematicas_id" value={form.maestra_matematicas_id || ''} onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                <option value="">Sin asignar</option>
+                {maestras.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+              </select>
+            </div>
           </div>
 
           <EditorHorario

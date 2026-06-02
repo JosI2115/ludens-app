@@ -62,6 +62,7 @@ class AlumnoUpdate(BaseModel):
     nombre_tutor: Optional[str] = None
     telefono_tutor: Optional[str] = None
     telefono_emergencia: Optional[str] = None
+    sucursal_id: Optional[str] = None
     maestra_id: Optional[str] = None
     situacion: Optional[str] = None
     plan_pago: Optional[str] = None
@@ -267,6 +268,10 @@ def actualizar_alumno(
         raise HTTPException(status_code=404, detail="Alumno no encontrado")
 
     cambios = data.dict(exclude_unset=True)
+
+    if 'sucursal_id' in cambios and cambios['sucursal_id']:
+        alumno.sucursal_id = cambios.pop('sucursal_id')
+
     for campo in ['programa_lectura', 'programa_matematicas', 'grado', 'diagnostico',
                   'horario', 'domicilio', 'escuela_procedencia', 'condicion_medica', 'objetivos']:
         if campo in cambios and cambios[campo] == '':

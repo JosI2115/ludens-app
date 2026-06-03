@@ -236,3 +236,51 @@ def get_maestras_sucursal(
         )
     ).all()
     return maestras
+
+@router.post("/{usuario_id}/reasignar-alumnos")
+def reasignar_alumnos(
+    usuario_id: str,
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    if current_user.rol != 'directora':
+        raise HTTPException(status_code=403, detail="Solo directora")
+
+    from app.models.alumno import Alumno
+    nueva_maestra_lectura_id = data.get('nueva_maestra_lectura_id')
+    nueva_maestra_matematicas_id = data.get('nueva_maestra_matematicas_id')
+
+    alumnos = db.query(Alumno).filter(
+        Alumno.activo == True,
+        Alumno.situacion.in_(['activo', 'inscripcion', 'becado', 'pendiente', 'en_riesgo']),
+        (Alumno.maestra_lectura_id == usuario_id) |
+        (Alumno.maestra_matematicas_id == usuario_id) |
+        (Alumno.maestra_id == usuario_id)
+    ).all()
+
+    count = 0
+    for alumno in alumnos:
+        if str(alumno.maestra_lectura_id) == usuario_id and nueva_maestra_lectura_id:
+            alumno.maestra_lectura_id = nueva_maestra_lectura_id
+        if str(alumno.maestra_matematicas_id) == usuario_id and nueva_maestra_matematicas_id:
+            alumno.maestra_matematicas_id = nueva_maestra_matematicas_id
+        if str(alumno.maestra_id) == usuario_id and nueva_maestra_lectura_id:
+            alumno.maestra_id = nueva_maestra_lectura_id
+
+        if alumno.horario_json:
+            import json
+            franjas = json.loads(alumno.horario_json)
+            for franja in franjas:
+                if franja.get('maestra_id') == usuario_id:
+                    if nueva_maestra_lectura_id and franja.get('materia') == 'lectura':
+                        franja['maestra_id'] = nueva_maestra_lectura_id
+                    elif nueva_maestra_matematicas_id and franja.get('materia') == 'matematicas':
+                        franja['maestra_id'] = nueva_maestra_matematicas_id
+                    elif nueva_maestra_lectura_id:
+                        franja['maestra_id'] = nueva_maestra_lectura_id
+            alumno.horario_json = json.dumps(franjas)
+        count += 1
+
+    db.commit()
+    return {"reasignados": count, "mensaje": f"{count} alumnos reasignados correctamente"}

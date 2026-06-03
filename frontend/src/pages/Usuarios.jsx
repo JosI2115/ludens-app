@@ -158,6 +158,7 @@ function ModalEditarUsuario({ usuario: u, sucursales, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [sucursalesUsuario, setSucursalesUsuario] = useState([])
+  const [modalReasignar, setModalReasignar] = useState(false)
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
 
   useEffect(() => {
@@ -317,6 +318,16 @@ function ModalEditarUsuario({ usuario: u, sucursales, onClose, onSuccess }) {
             </div>
           </div>
 
+          {usuario.rol === 'directora' && form.rol === 'maestra' && (
+            <button
+              type="button"
+              onClick={() => setModalReasignar(true)}
+              className="w-full bg-orange-100 hover:bg-orange-200 text-orange-700 py-2 rounded-lg text-sm font-medium mt-2"
+            >
+              👥 Reasignar alumnos a otra maestra
+            </button>
+          )}
+
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <div className="flex gap-3 pt-2">
@@ -331,6 +342,14 @@ function ModalEditarUsuario({ usuario: u, sucursales, onClose, onSuccess }) {
           </div>
         </div>
       </div>
+      {modalReasignar && (
+        <ModalReasignarAlumnos
+          maestra={u}
+          sucursales={sucursales}
+          onClose={() => setModalReasignar(false)}
+          onReasignado={() => { setModalReasignar(false); onSuccess() }}
+        />
+      )}
     </div>
   )
 }
@@ -503,6 +522,196 @@ function ModalNuevoUsuario({ sucursales, onClose, onSuccess }) {
             <button onClick={handleGuardar} disabled={loading}
               className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white py-2 rounded-lg text-sm font-medium">
               {loading ? 'Creando...' : 'Crear usuario'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ModalReasignarAlumnos({ maestra, sucursales, onClose, onReasignado }) {
+  const [modo, setModo] = useState('masivo')
+  const [maestrasDisponibles, setMaestrasDisponibles] = useState([])
+  const [alumnos, setAlumnos] = useState([])
+  const [asignaciones, setAsignaciones] = useState({})
+  const [cargando, setCargando] = useState(true)
+  const [guardando, setGuardando] = useState(false)
+  const [nuevaMaestraLectura, setNuevaMaestraLectura] = useState('')
+  const [nuevaMaestraMatematicas, setNuevaMaestraMatematicas] = useState('')
+
+  useEffect(() => {
+    setCargando(true)
+    api.get('/alumnos/', { params: { incluir_bajas: false } }).then(res => {
+      const misAlumnos = res.data.filter(a =>
+        a.maestra_lectura_id === maestra.id ||
+        a.maestra_matematicas_id === maestra.id ||
+        a.maestra_id === maestra.id
+      )
+      setAlumnos(misAlumnos)
+      const init = {}
+      misAlumnos.forEach(a => { init[a.id] = { lectura: '', matematicas: '' } })
+      setAsignaciones(init)
+      setCargando(false)
+    })
+    api.get('/usuarios/lista-basica').then(res => {
+      setMaestrasDisponibles(res.data.filter(u => u.rol === 'maestra' && u.id !== maestra.id))
+    })
+  }, [])
+
+  const handleReasignar = async () => {
+    if (modo === 'masivo') {
+      if (!nuevaMaestraLectura && !nuevaMaestraMatematicas) {
+        alert('Selecciona al menos una maestra destino')
+        return
+      }
+      if (!window.confirm(`¿Reasignar todos los alumnos de ${maestra.nombre}?`)) return
+      setGuardando(true)
+      try {
+        const res = await api.post(`/usuarios/${maestra.id}/reasignar-alumnos`, {
+          nueva_maestra_lectura_id: nuevaMaestraLectura || null,
+          nueva_maestra_matematicas_id: nuevaMaestraMatematicas || null
+        })
+        alert(`✅ ${res.data.reasignados} alumnos reasignados`)
+        onReasignado()
+        onClose()
+      } catch (err) {
+        alert('Error: ' + (err.response?.data?.detail || err.message))
+      } finally {
+        setGuardando(false)
+      }
+    } else {
+      const cambios = Object.entries(asignaciones).filter(([id, asig]) => asig.lectura || asig.matematicas)
+      if (cambios.length === 0) {
+        alert('No hay cambios seleccionados')
+        return
+      }
+      if (!window.confirm(`¿Aplicar cambios a ${cambios.length} alumnos?`)) return
+      setGuardando(true)
+      try {
+        await Promise.all(cambios.map(([alumnoId, asig]) =>
+          api.put(`/alumnos/${alumnoId}`, {
+            ...(asig.lectura ? { maestra_lectura_id: asig.lectura } : {}),
+            ...(asig.matematicas ? { maestra_matematicas_id: asig.matematicas } : {})
+          })
+        ))
+        alert(`✅ ${cambios.length} alumnos reasignados`)
+        onReasignado()
+        onClose()
+      } catch (err) {
+        alert('Error: ' + (err.response?.data?.detail || err.message))
+      } finally {
+        setGuardando(false)
+      }
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+        <div className="p-5 border-b flex justify-between items-center">
+          <h3 className="font-bold text-gray-800">👥 Reasignar alumnos de {maestra.nombre}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+        </div>
+        <div className="p-5 space-y-4">
+          <p className="text-sm text-gray-600">
+            Alumnos de <span className="font-medium">{maestra.nombre}</span>: {alumnos.length} en total
+          </p>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setModo('masivo')}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${modo === 'masivo' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            >
+              🔄 Reasignar todos
+            </button>
+            <button
+              onClick={() => setModo('individual')}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${modo === 'individual' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            >
+              ✏️ Por alumno
+            </button>
+          </div>
+
+          {modo === 'masivo' && (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nueva maestra de Lectura (para todos)</label>
+                <select value={nuevaMaestraLectura} onChange={e => setNuevaMaestraLectura(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                  <option value="">Sin cambio</option>
+                  {maestrasDisponibles.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nueva maestra de Matemáticas (para todos)</label>
+                <select value={nuevaMaestraMatematicas} onChange={e => setNuevaMaestraMatematicas(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+                  <option value="">Sin cambio</option>
+                  {maestrasDisponibles.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {modo === 'individual' && (cargando ? (
+            <p className="text-center text-gray-400 py-4">Cargando alumnos...</p>
+          ) : (
+            <div className="max-h-72 overflow-y-auto border rounded-lg divide-y">
+              {alumnos.length === 0 ? (
+                <p className="text-center text-gray-400 py-6 text-sm">Sin alumnos asignados</p>
+              ) : alumnos.map(alumno => (
+                <div key={alumno.id} className="p-3 bg-white hover:bg-gray-50">
+                  <p className="text-sm font-medium text-gray-800 mb-2">{alumno.nombre} {alumno.apellido}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(alumno.maestra_lectura_id === maestra.id || alumno.maestra_id === maestra.id) && (
+                      <div>
+                        <label className="text-xs text-gray-500 mb-1 block">Lectura → nueva maestra</label>
+                        <select
+                          value={asignaciones[alumno.id]?.lectura || ''}
+                          onChange={e => setAsignaciones(prev => ({
+                            ...prev,
+                            [alumno.id]: { ...prev[alumno.id], lectura: e.target.value }
+                          }))}
+                          className="w-full border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-purple-400"
+                        >
+                          <option value="">Sin cambio</option>
+                          {maestrasDisponibles.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    {alumno.maestra_matematicas_id === maestra.id && (
+                      <div>
+                        <label className="text-xs text-gray-500 mb-1 block">Matemáticas → nueva maestra</label>
+                        <select
+                          value={asignaciones[alumno.id]?.matematicas || ''}
+                          onChange={e => setAsignaciones(prev => ({
+                            ...prev,
+                            [alumno.id]: { ...prev[alumno.id], matematicas: e.target.value }
+                          }))}
+                          className="w-full border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-purple-400"
+                        >
+                          <option value="">Sin cambio</option>
+                          {maestrasDisponibles.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <p className="text-xs text-yellow-700">⚠️ Solo se actualizan los alumnos donde selecciones una nueva maestra.</p>
+          </div>
+
+          <div className="flex gap-3">
+            <button onClick={onClose}
+              className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg text-sm">Cancelar</button>
+            <button onClick={handleReasignar} disabled={guardando}
+              className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white py-2 rounded-lg text-sm font-medium">
+              {guardando ? 'Guardando...' : '👥 Aplicar cambios'}
             </button>
           </div>
         </div>

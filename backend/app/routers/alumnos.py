@@ -515,6 +515,8 @@ def get_perfil_alumno(
             "escuela_procedencia": alumno.escuela_procedencia,
             "condicion_medica": alumno.condicion_medica,
             "permiso_fotos": alumno.permiso_fotos,
+            "fecha_baja": str(alumno.fecha_baja) if alumno.fecha_baja else None,
+            "motivo_baja": alumno.motivo_baja,
         },
         "pagos": [{
             "id": str(p.id),

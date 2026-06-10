@@ -327,17 +327,29 @@ def get_calendario_maestras(
 
     fechas_semana = [inicio_semana + timedelta(days=i) for i in range(6)]
 
+    from app.models.usuario_sucursal import UsuarioSucursal
+    from sqlalchemy import or_
+
     if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
-        maestras = db.query(UsuarioModel).filter(
-            UsuarioModel.rol.in_(['maestra', 'encargada']),
-            UsuarioModel.activo == True,
-            UsuarioModel.sucursal_id == current_user.sucursal_id
-        ).all()
+        sucursal_filtro = current_user.sucursal_id
     elif sucursal_id:
+        sucursal_filtro = sucursal_id
+    else:
+        sucursal_filtro = None
+
+    if sucursal_filtro:
         maestras = db.query(UsuarioModel).filter(
             UsuarioModel.rol.in_(['maestra', 'encargada']),
             UsuarioModel.activo == True,
-            UsuarioModel.sucursal_id == sucursal_id
+            or_(
+                UsuarioModel.sucursal_id == sucursal_filtro,
+                UsuarioModel.es_global == True,
+                UsuarioModel.id.in_(
+                    db.query(UsuarioSucursal.usuario_id).filter(
+                        UsuarioSucursal.sucursal_id == sucursal_filtro
+                    )
+                )
+            )
         ).all()
     else:
         maestras = db.query(UsuarioModel).filter(
@@ -349,9 +361,6 @@ def get_calendario_maestras(
         Alumno.activo == True,
         Alumno.situacion.in_(['activo', 'inscripcion', 'becado', 'pendiente'])
     )
-
-    from app.models.usuario_sucursal import UsuarioSucursal
-    from sqlalchemy import or_
 
     if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
         if current_user.es_global:

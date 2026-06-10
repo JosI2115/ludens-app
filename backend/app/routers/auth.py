@@ -556,7 +556,8 @@ def dashboard_cumpleanos(
 
     query = db.query(Alumno).filter(
         Alumno.activo == True,
-        Alumno.fecha_nacimiento != None
+        Alumno.fecha_nacimiento != None,
+        Alumno.situacion != 'baja'
     )
 
     from app.models.usuario_sucursal import UsuarioSucursal

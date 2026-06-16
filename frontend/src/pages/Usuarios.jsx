@@ -262,15 +262,16 @@ function ModalEditarUsuario({ usuario: u, sucursales, onClose, onSuccess }) {
                     </label>
                   ))}
                 </div>
-                <label className="flex items-center gap-2 cursor-pointer mt-2 pt-2 border-t">
-                  <input type="checkbox"
-                    checked={form.es_global || false}
-                    onChange={e => setForm(f => ({...f, es_global: e.target.checked}))}
-                    className="w-4 h-4 text-purple-600 rounded"
-                  />
-                  <span className="text-sm text-gray-700">Maestra global (aparece en todas las sucursales)</span>
-                </label>
               </div>
+            </div>
+          )}
+          {form.rol !== 'directora' && (
+            <div className="flex items-center gap-2 mt-2">
+              <input type="checkbox"
+                checked={form.es_global || false}
+                onChange={e => setForm(f => ({...f, es_global: e.target.checked}))}
+                className="w-4 h-4 text-purple-600 rounded" />
+              <label className="text-sm text-gray-700">Acceso global (todas las sucursales)</label>
             </div>
           )}
           <div>
@@ -318,7 +319,7 @@ function ModalEditarUsuario({ usuario: u, sucursales, onClose, onSuccess }) {
             </div>
           </div>
 
-          {usuario.rol === 'directora' && form.rol === 'maestra' && (
+          {usuario.rol === 'directora' && (form.rol === 'maestra' || form.rol === 'encargada') && (
             <button
               type="button"
               onClick={() => setModalReasignar(true)}
@@ -469,15 +470,16 @@ function ModalNuevoUsuario({ sucursales, onClose, onSuccess }) {
                     </label>
                   ))}
                 </div>
-                <label className="flex items-center gap-2 cursor-pointer mt-2 pt-2 border-t">
-                  <input type="checkbox"
-                    checked={form.es_global || false}
-                    onChange={e => setForm(f => ({...f, es_global: e.target.checked}))}
-                    className="w-4 h-4 text-purple-600 rounded"
-                  />
-                  <span className="text-sm text-gray-700">Maestra global (aparece en todas las sucursales)</span>
-                </label>
               </div>
+            </div>
+          )}
+          {form.rol !== 'directora' && (
+            <div className="flex items-center gap-2 mt-2">
+              <input type="checkbox"
+                checked={form.es_global || false}
+                onChange={e => setForm(f => ({...f, es_global: e.target.checked}))}
+                className="w-4 h-4 text-purple-600 rounded" />
+              <label className="text-sm text-gray-700">Acceso global (todas las sucursales)</label>
             </div>
           )}
           {usuario.rol === 'directora' && (
@@ -555,7 +557,7 @@ function ModalReasignarAlumnos({ maestra, sucursales, onClose, onReasignado }) {
       setCargando(false)
     })
     api.get('/usuarios/lista-basica').then(res => {
-      setMaestrasDisponibles(res.data.filter(u => u.rol === 'maestra' && u.id !== maestra.id))
+      setMaestrasDisponibles(res.data.filter(u => (u.rol === 'maestra' || u.rol === 'encargada') && u.id !== maestra.id))
     })
   }, [])
 

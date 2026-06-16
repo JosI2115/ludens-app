@@ -81,10 +81,8 @@ def get_pagos(
         Alumno.situacion.in_(['activo', 'pendiente', 'en_riesgo', 'bloqueado'])
     )
 
-    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
-        query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
-    elif sucursal_id:
-        query = query.filter(Alumno.sucursal_id == sucursal_id)
+    from app.services.filtros import filtrar_alumnos_por_sucursal
+    query = filtrar_alumnos_por_sucursal(query, current_user, db, sucursal_id)
 
     import calendar
     ultimo_dia = calendar.monthrange(anio, mes)[1]
@@ -230,8 +228,8 @@ def resumen_pagos(
         Alumno.situacion.in_(['activo', 'pendiente', 'en_riesgo', 'bloqueado'])
     )
 
-    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
-        query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+    from app.services.filtros import filtrar_alumnos_por_sucursal
+    query = filtrar_alumnos_por_sucursal(query, current_user, db)
 
     alumnos = query.all()
     total = len(alumnos)
@@ -290,8 +288,8 @@ def get_tablero_pagos(
         Alumno.activo == True,
         Alumno.situacion.in_(['activo', 'pendiente', 'en_riesgo', 'bloqueado', 'becado', 'inscripcion'])
     )
-    if current_user.rol in ["maestra", "encargada", "recepcionista"]:
-        query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+    from app.services.filtros import filtrar_alumnos_por_sucursal
+    query = filtrar_alumnos_por_sucursal(query, current_user, db)
 
     alumnos = query.all()
 

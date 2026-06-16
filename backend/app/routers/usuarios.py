@@ -16,6 +16,7 @@ class UsuarioCreate(BaseModel):
     rol: str
     sucursal_id: Optional[str] = None
     color: Optional[str] = None
+    es_global: Optional[bool] = False
 
 class UsuarioUpdate(BaseModel):
     nombre: Optional[str] = None
@@ -47,6 +48,7 @@ def crear_usuario(
         rol=data.rol,
         sucursal_id=data.sucursal_id if data.sucursal_id else None,
         color=data.color,
+        es_global=data.es_global or False,
         activo=True
     )
     db.add(nuevo)

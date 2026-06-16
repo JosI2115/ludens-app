@@ -560,18 +560,8 @@ def dashboard_cumpleanos(
         Alumno.situacion != 'baja'
     )
 
-    from app.models.usuario_sucursal import UsuarioSucursal
-
-    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
-        if current_user.es_global:
-            sucursales_maestra = db.query(UsuarioSucursal.sucursal_id).filter(
-                UsuarioSucursal.usuario_id == current_user.id
-            ).all()
-            sucursal_ids = [s.sucursal_id for s in sucursales_maestra]
-            if sucursal_ids:
-                query = query.filter(Alumno.sucursal_id.in_(sucursal_ids))
-        elif current_user.sucursal_id:
-            query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
+    from app.services.filtros import filtrar_alumnos_por_sucursal
+    query = filtrar_alumnos_por_sucursal(query, current_user, db)
 
     alumnos = query.all()
 

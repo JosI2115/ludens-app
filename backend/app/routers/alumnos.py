@@ -154,18 +154,8 @@ def get_alumnos(
     if not incluir_bajas:
         query = query.filter(Alumno.situacion != 'baja')
 
-    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
-        from app.models.usuario_sucursal import UsuarioSucursal
-        sucursales_usuario = db.query(UsuarioSucursal).filter(
-            UsuarioSucursal.usuario_id == current_user.id
-        ).all()
-        if sucursales_usuario:
-            sucursal_ids = [us.sucursal_id for us in sucursales_usuario]
-            query = query.filter(Alumno.sucursal_id.in_(sucursal_ids))
-        elif current_user.sucursal_id:
-            query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
-    elif sucursal_id:
-        query = query.filter(Alumno.sucursal_id == sucursal_id)
+    from app.services.filtros import filtrar_alumnos_por_sucursal
+    query = filtrar_alumnos_por_sucursal(query, current_user, db, sucursal_id)
 
     if situacion:
         query = query.filter(Alumno.situacion == situacion)

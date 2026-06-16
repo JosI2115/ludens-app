@@ -91,8 +91,11 @@ def get_informes(
     current_user: Usuario = Depends(get_current_user)
 ):
     query = db.query(Informe)
-    if current_user.rol == 'encargada' and not current_user.es_encargada_general:
-        from sqlalchemy import or_
+    from sqlalchemy import or_
+    if current_user.rol == 'directora' or current_user.es_encargada_general or current_user.es_global:
+        if sucursal_id:
+            query = query.filter(Informe.sucursal_id == sucursal_id)
+    elif current_user.rol == 'encargada':
         query = query.filter(
             or_(
                 Informe.sucursal_id == current_user.sucursal_id,

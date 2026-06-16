@@ -33,7 +33,7 @@ export default function Calendario() {
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
 
   useEffect(() => {
-    if (usuario.rol === 'directora' || usuario.rol === 'contadora' || usuario.es_encargada_general) {
+    if (usuario.rol === 'directora' || usuario.rol === 'contadora' || usuario.es_encargada_general || usuario.es_global) {
       api.get('/sucursales/').then(res => setSucursales(res.data))
     }
     cargarCalendario()
@@ -184,7 +184,7 @@ export default function Calendario() {
               📊 Espacios
             </button>
           </div>
-          {(usuario.rol === 'directora' || usuario.rol === 'contadora' || usuario.es_encargada_general) && (
+          {(usuario.rol === 'directora' || usuario.rol === 'contadora' || usuario.es_encargada_general || usuario.es_global) && (
             <select
               value={sucursalFiltro}
               onChange={e => setSucursalFiltro(e.target.value)}

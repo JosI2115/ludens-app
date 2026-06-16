@@ -32,7 +32,7 @@ export default function Pagos() {
   const [sucursales, setSucursales] = useState([])
   const [filtroSucursal, setFiltroSucursal] = useState('')
 
-  const puedeVerSucursales = usuario.rol === 'directora' || usuario.rol === 'contadora'
+  const puedeVerSucursales = usuario.rol === 'directora' || usuario.rol === 'contadora' || usuario.es_encargada_general || usuario.es_global
 
   useEffect(() => {
     if (puedeVerSucursales) {
@@ -47,7 +47,7 @@ export default function Pagos() {
 
   const cargarTablero = async () => {
     try {
-      const res = await pagosService.tablero({ mes, anio })
+      const res = await pagosService.tablero({ mes, anio, sucursal_id: filtroSucursal || undefined })
       setTablero(res.data)
     } catch (err) {
       console.error('Error cargando tablero')

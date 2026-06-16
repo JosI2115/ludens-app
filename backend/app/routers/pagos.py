@@ -273,6 +273,7 @@ def resumen_pagos(
 def get_tablero_pagos(
     mes: Optional[int] = None,
     anio: Optional[int] = None,
+    sucursal_id: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
@@ -289,7 +290,7 @@ def get_tablero_pagos(
         Alumno.situacion.in_(['activo', 'pendiente', 'en_riesgo', 'bloqueado', 'becado', 'inscripcion'])
     )
     from app.services.filtros import filtrar_alumnos_por_sucursal
-    query = filtrar_alumnos_por_sucursal(query, current_user, db)
+    query = filtrar_alumnos_por_sucursal(query, current_user, db, sucursal_id)
 
     alumnos = query.all()
 

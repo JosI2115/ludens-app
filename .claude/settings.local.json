@@ -5,7 +5,8 @@
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
       "Bash(python -m py_compile app/routers/usuarios.py app/routers/alumnos.py app/routers/pagos.py app/services/filtros.py)",
-      "Bash(python -m py_compile app/routers/auth.py)"
+      "Bash(python -m py_compile app/routers/auth.py)",
+      "Bash(python -m py_compile app/routers/informes.py app/routers/pagos.py)"
     ]
   }
 }

@@ -177,6 +177,8 @@ def actualizar_usuario(
         usuario.color = data.color
     if data.es_global is not None:
         usuario.es_global = data.es_global
+        if data.es_global:
+            usuario.sucursal_id = None
     if data.es_encargada_general is not None:
         usuario.es_encargada_general = data.es_encargada_general
 

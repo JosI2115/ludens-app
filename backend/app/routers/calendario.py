@@ -134,18 +134,20 @@ def get_calendario_semana(
     from app.models.usuario_sucursal import UsuarioSucursal
     from sqlalchemy import or_
 
-    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
-        if current_user.es_global:
-            sucursales_maestra = db.query(UsuarioSucursal.sucursal_id).filter(
-                UsuarioSucursal.usuario_id == current_user.id
-            ).all()
-            sucursal_ids = [s.sucursal_id for s in sucursales_maestra]
-            if sucursal_ids:
-                query = query.filter(Alumno.sucursal_id.in_(sucursal_ids))
+    if current_user.rol == 'directora' or current_user.es_encargada_general or current_user.es_global:
+        # Acceso total: filtrar solo si llega sucursal_id explícito
+        if sucursal_id:
+            query = query.filter(Alumno.sucursal_id == sucursal_id)
+    elif current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        # Verificar usuario_sucursales primero
+        sucursales_usuario = db.query(UsuarioSucursal.sucursal_id).filter(
+            UsuarioSucursal.usuario_id == current_user.id
+        ).all()
+        sucursal_ids = [s.sucursal_id for s in sucursales_usuario]
+        if sucursal_ids:
+            query = query.filter(Alumno.sucursal_id.in_(sucursal_ids))
         elif current_user.sucursal_id:
             query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
-    elif sucursal_id:
-        query = query.filter(Alumno.sucursal_id == sucursal_id)
 
     alumnos = query.all()
 
@@ -330,50 +332,59 @@ def get_calendario_maestras(
     from app.models.usuario_sucursal import UsuarioSucursal
     from sqlalchemy import or_
 
-    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
-        sucursal_filtro = current_user.sucursal_id
-    elif sucursal_id:
-        sucursal_filtro = sucursal_id
+    # Determinar sucursales accesibles (misma lógica que alumnos)
+    if current_user.rol == 'directora' or current_user.es_encargada_general or current_user.es_global:
+        # Acceso total: filtrar solo si llega sucursal_id explícito
+        sucursal_ids_acceso = [sucursal_id] if sucursal_id else None
+    elif current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        # Verificar usuario_sucursales primero
+        sucursales_usuario = db.query(UsuarioSucursal.sucursal_id).filter(
+            UsuarioSucursal.usuario_id == current_user.id
+        ).all()
+        sucursal_ids_acceso = [s.sucursal_id for s in sucursales_usuario]
+        if not sucursal_ids_acceso and current_user.sucursal_id:
+            sucursal_ids_acceso = [current_user.sucursal_id]
     else:
-        sucursal_filtro = None
+        sucursal_ids_acceso = None
 
-    if sucursal_filtro:
-        maestras = db.query(UsuarioModel).filter(
-            UsuarioModel.rol.in_(['maestra', 'encargada']),
-            UsuarioModel.activo == True,
+    base_maestras = db.query(UsuarioModel).filter(
+        UsuarioModel.rol.in_(['maestra', 'encargada']),
+        UsuarioModel.activo == True
+    )
+    if sucursal_ids_acceso:
+        maestras = base_maestras.filter(
             or_(
-                UsuarioModel.sucursal_id == sucursal_filtro,
+                UsuarioModel.sucursal_id.in_(sucursal_ids_acceso),
                 UsuarioModel.es_global == True,
                 UsuarioModel.id.in_(
                     db.query(UsuarioSucursal.usuario_id).filter(
-                        UsuarioSucursal.sucursal_id == sucursal_filtro
+                        UsuarioSucursal.sucursal_id.in_(sucursal_ids_acceso)
                     )
                 )
             )
         ).all()
     else:
-        maestras = db.query(UsuarioModel).filter(
-            UsuarioModel.rol.in_(['maestra', 'encargada']),
-            UsuarioModel.activo == True
-        ).all()
+        maestras = base_maestras.all()
 
     query = db.query(Alumno).filter(
         Alumno.activo == True,
         Alumno.situacion.in_(['activo', 'inscripcion', 'becado', 'pendiente'])
     )
 
-    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
-        if current_user.es_global:
-            sucursales_maestra = db.query(UsuarioSucursal.sucursal_id).filter(
-                UsuarioSucursal.usuario_id == current_user.id
-            ).all()
-            sucursal_ids = [s.sucursal_id for s in sucursales_maestra]
-            if sucursal_ids:
-                query = query.filter(Alumno.sucursal_id.in_(sucursal_ids))
+    if current_user.rol == 'directora' or current_user.es_encargada_general or current_user.es_global:
+        # Acceso total: filtrar solo si llega sucursal_id explícito
+        if sucursal_id:
+            query = query.filter(Alumno.sucursal_id == sucursal_id)
+    elif current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        # Verificar usuario_sucursales primero
+        sucursales_usuario = db.query(UsuarioSucursal.sucursal_id).filter(
+            UsuarioSucursal.usuario_id == current_user.id
+        ).all()
+        sucursal_ids = [s.sucursal_id for s in sucursales_usuario]
+        if sucursal_ids:
+            query = query.filter(Alumno.sucursal_id.in_(sucursal_ids))
         elif current_user.sucursal_id:
             query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
-    elif sucursal_id:
-        query = query.filter(Alumno.sucursal_id == sucursal_id)
 
     alumnos = query.all()
 
@@ -461,21 +472,29 @@ def get_espacios_maestra(
         UsuarioModel.activo == True
     )
 
-    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
-        sucursal_filtro = current_user.sucursal_id
-    elif sucursal_id:
-        sucursal_filtro = sucursal_id
+    # Determinar sucursales accesibles (misma lógica que alumnos)
+    if current_user.rol == 'directora' or current_user.es_encargada_general or current_user.es_global:
+        # Acceso total: filtrar solo si llega sucursal_id explícito
+        sucursal_ids_acceso = [sucursal_id] if sucursal_id else None
+    elif current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        # Verificar usuario_sucursales primero
+        sucursales_usuario = db.query(UsuarioSucursal.sucursal_id).filter(
+            UsuarioSucursal.usuario_id == current_user.id
+        ).all()
+        sucursal_ids_acceso = [s.sucursal_id for s in sucursales_usuario]
+        if not sucursal_ids_acceso and current_user.sucursal_id:
+            sucursal_ids_acceso = [current_user.sucursal_id]
     else:
-        sucursal_filtro = None
+        sucursal_ids_acceso = None
 
-    if sucursal_filtro:
+    if sucursal_ids_acceso:
         query_maestras = query_maestras.filter(
             or_(
-                UsuarioModel.sucursal_id == sucursal_filtro,
+                UsuarioModel.sucursal_id.in_(sucursal_ids_acceso),
                 UsuarioModel.es_global == True,
                 UsuarioModel.id.in_(
                     db.query(UsuarioSucursal.usuario_id).filter(
-                        UsuarioSucursal.sucursal_id == sucursal_filtro
+                        UsuarioSucursal.sucursal_id.in_(sucursal_ids_acceso)
                     )
                 )
             )
@@ -487,10 +506,20 @@ def get_espacios_maestra(
         Alumno.activo == True,
         Alumno.situacion.in_(['activo', 'inscripcion', 'becado', 'pendiente'])
     )
-    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
-        query_alumnos = query_alumnos.filter(Alumno.sucursal_id == current_user.sucursal_id)
-    elif sucursal_id:
-        query_alumnos = query_alumnos.filter(Alumno.sucursal_id == sucursal_id)
+    if current_user.rol == 'directora' or current_user.es_encargada_general or current_user.es_global:
+        # Acceso total: filtrar solo si llega sucursal_id explícito
+        if sucursal_id:
+            query_alumnos = query_alumnos.filter(Alumno.sucursal_id == sucursal_id)
+    elif current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        # Verificar usuario_sucursales primero
+        sucursales_usuario = db.query(UsuarioSucursal.sucursal_id).filter(
+            UsuarioSucursal.usuario_id == current_user.id
+        ).all()
+        sucursal_ids = [s.sucursal_id for s in sucursales_usuario]
+        if sucursal_ids:
+            query_alumnos = query_alumnos.filter(Alumno.sucursal_id.in_(sucursal_ids))
+        elif current_user.sucursal_id:
+            query_alumnos = query_alumnos.filter(Alumno.sucursal_id == current_user.sucursal_id)
 
     alumnos = query_alumnos.all()
 
@@ -553,18 +582,20 @@ def get_nuevos_alumnos(
     from app.models.usuario_sucursal import UsuarioSucursal
     from sqlalchemy import or_
 
-    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
-        if current_user.es_global:
-            sucursales_maestra = db.query(UsuarioSucursal.sucursal_id).filter(
-                UsuarioSucursal.usuario_id == current_user.id
-            ).all()
-            sucursal_ids = [s.sucursal_id for s in sucursales_maestra]
-            if sucursal_ids:
-                query = query.filter(Alumno.sucursal_id.in_(sucursal_ids))
+    if current_user.rol == 'directora' or current_user.es_encargada_general or current_user.es_global:
+        # Acceso total: filtrar solo si llega sucursal_id explícito
+        if sucursal_id:
+            query = query.filter(Alumno.sucursal_id == sucursal_id)
+    elif current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        # Verificar usuario_sucursales primero
+        sucursales_usuario = db.query(UsuarioSucursal.sucursal_id).filter(
+            UsuarioSucursal.usuario_id == current_user.id
+        ).all()
+        sucursal_ids = [s.sucursal_id for s in sucursales_usuario]
+        if sucursal_ids:
+            query = query.filter(Alumno.sucursal_id.in_(sucursal_ids))
         elif current_user.sucursal_id:
             query = query.filter(Alumno.sucursal_id == current_user.sucursal_id)
-    elif sucursal_id:
-        query = query.filter(Alumno.sucursal_id == sucursal_id)
 
     alumnos = query.order_by(Alumno.fecha_ingreso).all()
 
@@ -626,10 +657,21 @@ def get_prospectos(
         ProspectoCalendario.fecha >= inicio,
         ProspectoCalendario.fecha <= fin
     )
-    if current_user.rol in ["maestra", "encargada", "recepcionista"] and not current_user.es_encargada_general:
-        query = query.filter(ProspectoCalendario.sucursal_id == current_user.sucursal_id)
-    elif sucursal_id:
-        query = query.filter(ProspectoCalendario.sucursal_id == sucursal_id)
+    from app.models.usuario_sucursal import UsuarioSucursal
+    if current_user.rol == 'directora' or current_user.es_encargada_general or current_user.es_global:
+        # Acceso total: filtrar solo si llega sucursal_id explícito
+        if sucursal_id:
+            query = query.filter(ProspectoCalendario.sucursal_id == sucursal_id)
+    elif current_user.rol in ["maestra", "encargada", "recepcionista"]:
+        # Verificar usuario_sucursales primero
+        sucursales_usuario = db.query(UsuarioSucursal.sucursal_id).filter(
+            UsuarioSucursal.usuario_id == current_user.id
+        ).all()
+        sucursal_ids = [s.sucursal_id for s in sucursales_usuario]
+        if sucursal_ids:
+            query = query.filter(ProspectoCalendario.sucursal_id.in_(sucursal_ids))
+        elif current_user.sucursal_id:
+            query = query.filter(ProspectoCalendario.sucursal_id == current_user.sucursal_id)
 
     prospectos = query.all()
     return [{

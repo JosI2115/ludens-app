@@ -269,7 +269,11 @@ function ModalEditarUsuario({ usuario: u, sucursales, onClose, onSuccess }) {
             <div className="flex items-center gap-2 mt-2">
               <input type="checkbox"
                 checked={form.es_global || false}
-                onChange={e => setForm(f => ({...f, es_global: e.target.checked}))}
+                onChange={e => setForm(f => ({
+                  ...f,
+                  es_global: e.target.checked,
+                  sucursal_id: e.target.checked ? '' : f.sucursal_id
+                }))}
                 className="w-4 h-4 text-purple-600 rounded" />
               <label className="text-sm text-gray-700">Acceso global (todas las sucursales)</label>
             </div>

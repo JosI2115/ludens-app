@@ -57,6 +57,7 @@ def calcular_comisiones(
         alumnos_inscritos = db.query(Alumno).filter(
             Alumno.sucursal_id == suc.id,
             Alumno.activo == True,
+            Alumno.situacion == 'activo',
             Alumno.fecha_ingreso.between(primer_dia, ultimo_dia)
         ).all()
 

@@ -221,9 +221,14 @@ function ModalEditarUsuario({ usuario: u, sucursales, onClose, onSuccess }) {
           {form.rol !== 'maestra' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Sucursal</label>
-              <select name="sucursal_id" value={form.sucursal_id} onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
-                <option value="">Global (todas las sucursales)</option>
+              <select
+                name="sucursal_id"
+                value={form.sucursal_id || ''}
+                onChange={handleChange}
+                disabled={form.es_global}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 disabled:bg-gray-100"
+              >
+                <option value="">Seleccionar sucursal</option>
                 {sucursales.map(s => (
                   <option key={s.id} value={s.id}>{s.nombre}</option>
                 ))}
@@ -433,9 +438,14 @@ function ModalNuevoUsuario({ sucursales, onClose, onSuccess }) {
           {form.rol !== 'maestra' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Sucursal</label>
-              <select name="sucursal_id" value={form.sucursal_id} onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
-                <option value="">Global (todas las sucursales)</option>
+              <select
+                name="sucursal_id"
+                value={form.sucursal_id || ''}
+                onChange={handleChange}
+                disabled={form.es_global}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 disabled:bg-gray-100"
+              >
+                <option value="">Seleccionar sucursal</option>
                 {sucursales.map(s => (
                   <option key={s.id} value={s.id}>{s.nombre}</option>
                 ))}
@@ -481,7 +491,11 @@ function ModalNuevoUsuario({ sucursales, onClose, onSuccess }) {
             <div className="flex items-center gap-2 mt-2">
               <input type="checkbox"
                 checked={form.es_global || false}
-                onChange={e => setForm(f => ({...f, es_global: e.target.checked}))}
+                onChange={e => setForm(f => ({
+                  ...f,
+                  es_global: e.target.checked,
+                  sucursal_id: e.target.checked ? '' : f.sucursal_id
+                }))}
                 className="w-4 h-4 text-purple-600 rounded" />
               <label className="text-sm text-gray-700">Acceso global (todas las sucursales)</label>
             </div>

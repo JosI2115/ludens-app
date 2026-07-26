@@ -740,14 +740,29 @@ def get_avisos(
     if current_user.rol == 'directora' or current_user.es_encargada_general:
         avisos = db.query(Aviso).filter(Aviso.activo == True).order_by(Aviso.created_at.desc()).limit(5).all()
     else:
+        from app.models.usuario_sucursal import UsuarioSucursal
         directoras_ids = [str(u.id) for u in db.query(Usuario).filter(Usuario.rol == 'directora').all()]
-        avisos = db.query(Aviso).filter(
-            Aviso.activo == True,
-            or_(
-                Aviso.autor_sucursal_id == current_user.sucursal_id,
-                Aviso.autor_id.in_(directoras_ids)
-            )
-        ).order_by(Aviso.created_at.desc()).limit(5).all()
+
+        # Obtener todas las sucursales del usuario
+        sucursales_usuario = []
+        if current_user.sucursal_id:
+            sucursales_usuario.append(current_user.sucursal_id)
+        sucs_tabla = db.query(UsuarioSucursal.sucursal_id).filter(
+            UsuarioSucursal.usuario_id == current_user.id
+        ).all()
+        sucursales_usuario.extend([s.sucursal_id for s in sucs_tabla])
+
+        if current_user.es_global:
+            # Usuario global ve todos los avisos
+            avisos = db.query(Aviso).filter(Aviso.activo == True).order_by(Aviso.created_at.desc()).limit(5).all()
+        else:
+            avisos = db.query(Aviso).filter(
+                Aviso.activo == True,
+                or_(
+                    Aviso.autor_sucursal_id.in_(sucursales_usuario) if sucursales_usuario else False,
+                    Aviso.autor_id.in_(directoras_ids)
+                )
+            ).order_by(Aviso.created_at.desc()).limit(5).all()
     return [{
         "id": str(a.id),
         "mensaje": a.mensaje,

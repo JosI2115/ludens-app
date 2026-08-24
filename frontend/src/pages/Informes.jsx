@@ -554,11 +554,19 @@ function ModalInforme({ informe, sucursales, usuarios, onClose, onSuccess }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Comisión — persona 1</label>
-              <select name="comision_usuario1_id" value={form.comision_usuario1_id} onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400">
+              <select
+                name="comision_usuario1_id"
+                value={form.comision_usuario1_id || ''}
+                onChange={handleChange}
+                disabled={informe && informe.registrado_por !== usuario.id && usuario.rol !== 'directora'}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 disabled:bg-gray-100"
+              >
                 <option value="">Sin asignar</option>
                 {usuarios.map(u => <option key={u.id} value={u.id}>{u.nombre}</option>)}
               </select>
+              {informe && informe.registrado_por !== usuario.id && usuario.rol !== 'directora' && (
+                <p className="text-xs text-gray-400 mt-1">🔒 Comisión 1 solo puede cambiarla quien creó el informe</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Comisión — persona 2</label>

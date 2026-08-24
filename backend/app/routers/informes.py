@@ -186,9 +186,11 @@ def actualizar_informe(
 
     cambios = data.dict(exclude_unset=True)
 
-    if 'comision_usuario1_id' in cambios or 'comision_usuario2_id' in cambios:
+    # Solo el creador original o la directora pueden cambiar Comisión 1
+    if 'comision_usuario1_id' in cambios:
         if current_user.rol != 'directora' and str(inf.registrado_por) != str(current_user.id):
-            raise HTTPException(status_code=403, detail="Solo quien registró el informe o la directora puede modificar las comisiones")
+            # Ignorar el cambio de comision_usuario1_id, mantener el original
+            cambios.pop('comision_usuario1_id', None)
 
     for campo, valor in cambios.items():
         if campo in ['fecha_diagnostico', 'ultimo_contacto', 'fecha_solicitud'] and valor:

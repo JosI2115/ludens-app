@@ -71,9 +71,38 @@ def eliminar_usuario(
     if usuario.email == "andrea@ludens.com":
         raise HTTPException(status_code=400, detail="No puedes eliminar a la directora")
 
-    db.delete(usuario)
+    from app.models.alumno import Alumno
+    from app.models.usuario_sucursal import UsuarioSucursal
+    import json
+
+    # Liberar alumnos asignados (día a día)
+    db.query(Alumno).filter(Alumno.maestra_id == usuario_id).update({Alumno.maestra_id: None})
+    db.query(Alumno).filter(Alumno.maestra_lectura_id == usuario_id).update({Alumno.maestra_lectura_id: None})
+    db.query(Alumno).filter(Alumno.maestra_matematicas_id == usuario_id).update({Alumno.maestra_matematicas_id: None})
+
+    # Limpiar franjas de horario_json
+    alumnos_con_horario = db.query(Alumno).filter(Alumno.horario_json != None).all()
+    for a in alumnos_con_horario:
+        try:
+            franjas = json.loads(a.horario_json)
+            cambio = False
+            for f in franjas:
+                if f.get('maestra_id') == usuario_id:
+                    f['maestra_id'] = ''
+                    cambio = True
+            if cambio:
+                a.horario_json = json.dumps(franjas)
+        except:
+            pass
+
+    # Eliminar asignaciones de sucursal
+    db.query(UsuarioSucursal).filter(UsuarioSucursal.usuario_id == usuario_id).delete()
+
+    # Soft delete: marcar como eliminado (conserva historial, desaparece de listas)
+    usuario.eliminado = True
+
     db.commit()
-    return {"mensaje": "Usuario eliminado"}
+    return {"mensaje": "Usuario eliminado. Su historial se conserva."}
 
 @router.get("/{usuario_id}/sucursales")
 def get_sucursales_usuario(
@@ -122,7 +151,10 @@ def get_usuarios(
     from app.models.usuario_sucursal import UsuarioSucursal
     from app.models.sucursal import Sucursal
 
-    usuarios = db.query(Usuario).order_by(Usuario.nombre).all()
+    query = db.query(Usuario)
+    from sqlalchemy import or_
+    query = query.filter(or_(Usuario.eliminado == False, Usuario.eliminado.is_(None)))
+    usuarios = query.order_by(Usuario.nombre).all()
     resultado = []
     for u in usuarios:
         sucursal_nombre = None

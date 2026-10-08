@@ -98,6 +98,13 @@ def eliminar_usuario(
     # Eliminar asignaciones de sucursal
     db.query(UsuarioSucursal).filter(UsuarioSucursal.usuario_id == usuario_id).delete()
 
+    # Eliminar tareas asignadas pendientes
+    from app.models.aviso import TareaAsignada
+    db.query(TareaAsignada).filter(
+        TareaAsignada.asignada_a == usuario_id,
+        TareaAsignada.completada == False
+    ).delete()
+
     # Soft delete: marcar como eliminado (conserva historial, desaparece de listas)
     usuario.eliminado = True
 

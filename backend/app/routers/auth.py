@@ -543,6 +543,21 @@ def ver_notificacion_tarea(
         db.commit()
     return {"mensaje": "OK"}
 
+@router.delete("/tareas-asignadas/{tarea_id}")
+def eliminar_tarea_asignada(
+    tarea_id: str,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    from app.models.aviso import TareaAsignada
+    if current_user.rol != 'directora':
+        raise HTTPException(status_code=403, detail="Solo la directora")
+    tarea = db.query(TareaAsignada).filter(TareaAsignada.id == tarea_id).first()
+    if tarea:
+        db.delete(tarea)
+        db.commit()
+    return {"mensaje": "Tarea eliminada"}
+
 @router.get("/dashboard/cumpleanos")
 def dashboard_cumpleanos(
     mes: int = None,

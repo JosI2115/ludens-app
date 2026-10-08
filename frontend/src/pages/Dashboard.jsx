@@ -126,6 +126,17 @@ export default function Dashboard() {
     }
   }
 
+  const eliminarTareaAsignada = async (tarea_id) => {
+    if (!window.confirm('¿Eliminar esta tarea asignada?')) return
+    try {
+      await api.delete(`/auth/tareas-asignadas/${tarea_id}`)
+      cargarTareasAsignadas()
+      cargarPendientes()
+    } catch (err) {
+      console.error('Error eliminando tarea')
+    }
+  }
+
   const cargarAvisos = async () => {
     try {
       const res = await api.get('/auth/avisos')
@@ -342,6 +353,13 @@ export default function Dashboard() {
                         <p className="text-xs text-purple-600 font-medium">{t.asignada_a_nombre}</p>
                         <p className="text-sm text-gray-700">{t.texto}</p>
                       </div>
+                      <button
+                        onClick={() => eliminarTareaAsignada(t.id)}
+                        className="text-red-400 hover:text-red-600 text-sm ml-2 flex-shrink-0"
+                        title="Eliminar tarea"
+                      >
+                        🗑️
+                      </button>
                     </div>
                   ))}
                 </div>

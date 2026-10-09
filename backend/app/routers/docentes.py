@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from typing import Optional
 from pydantic import BaseModel
 from datetime import date
@@ -51,7 +52,8 @@ def get_actividad(
     # Obtener usuarios relevantes
     usuarios_query = db.query(Usuario).filter(
         Usuario.activo == True,
-        Usuario.rol.in_(["maestra", "encargada"])
+        Usuario.rol.in_(["maestra", "encargada"]),
+        or_(Usuario.eliminado == False, Usuario.eliminado.is_(None))
     )
     if not puede_ver_todas(current_user):
         usuarios_query = usuarios_query.filter(Usuario.id == current_user.id)

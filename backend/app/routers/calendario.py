@@ -349,7 +349,8 @@ def get_calendario_maestras(
 
     base_maestras = db.query(UsuarioModel).filter(
         UsuarioModel.rol.in_(['maestra', 'encargada']),
-        UsuarioModel.activo == True
+        UsuarioModel.activo == True,
+        or_(UsuarioModel.eliminado == False, UsuarioModel.eliminado.is_(None))
     )
     if sucursal_ids_acceso:
         maestras = base_maestras.filter(
@@ -469,7 +470,8 @@ def get_espacios_maestra(
 
     query_maestras = db.query(UsuarioModel).filter(
         UsuarioModel.rol.in_(['maestra', 'encargada']),
-        UsuarioModel.activo == True
+        UsuarioModel.activo == True,
+        or_(UsuarioModel.eliminado == False, UsuarioModel.eliminado.is_(None))
     )
 
     # Determinar sucursales accesibles (misma lógica que alumnos)

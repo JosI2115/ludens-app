@@ -100,7 +100,7 @@ export default function Informes() {
 
     try {
       let usrRes
-      if (usuario.rol === 'directora' || usuario.es_encargada_general) {
+      if (usuario.rol === 'directora') {
         usrRes = await usuariosService.getAll()
       } else {
         usrRes = await api.get('/usuarios/lista-basica')

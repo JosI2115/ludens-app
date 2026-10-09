@@ -381,7 +381,20 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess, onPagoRegis
     return diaPago >= 26 && diaHoy <= 8
   }
 
-  const conPenalizacion = alumno.dias_retraso > 5
+  const calcularDiasRetraso = (diaPago, fechaRecepcionStr) => {
+    const fechaRef = fechaRecepcionStr ? new Date(fechaRecepcionStr + 'T12:00:00') : new Date()
+    const anio = fechaRef.getFullYear()
+    const mes = fechaRef.getMonth()
+    const ultimoDia = new Date(anio, mes + 1, 0).getDate()
+    const dia = Math.min(diaPago, ultimoDia)
+    const fechaPago = new Date(anio, mes, dia, 12, 0, 0)
+    if (fechaPago >= fechaRef) return 0
+    const diff = Math.floor((fechaRef - fechaPago) / (1000 * 60 * 60 * 24))
+    return diff
+  }
+
+  const diasRetrasoCalc = calcularDiasRetraso(alumno.dia_pago, fechaRecepcion)
+  const conPenalizacion = diasRetrasoCalc > 5 && !sinRecargo
   const monto = Number(alumno.plan_pago) || 0
   const montoTotal = monto + (conPenalizacion ? 50 : 0)
 
@@ -479,7 +492,7 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess, onPagoRegis
               <span className="text-gray-600">Mensualidad</span>
               <span className="font-medium">${monto.toLocaleString()}</span>
             </div>
-            {conPenalizacion && (
+            {diasRetrasoCalc > 5 && (
               <div className="flex justify-between text-sm">
                 <span className="text-orange-600">Penalización por retraso</span>
                 <span className="font-medium text-orange-600">+$50</span>
@@ -491,10 +504,8 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess, onPagoRegis
             </div>
           </div>
 
-          {conPenalizacion && (
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-xs text-orange-700">
-              Este alumno tiene {alumno.dias_retraso} días de retraso. Se aplica recargo de $50.
-            </div>
+          {diasRetrasoCalc > 5 && (
+            <p className="text-xs text-gray-500">Este alumno tiene {diasRetrasoCalc} días de retraso. Se aplica recargo de $50.</p>
           )}
 
           <div>
@@ -546,7 +557,7 @@ function ModalRegistrarPago({ alumno, mes, anio, onClose, onSuccess, onPagoRegis
             <p className="text-xs text-gray-400 mt-1">Solo si el monto recibido es diferente al plan. No modifica el plan mensual.</p>
           </div>
 
-          {conPenalizacion && (
+          {diasRetrasoCalc > 5 && (
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={sinRecargo} onChange={e => setSinRecargo(e.target.checked)}
                 className="w-4 h-4 text-purple-600 rounded" />

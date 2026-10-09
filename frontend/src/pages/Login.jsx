@@ -35,7 +35,7 @@ export default function Login() {
           <p className="text-gray-500 text-sm mt-1">Clases de Regularización</p>
         </div>
 
-        <div className="space-y-4">
+        <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Correo electrónico
@@ -69,14 +69,13 @@ export default function Login() {
           )}
 
           <button
-            type="button"
-            onClick={handleSubmit}
+            type="submit"
             disabled={loading || !email || !password}
             className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white font-semibold py-2 rounded-lg transition"
           >
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
-        </div>
+        </form>
 
       </div>
     </div>
